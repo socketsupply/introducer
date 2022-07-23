@@ -26,6 +26,8 @@ class Introducer {
     // if one is easy, one hard, birthday paradox connection
     // if both are hard, choose an easy peer to be relay, the two peers bdp to the easy peer.
     //    then relay their messages through that peer
+    //    OR just error, and expect apps to handle case where not every pair can communicate
+    //    OR let the peers decide who can replay, maybe they already have a mutual peer?
     var peer = this.peers[msg.target]
     if(peer) {
       //tell the target peer to connect, and also tell the source peer the addr/port to connect to.
@@ -50,13 +52,15 @@ function checkNat(peer) {
       if(!port)
         port = _peer.pong.port
       else if(_peer.pong.port != port) {
-        peer.nat = 'hard'
+        if(peer.nat != 'hard')
+        peer.on_nat(peer.nat = 'hard')
         if(update) peer.ping(peer.introducer1)
         return
       }
   }
   if(update) peer.ping(peer.introducer1)
-  peer.nat = 'easy'
+  if(peer.nat != 'easy')
+    peer.on_nat(peer.nat = 'easy')
   
 }
 
@@ -75,6 +79,9 @@ class Peer {
       for(var k in this.introducers)
         this.ping(this.introducers[k])
     })
+  }
+  on_nat (type) {
+    //override this to implement behaviour for when nat is detected.
   }
   ping (addr) {
     this.send({type:'ping', id:this.id, nat:this.nat}, addr, port)
