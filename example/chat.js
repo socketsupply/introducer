@@ -4,6 +4,14 @@ function cmpTs (a, b) {
 }
 var Peer = require('../').Peer
 
+/*
+  currently introducer doesn't have a _swarm_ concept but I'm contemplating that.
+  that is, enable just make connections randomly to peers that have expressed interest in that group.
+
+  since I don't have a swarm concept, I could add it here, on top of this.
+
+*/
+
 class ChatPeer extends Peer {
   //send a chat message to everyone
   chat ({name, content, ts = Date.now()}) {
@@ -11,6 +19,11 @@ class ChatPeer extends Peer {
       this.send({type: 'chat', id: this.id, name, content, ts, state: state.hash})
     }
   }
+
+  //i've used a on_{msg.type} pattern
+  //but sometimes I need an event (to be used for protocol extention)
+  //that is just _something that happened_ not a particular event received.
+  //currently I'm putting both through this pattern, but I don't really like that...
 
   on_nat () {
     //once we know our nat type, we can connect to peers.
@@ -37,7 +50,6 @@ class ChatPeer extends Peer {
         //maybe we should wait until we apply it? hopefully we receive this message in just a moment
       }
       state.ts = msg.ts
-//      state.hash = msg.state
       state.messages.push(msg)
       state.messages.sort(cmpTs)
     }
@@ -52,7 +64,7 @@ class ChatPeer extends Peer {
           _msg.content === msg.content && _msg.user === msg.user
         )
         else {
-          //we alreday have this message, so do nothing
+          //we already have this message, so do nothing
           return
         }
       }
