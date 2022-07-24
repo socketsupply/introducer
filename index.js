@@ -1,5 +1,9 @@
 var {toAddress, isId} = require('./util')
 
+function cmpRand () {
+  return Math.random()-0.5
+}
+
 var port = 3456
 
 /*
@@ -13,6 +17,7 @@ class Introducer {
   constructor ({id}) {
     this.id = id
     this.peers = {}
+    this.swarms = {}
   }
   init () {}
   on_ping (msg, addr) {
@@ -36,6 +41,29 @@ class Introducer {
     }
     else //respond with an error
       this.send({type:'error', id: target.id}, addr, port)
+  }
+
+  connect (from_id, to_id, swarm, port) {
+    var from = this.peers[from_id]
+    var to   = this.peers[to_id]
+    this.send({ type:'connect', id: to.id, swarm: swarm, address:to.address, port: to.port }, from, port)
+  }
+
+  on_join (msg, addr, port) {
+    var swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
+    swarm[msg.id] = Date.now()
+    //trigger random connections
+    //if there are no other peers in the swarm, do nothing
+    var ids = Object.keys(swarm)
+    //remove ourself, then randomly shuffle list
+    ids.splice(ids.indexOf(msg.id), 1).sort(cmpRand)
+
+    //send messages to the random peers indicating that they should connect now.
+    //if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
+    for(var i = 0; i < Math.min(ids.length, (msg.peers != null ? msg.peers : 3)); i++) {
+      this.connect(ids[i], msg.id, msg.swarm, port)
+      this.connect(msg.id, ids[i], msg.swarm, port)
+    }
   }
 }
 
@@ -67,6 +95,7 @@ function checkNat(peer) {
 class Peer {
   constructor ({id, introducer1, introducer2, onPeer}) {
     this.peers = {}
+    this.swarm = {}
     this.id = id
     this.introducers = {
       [introducer1.id]: this.introducer1 = introducer1,
@@ -113,8 +142,18 @@ class Peer {
   connect (id) {
     this.send({type: 'connect', id:this.id, nat: this.nat, target: id}, this.introducer1, port)
   }
+  join (swarm_id) {
+    if(!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
+    this.send({type:'join', id: this.id, swarm: swarm_id}, this.introducer1, port)
+  }
+
   //we received connect request, ping the target 3 itmes
   on_connect (msg) {
+    //note: ping3 checks if we are already communicating
+    if(isId(msg.swarm)) {
+      this.swarm[msg.swarm] = this.swarm[msg.swarm] || {}
+      this.swarm[msg.swarm][msg.id] = Date.now()
+    } 
     this.ping3(msg)
   }
   //support sending directly to a peer
