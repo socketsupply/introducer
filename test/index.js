@@ -99,3 +99,56 @@ test('connect, easy nat', function (t) {
   t.end()
 
 })
+
+test('swarm', function (t) {
+  var swarm = createId('test swarm')
+  var network = new Network()
+  var natD = new IndependentNat('42.')
+  var natE = new IndependentNat('52.')
+  var client
+  network.add(A, new Node(createPeer(new Introducer({id: ids.a}))))
+  network.add(B, new Node(createPeer(new Introducer({id: ids.b}))))
+  network.add(D, natD)
+  network.add(E, natE)
+  natD.add(d, new Node(createPeer(peerD = new Peer({id: ids.d, ...intros}) )))
+  natE.add(e, new Node(createPeer(peerE = new Peer({id: ids.e, ...intros}) )))
+  network.iterate(-1)
+
+  t.equal(peerD.nat, "easy")
+  peerD.join(swarm)
+  peerE.join(swarm)
+  network.iterate(-1)
+
+  t.ok(peerE.peers[peerD.id])
+  t.ok(peerD.peers[peerE.id])
+
+  t.end()
+})
+
+test('swarm2', function (t) {
+  var swarm = createId('test swarm')
+  var network = new Network()
+  var natD = new IndependentNat('42.')
+  var natE = new IndependentNat('52.')
+  var client
+  network.add(A, new Node(createPeer(new Introducer({id: ids.a}))))
+  network.add(B, new Node(createPeer(new Introducer({id: ids.b}))))
+  network.add(D, natD)
+  network.add(E, natE)
+  natD.add(d, new Node(createPeer(peerD = new Peer({id: ids.d, ...intros}) )))
+  natE.add(e, new Node(createPeer(peerE = new Peer({id: ids.e, ...intros}) )))
+  network.iterate(-1)
+
+  t.equal(peerD.nat, "easy")
+  peerD.join(swarm)
+  network.iterate(-1)
+  peerE.join(swarm)
+  network.iterate(-1)
+  console.log(peerE)
+  t.ok(peerE.swarm, 'peer has swarm object')
+  t.ok(peerE.swarm[swarm], 'peer has swarm key')
+  t.ok(peerE.peers[peerD.id])
+  t.ok(peerD.peers[peerE.id])
+
+  t.end()
+})
