@@ -6,6 +6,9 @@
   "directories": {
     "test": "test"
   },
+  "bin": {
+    "introchat": "./examples/chat.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
