@@ -118,14 +118,19 @@ if(!module.parent) {
   }
 
   var introducer1 = {
+    id: "5a40cd15d7266be9248ae8c8f10de00260f970b7dae18cafdfa753f6cc1d58ff",
     address: '3.25.141.150', port:3456
   }
   var introducer2 = {
+    id: 'aaecb3746ecec8f9b72eef221ccdd55da8c6fdccd54ba9a9839e8927a8750861',
     address: '13.211.129.58', port : 3457
   }
  
   var swarm = process.argv[2] || util.createId('test swarm')
-  var cp = new ChatPeer(swarm)
+  var cp = new ChatPeer({id: config.id, swarm, introducer1, introducer2})
+  cp.on_nat = function (nat) {
+    console.log(nat)
+  }
   cp.on_change = function (state, msg) {
     if(msg)
       console.log(msg.ts+':', msg.content)
