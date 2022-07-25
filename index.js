@@ -97,6 +97,8 @@ class Peer {
     this.peers = {}
     this.swarm = {}
     this.id = id
+    if(!introducer1) throw new Error('must provide introducer1')
+    if(!introducer2) throw new Error('must provide introducer2')
     this.introducers = {
       [introducer1.id]: this.introducer1 = introducer1,
       [introducer2.id]: introducer2
