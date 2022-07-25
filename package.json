@@ -7,7 +7,7 @@
     "test": "test"
   },
   "bin": {
-    "introchat": "./examples/chat.js"
+    "introchat": "./example/chat.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
