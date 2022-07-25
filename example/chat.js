@@ -1,21 +1,16 @@
+#! /usr/bin/env node
 
 function cmpTs (a, b) {
   return b.ts - a.ts
 }
-var Peer = require('../').Peer
-
-/*
-  currently introducer doesn't have a _swarm_ concept but I'm contemplating that.
-  that is, enable just make connections randomly to peers that have expressed interest in that group.
-
-  since I don't have a swarm concept, I could add it here, on top of this.
-
-*/
+var {Peer, Introducer} = require('../')
+var util = require('../util')
 
 class ChatPeer extends Peer {
   //send a chat message to everyone
   chat ({name, content, ts = Date.now()}) {
-    for(var id in this.peers) {
+     
+   for(var id in this.peers) {
       this.send({type: 'chat', id: this.id, name, content, ts, state: state.hash})
     }
   }
@@ -42,7 +37,7 @@ class ChatPeer extends Peer {
   //so if we get stuck, we can send the heads that we last had and rebuild it from there.
   //especially if we have peers transmit "merge" messages.
 
-  on_chat (msg) {
+  on_chat (msg, addr) {
     //check if this message is after all currently known messages
     if(msg.ts > state.ts) {
       if(msg.state != state.hash) {
@@ -62,8 +57,7 @@ class ChatPeer extends Peer {
         if(
           _msg.ts === msg.ts && _msg.state === msg.state &&
           _msg.content === msg.content && _msg.user === msg.user
-        )
-        else {
+        ) {
           //we already have this message, so do nothing
           return
         }
@@ -96,5 +90,56 @@ class ChatPeer extends Peer {
 
 
 if(!module.parent) {
-  require('./wrap')(new ChatPeer(), [3456])
+  var cmd = process.argv[2]
+  var args = process.argv.slice(3)
+  var wrap = require('../wrap')
+  var crypto = require('crypto')
+  var fs = require('fs')
+  var path = require('path')
+  var appname = process.env.appname || 'introducer-chat'
+  var config_file = path.join(process.env.HOME, '.'+appname)
+  var config = {}
+
+  try {
+    config = JSON.parse(fs.readFileSync(config_file, 'utf8'))
+  } catch (_) {}
+
+  if(!config.id)
+    config.id = crypto.randomBytes(32).toString('hex')
+  if(!config.port)
+    config.port = 3456
+
+  fs.writeFileSync(config_file, JSON.stringify(config, null, 2)+'\n', 'utf8')
+
+  if(cmd === 'introducer') {
+    wrap(new Introducer(config), [config.port])
+    console.log(config.id)
+    return
+  }
+
+  var introducer1 = {
+    address: '3.25.141.150', port:3456
+  }
+  var introducer2 = {
+    address: '13.211.129.58', port : 3457
+  }
+ 
+  var swarm = process.argv[2] || util.createId('test swarm')
+  var cp = new ChatPeer(swarm)
+  cp.on_change = function (state, msg) {
+    if(msg)
+      console.log(msg.ts+':', msg.content)
+    else
+      state.messages.forEach(function (msg) {
+        console.log(msg.ts+':', msg.content)
+      })
+  }
+
+  process.stdin.on('data', function (d) {
+    cp.chat(d.toString())
+    //console.log('>', d.toString())
+  })
+
+  wrap(cp, [3456])
 }
+ 
