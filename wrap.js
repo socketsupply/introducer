@@ -41,6 +41,7 @@ function wrap (peer, ports, codec=json) {
 
   //support binding anynumber of ports on demand (necessary for birthday paradox connection)
   function bind(p) {
+    debug('bind', p)
     if(bound[p]) return bound[p]
     return bound[p] = dgram
       .createSocket('udp4')
