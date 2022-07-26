@@ -1,4 +1,5 @@
 var dgram = require('dgram')
+var debug = process.env.DEBUG ? function (..args) { console.log(...args) } : function () {}
 
 function isString (s) {
   return 'string' === typeof s
@@ -10,17 +11,31 @@ function isFunction (f) {
 var json = {
   encode: (obj) => Buffer.from(JSON.stringify(obj)),
   decode: (buf) => JSON.parse(buf.toString())
-}
 
+}
 function wrap (peer, ports, codec=json) {
   var bound = {}
 
   peer.send = (msg, addr, from_port) => {
+    debug('recv', msg)
     bind(from_port).send(codec.encode(msg), addr.port, addr.address)
+  }
+
+  peer.timer = (delay, repeat, fn) => {
+    if(!delay) {
+      fn()
+      if(repeat) setInterval(fn, repeat)
+    }
+    else
+      setTimeout(function () {
+        fn()
+        if(repeat) setInterval(fn, repeat)
+      }, delay)
   }
 
   function onMessage (msg, addr, port) {
     var obj = codec.decode(msg)
+    debug('recv', msg)
     if(isString(obj.type) && isFunction(peer['on_'+obj.type]))
       peer['on_'+obj.type](obj, addr, port)
   }
@@ -39,6 +54,8 @@ function wrap (peer, ports, codec=json) {
           console.log("could not bind port:"+err.port)
       })
   }
+
+  if(peer.init) peer.init()
 
   if(ports) ports.forEach(bind)
 }
