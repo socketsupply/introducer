@@ -1,5 +1,5 @@
 var dgram = require('dgram')
-var debug = process.env.DEBUG ? function (..args) { console.log(...args) } : function () {}
+var debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
 
 function isString (s) {
   return 'string' === typeof s
