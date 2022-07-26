@@ -129,7 +129,7 @@ if(!module.parent) {
 
   var introducer2 = {
     id: 'aaecb3746ecec8f9b72eef221ccdd55da8c6fdccd54ba9a9839e8927a8750861',
-    address: '13.211.129.58', port : 3457
+    address: '13.211.129.58', port : 3456
   }
  
   var swarm = process.argv[2] || util.createId('test swarm')
