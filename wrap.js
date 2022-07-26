@@ -17,7 +17,7 @@ function wrap (peer, ports, codec=json) {
   var bound = {}
 
   peer.send = (msg, addr, from_port) => {
-    debug('recv', msg)
+    debug('send', msg, addr)
     bind(from_port).send(codec.encode(msg), addr.port, addr.address)
   }
 
@@ -34,7 +34,6 @@ function wrap (peer, ports, codec=json) {
   }
 
   function onMessage (msg, addr, port) {
-    var obj = codec.decode(msg)
     debug('recv', msg)
     if(isString(obj.type) && isFunction(peer['on_'+obj.type]))
       peer['on_'+obj.type](obj, addr, port)
