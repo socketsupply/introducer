@@ -20,8 +20,6 @@ function wrap (peer, ports, codec=json) {
 
   peer.send = (msg, addr, from_port) => {
     debug('send', msg, addr)
-    if(!isPort(from_port))
-      throw new Error('expected port, got:'+from_port) 
     bind(from_port).send(codec.encode(msg), addr.port, addr.address)
   }
 
@@ -45,6 +43,8 @@ function wrap (peer, ports, codec=json) {
 
   //support binding anynumber of ports on demand (necessary for birthday paradox connection)
   function bind(p) {
+    if(!isPort(p))
+      throw new Error('expected port, got:'+p) 
     if(bound[p]) return bound[p]
     debug('bind', p)
     return bound[p] = dgram
