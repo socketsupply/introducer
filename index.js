@@ -6,13 +6,6 @@ function cmpRand () {
 
 var port = 3456
 
-/*
-function randomKey(obj) {
-  var keys = Object.keys(obj)
-  return keys[~~(Math.random()*keys.length)]
-}
-*/
-
 class Introducer {
   constructor ({id}) {
     this.id = id
@@ -67,10 +60,6 @@ class Introducer {
   }
 }
 
-function interval (delay, fn) {
-  fn(); return setInterval(fn, delay)
-}
-
 function checkNat(peer) {
   //if we have just discovered our nat, ping the introducer again to let them know
   var update = !peer.nat
@@ -88,8 +77,7 @@ function checkNat(peer) {
   }
   if(update) peer.ping(peer.introducer1)
   if(peer.nat != 'easy')
-    peer.on_nat(peer.nat = 'easy')
-  
+    peer.on_nat(peer.nat = 'easy')  
 }
 
 class Peer {
@@ -106,10 +94,13 @@ class Peer {
     this.on_peer = onPeer
   }
   init () {
-    this.interval(60_000, 0, () => {
-      for(var k in this.introducers)
-        this.ping(this.introducers[k])
-    })
+    //TODO: we really want to end the tests after this but it keeps them running
+    //so we need a way to unref...
+    //because in practice I'm fairly sure this should poll to keep port open (say every minute)
+
+    console.log('init', this.introducers)
+    for(var k in this.introducers)
+      this.ping(this.introducers[k])
   }
   on_nat (type) {
     //override this to implement behaviour for when nat is detected.
@@ -123,11 +114,11 @@ class Peer {
   ping3 (addr, delay=500) {
     if(!addr.id) throw new Error('ping3 expects peer id')
     this.ping(addr)
-    this.interval(delay, 0, () => {
+    this.timer(delay, 0, () => {
       if(this.peers[addr.id] && this.peers[addr.id].pong) return
       this.ping(addr)
     })
-    this.interval(delay*2, 0, () => {
+    this.timer(delay*2, 0, () => {
       if(this.peers[addr.id] && this.peers[addr.id].pong) return 
       this.ping(addr)
     })
