@@ -124,7 +124,7 @@ if(!module.parent) {
 
   var introducer1 = {
     id: "5a40cd15d7266be9248ae8c8f10de00260f970b7dae18cafdfa753f6cc1d58ff",
-    address: '3.25.141.150', port:3456
+    address: '3.25.141.150', port: 3456
   }
 
   var introducer2 = {
