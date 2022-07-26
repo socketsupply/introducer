@@ -30,9 +30,10 @@ for (var i = 0; i < 1000; i++) {
 
 
 function createPeer(p) {
-  return function (send, interval) {
+  return function (send, timer) {
     p.send = send
-    p.interval = interval
+    p.timer = timer
+    //console.log('timer', timer.toString())
     if(p.init) p.init()
     return function (msg, addr) {
       var type = msg.type
