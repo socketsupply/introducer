@@ -1,6 +1,8 @@
 var dgram = require('dgram')
 var debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
-
+function isPort (p) {
+ return p == p & 0xffff
+}
 function isString (s) {
   return 'string' === typeof s
 }
@@ -18,6 +20,8 @@ function wrap (peer, ports, codec=json) {
 
   peer.send = (msg, addr, from_port) => {
     debug('send', msg, addr)
+    if(!isPort(from_port))
+      throw new Error('expected port, got:'+from_port) 
     bind(from_port).send(codec.encode(msg), addr.port, addr.address)
   }
 
@@ -35,14 +39,14 @@ function wrap (peer, ports, codec=json) {
 
   function onMessage (msg, addr, port) {
     debug('recv', msg)
-    if(isString(obj.type) && isFunction(peer['on_'+obj.type]))
-      peer['on_'+obj.type](obj, addr, port)
+    if(isString(msg.type) && isFunction(peer['on_'+msg.type]))
+      peer['on_'+msg.type](msg, addr, port)
   }
 
   //support binding anynumber of ports on demand (necessary for birthday paradox connection)
   function bind(p) {
-    debug('bind', p)
     if(bound[p]) return bound[p]
+    debug('bind', p)
     return bound[p] = dgram
       .createSocket('udp4')
       .bind(p)
