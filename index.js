@@ -29,22 +29,26 @@ class Introducer {
     var peer = this.peers[msg.target]
     if(peer) {
       //tell the target peer to connect, and also tell the source peer the addr/port to connect to.
-      this.send({type:'connect', id: msg.id, address:addr.address, port: addr.port}, peer, port)
-      this.send({type:'connect', id: msg.target, address:peer.address, port: peer.port}, addr, port)
+      this.send({type:'connect', id: msg.id, address:addr.address, port: addr.port, nat: peer.nat}, peer, port)
+      this.send({type:'connect', id: msg.target, address:peer.address, port: peer.port, nat: msg.nat}, addr, port)
     }
     else //respond with an error
       this.send({type:'error', id: target.id}, addr, port)
   }
 
   connect (from_id, to_id, swarm, port) {
+    if(port == undefined) throw new Error('port cannot be undefined')
     var from = this.peers[from_id]
     var to   = this.peers[to_id]
     this.send({ type:'connect', id: to.id, swarm: swarm, address:to.address, port: to.port }, from, port)
   }
 
   on_join (msg, addr, port) {
+    if(port == undefined) throw new Error('undefined port')
     var swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = Date.now()
+    var peer = this.peers[msg.id]
+    if(peer && msg.nat) peer.nat = msg.nat
     //trigger random connections
     //if there are no other peers in the swarm, do nothing
     var ids = Object.keys(swarm)
@@ -53,7 +57,9 @@ class Introducer {
 
     //send messages to the random peers indicating that they should connect now.
     //if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
-    for(var i = 0; i < Math.min(ids.length, (msg.peers != null ? msg.peers : 3)); i++) {
+    var max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
+    for(var i = 0; i < max_peers; i++) {
+      console.log("CONNECT", ids[i]+'<->'+msg.id)
       this.connect(ids[i], msg.id, msg.swarm, port)
       this.connect(msg.id, ids[i], msg.swarm, port)
     }
@@ -136,8 +142,9 @@ class Peer {
     this.send({type: 'connect', id:this.id, nat: this.nat, target: id}, this.introducer1, port)
   }
   join (swarm_id) {
+    console.log("JOIN", swarm_id)
     if(!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
-    this.send({type:'join', id: this.id, swarm: swarm_id}, this.introducer1, port)
+    this.send({type:'join', id: this.id, swarm: swarm_id, nat: this.nat}, this.introducer1, port)
   }
 
   //we received connect request, ping the target 3 itmes
@@ -147,7 +154,46 @@ class Peer {
       this.swarm[msg.swarm] = this.swarm[msg.swarm] || {}
       this.swarm[msg.swarm][msg.id] = Date.now()
     } 
-    this.ping3(msg)
+    if(msg.nat === 'static')
+      this.ping3(msg)
+    else if(this.nat === 'easy') {
+      //if nat is missing, guess that it's easy nat.
+      //we should generally know our own nat by now.
+      if(msg.nat === 'easy' || msg.nat == null)
+        this.ping3(msg) //we are both easy, just do ping3
+      else if (msg.nat === 'hard') {
+        //we are easy, they are hard
+
+        var i = 0
+        var timer = this.timer(0, 10, () => {
+          //send messages until we receive a message from them. giveup after sending 1000 packets.
+          //50% of the time 250 messages should be enough.
+          if(i++ > 1000 || this.peers[addr.id] && this.peers[addr.id].pong) {
+            clearInterval(timer)
+            return
+          }
+          this.send({type: 'ping', id: this.id}, msg, this.port)
+          
+        })
+      }
+//      else
+  //      throw new Error('connect nat undefined')
+    }
+    else if(this.nat === 'hard') {
+      if(msg.nat === 'easy') {
+        //we are the hard side, open 256 random ports
+        for(var i = 0; i < 256; i++) {
+          var p = random_port(ports)
+          this.send({type: 'ping', id: this.id}, msg, p)
+        }
+      }
+      else {
+        //if we are both hard nats, we must implement tunneling
+        //in that case, we ask both us and them to connect a shared easy nat.
+        //then we could relay messages through it.
+        console.log('cannot connect hard-hard nats')
+      }
+    }
   }
   //support sending directly to a peer
   sendMsg (msg, peer) {
