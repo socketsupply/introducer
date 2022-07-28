@@ -141,11 +141,13 @@ test('swarm2', function (t) {
   network.iterate(-1)
 
   t.equal(peerD.nat, "easy")
+
   peerD.join(swarm)
   network.iterate(-1)
   peerE.join(swarm)
   network.iterate(-1)
   console.log(peerE)
+
   t.ok(peerE.swarm, 'peer has swarm object')
   t.ok(peerE.swarm[swarm], 'peer has swarm key')
   t.ok(peerE.peers[peerD.id])
@@ -173,7 +175,7 @@ test('swarmN', function (t) {
   network.add(B, new Node(createPeer(new Introducer({id: ids.b}))))
 
   var peers = []
-  var N = 10
+  var N = 100
   for(var i = 0; i < N; i++) {
     var id = createId('id:'+i)
     var address = idToAddress(id)
@@ -192,6 +194,7 @@ test('swarmN', function (t) {
   //makes these tests work, and they'll still work after I fix that problem...
   for(var i = 0; i < N; i++)
     peers[i].join(swarm)
+
   network.iterate(-1)
 
   for(var i = 0; i < N; i++) {
