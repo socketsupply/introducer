@@ -16,7 +16,7 @@ class Introducer {
   on_ping (msg, addr) {
     if(!isId(msg.id)) return
     this.peers[msg.id] = {id: msg.id, ...addr, nat: msg.nat, ts: Date.now()}
-    this.send({type: 'pong', id: this.id, addr}, addr, port)
+    this.send({type: 'pong', id: this.id, ...addr}, addr, port)
   }
   on_connect (msg, addr) {
     //check nat types:
@@ -59,7 +59,6 @@ class Introducer {
     //if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
     var max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
     for(var i = 0; i < max_peers; i++) {
-      console.log("CONNECT", ids[i]+'<->'+msg.id)
       this.connect(ids[i], msg.id, msg.swarm, port)
       this.connect(msg.id, ids[i], msg.swarm, port)
     }
@@ -69,18 +68,24 @@ class Introducer {
 function checkNat(peer) {
   //if we have just discovered our nat, ping the introducer again to let them know
   var update = !peer.nat
+  var port
+  console.log("CHECK NAT", peer.id, peer.nat)
   for(var k in peer.introducers) {
     var _peer = peer.peers[k]
-    if(_peer && _peer.pong) 
+    if(_peer && _peer.pong) {
+      console.log("PONG", _peer.pong)
       if(!port)
         port = _peer.pong.port
       else if(_peer.pong.port != port) {
+        console.log("PONG PORT", port, _peer.pong)
         if(peer.nat != 'hard')
         peer.on_nat(peer.nat = 'hard')
         if(update) peer.ping(peer.introducer1)
         return
       }
+    }
   }
+  //console.log("CHECK NAT", peer)
   if(update) peer.ping(peer.introducer1)
   if(peer.nat != 'easy')
     peer.on_nat(peer.nat = 'easy')  
@@ -130,19 +135,20 @@ class Peer {
     })
   }
   on_pong(msg, addr) {
+//    console.log("PONG", this.nat, addr)
+    if(!msg.port) throw new Error('pong: missing port')
     var ts = Date.now()
     var peer = this.peers[msg.id] = this.peers[msg.id] || {id: msg.id, address:addr.address, port: addr.port, ts}
     peer.ts = ts
-    peer.pong = {ts, ...addr}
+    peer.pong = {ts, address: msg.address, port: msg.port}
+    console.log("PONG", peer.pong, msg)
     checkNat(this)
-
     if(this.on_peer) this.on_peer(peer)
   }
   connect (id) {
     this.send({type: 'connect', id:this.id, nat: this.nat, target: id}, this.introducer1, port)
   }
   join (swarm_id) {
-    console.log("JOIN", swarm_id)
     if(!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
     this.send({type:'join', id: this.id, swarm: swarm_id, nat: this.nat}, this.introducer1, port)
   }
@@ -176,8 +182,6 @@ class Peer {
           
         })
       }
-//      else
-  //      throw new Error('connect nat undefined')
     }
     else if(this.nat === 'hard') {
       if(msg.nat === 'easy') {
