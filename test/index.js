@@ -35,10 +35,10 @@ function createPeer(p) {
     p.timer = timer
     //console.log('timer', timer.toString())
     if(p.init) p.init()
-    return function (msg, addr) {
+    return function (msg, addr, port) {
       var type = msg.type
-      if(p['on_'+type]) p['on_'+type](msg, addr)
-      else if(p.on_msg) p.on_msg(msg, addr)
+      if(p['on_'+type]) p['on_'+type](msg, addr, port)
+      else if(p.on_msg) p.on_msg(msg, addr, port)
     }
   }
 
@@ -173,7 +173,7 @@ test('swarmN', function (t) {
   network.add(B, new Node(createPeer(new Introducer({id: ids.b}))))
 
   var peers = []
-  var N = 100
+  var N = 10
   for(var i = 0; i < N; i++) {
     var id = createId('id:'+i)
     var address = idToAddress(id)
