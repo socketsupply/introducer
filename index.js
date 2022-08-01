@@ -40,7 +40,7 @@ class Introducer {
     if(port == undefined) throw new Error('port cannot be undefined')
     var from = this.peers[from_id]
     var to   = this.peers[to_id]
-    this.send({ type:'connect', id: to.id, swarm: swarm, address:to.address, port: to.port }, from, port)
+    this.send({ type:'connect', id: to.id, swarm: swarm, address:to.address, nat: to.nat, port: to.port }, from, port)
   }
 
   on_join (msg, addr, port) {
@@ -54,6 +54,9 @@ class Introducer {
     var ids = Object.keys(swarm)
     //remove ourself, then randomly shuffle list
     ids.splice(ids.indexOf(msg.id), 1).sort(cmpRand)
+
+    if(peer.nat == 'hard')
+      ids = ids.filter(id => this.peers[id].nat === 'easy')
 
     //send messages to the random peers indicating that they should connect now.
     //if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
@@ -69,15 +72,12 @@ function checkNat(peer) {
   //if we have just discovered our nat, ping the introducer again to let them know
   var update = !peer.nat
   var port
-  console.log("CHECK NAT", peer.id, peer.nat)
   for(var k in peer.introducers) {
     var _peer = peer.peers[k]
     if(_peer && _peer.pong) {
-      console.log("PONG", _peer.pong)
       if(!port)
         port = _peer.pong.port
       else if(_peer.pong.port != port) {
-        console.log("PONG PORT", port, _peer.pong)
         if(peer.nat != 'hard')
         peer.on_nat(peer.nat = 'hard')
         if(update) peer.ping(peer.introducer1)
@@ -85,10 +85,16 @@ function checkNat(peer) {
       }
     }
   }
-  //console.log("CHECK NAT", peer)
   if(update) peer.ping(peer.introducer1)
   if(peer.nat != 'easy')
     peer.on_nat(peer.nat = 'easy')  
+}
+
+function random_port (ports) {
+  var i = 0
+  do { var p = ~~(Math.random()*0xffff); i++ } while(ports[p])
+  ports[p] = true
+  return p
 }
 
 class Peer {
@@ -109,7 +115,6 @@ class Peer {
     //so we need a way to unref...
     //because in practice I'm fairly sure this should poll to keep port open (say every minute)
 
-    console.log('init', this.introducers)
     for(var k in this.introducers)
       this.ping(this.introducers[k])
   }
@@ -119,8 +124,10 @@ class Peer {
   ping (addr) {
     this.send({type:'ping', id:this.id, nat:this.nat}, addr, port)
   }
-  on_ping (msg, addr) {
-    this.send({type:'pong', id: this.id, ...addr}, addr, port)
+  on_ping (msg, addr, _port) {
+    this.peers[msg.id] = {id: msg.id, address:addr.address, port: addr.port, outport: _port, ts: Date.now()}
+    //if(_port != port) throw new Error('receive on unexpected port')
+    this.send({type:'pong', id: this.id, ...addr}, addr, _port)
   }
   ping3 (addr, delay=500) {
     if(!addr.id) throw new Error('ping3 expects peer id')
@@ -135,13 +142,11 @@ class Peer {
     })
   }
   on_pong(msg, addr) {
-//    console.log("PONG", this.nat, addr)
     if(!msg.port) throw new Error('pong: missing port')
     var ts = Date.now()
     var peer = this.peers[msg.id] = this.peers[msg.id] || {id: msg.id, address:addr.address, port: addr.port, ts}
     peer.ts = ts
     peer.pong = {ts, address: msg.address, port: msg.port}
-    console.log("PONG", peer.pong, msg)
     checkNat(this)
     if(this.on_peer) this.on_peer(peer)
   }
@@ -169,16 +174,20 @@ class Peer {
         this.ping3(msg) //we are both easy, just do ping3
       else if (msg.nat === 'hard') {
         //we are easy, they are hard
-
         var i = 0
+        var ports = {}
         var timer = this.timer(0, 10, () => {
           //send messages until we receive a message from them. giveup after sending 1000 packets.
           //50% of the time 250 messages should be enough.
-          if(i++ > 1000 || this.peers[addr.id] && this.peers[addr.id].pong) {
+          if(i++ > 1000 || this.peers[msg.id] && this.peers[msg.id].pong) {
             clearInterval(timer)
-            return
+            return false
           }
-          this.send({type: 'ping', id: this.id}, msg, this.port)
+          this.send({type: 'ping', id: this.id}, {
+            address: msg.address,
+            port: random_port(ports),
+            nat: this.nat
+          }, port)
           
         })
       }
@@ -186,16 +195,20 @@ class Peer {
     else if(this.nat === 'hard') {
       if(msg.nat === 'easy') {
         //we are the hard side, open 256 random ports
+        var ports = {}
         for(var i = 0; i < 256; i++) {
           var p = random_port(ports)
-          this.send({type: 'ping', id: this.id}, msg, p)
+          this.send({type: 'ping', id: this.id, nat: this.nat}, msg, p)
         }
       }
-      else {
+      else if (msg.nat === 'hard'){
         //if we are both hard nats, we must implement tunneling
         //in that case, we ask both us and them to connect a shared easy nat.
         //then we could relay messages through it.
-        console.log('cannot connect hard-hard nats')
+        console.log('cannot connect hard-hard nats', msg)
+      }
+      else {
+        throw new Error('cannot connect to unknown nat')
       }
     }
   }
