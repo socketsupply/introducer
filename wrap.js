@@ -24,14 +24,15 @@ function wrap (peer, ports, codec=json) {
   }
 
   peer.timer = (delay, repeat, fn) => {
-    if(!delay) {
-      fn()
-      if(repeat) setInterval(fn, repeat)
+    function interval () {
+      if(fn() === false) clearInterval(int)
     }
+    if(!delay && fn() !== false && repeat)
+      setInterval(interval, repeat)
     else
-      setTimeout(function () {
-        fn()
-        if(repeat) setInterval(fn, repeat)
+      setTimeout(function interval () {
+        if(fn() !== false && repeat)
+          var int = setInterval(interval, repeat)
       }, delay)
   }
 
