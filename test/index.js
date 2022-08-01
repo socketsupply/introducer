@@ -45,8 +45,8 @@ function createPeer(p) {
 }
 
 var intros = {
-  introducer1: {id: ids.a, address:A, port: 3567},
-  introducer2: {id: ids.b, address:B, port: 3567}
+  introducer1: {id: ids.a, address:A, port: 3456},
+  introducer2: {id: ids.b, address:B, port: 3456}
 }
 test('connect', function (t) {
   var network = new Network()
@@ -157,12 +157,12 @@ test('swarm2', function (t) {
 })
 
 
-function idToAddress(id) {
+function idToAddress(id, d) {
   return [
     Number.parseInt(id.substring(0, 2), 16),
     Number.parseInt(id.substring(2, 4), 16),
     Number.parseInt(id.substring(4, 6), 16),
-    Number.parseInt(id.substring(6, 8), 16)
+    (Number.parseInt(id.substring(6, 8), 16)+d) % 256
   ].map(String).join('.')
 }
 
@@ -179,13 +179,12 @@ test('swarmN', function (t) {
   for(var i = 0; i < N; i++) {
     var id = createId('id:'+i)
     var address = idToAddress(id)
+    //XXX this should be IndependentFirewallNat
     var natN = new IndependentNat(/^\d+\./.exec(address)[1])
 
     network.add(address, natN)
 
-//    console.log(address)
     natN.add(address, new Node(createPeer(peers[i] = new Peer({id: id, ...intros}) )))
-  //  peers[0].join(swarm)
 
   }
   network.iterate(-1)
@@ -205,18 +204,112 @@ test('swarmN', function (t) {
     t.ok(sc >= 3, `peers[${i}] has at least 3 swarm, got: ${sc}`)
   }
 
-/*
-  t.equal(peerD.nat, "easy")
-  peerD.join(swarm)
+  t.end()
+})
+
+
+test('detect hard nat', function (t) {
+
+  var swarm = createId('test swarm')
+  var network = new Network()
+  var client
+  network.add(A, new Node(createPeer(new Introducer({id: ids.a}))))
+  network.add(B, new Node(createPeer(new Introducer({id: ids.b}))))
+
+  var i = 0
+  var peer
+  var id = createId('id:'+i)
+  var address = idToAddress(id)
+  var prefix = /^\d+\./.exec(address)[1]
+  var natN = new DependentNat(prefix)
+
+  network.add(address, natN)
+
+  natN.add(address, new Node(createPeer(peer = new Peer({id: id, ...intros}) )))
+
   network.iterate(-1)
-  peerE.join(swarm)
+  t.equal(peer.nat, 'hard')
+
+  t.end()
+})
+
+function createNatPeer (network, id, Nat) {
+
+  var address = idToAddress(id)
+  var prefix = /^\d+\./.exec(idToAddress(id))[1]
+  var nat = new Nat(prefix)
+  network.add(idToAddress(id, 0), nat)
+  nat.add(idToAddress(id, 1), new Node(createPeer(peer = new Peer({id, ...intros}) )))
+  return peer
+}
+
+test('swarm with 1 easy 1 hard', function (t) {
+
+  var swarm = createId('test swarm')
+  var network = new Network()
+  var client
+  var intro
+  network.add(A, new Node(createPeer(intro = new Introducer({id: ids.a}))))
+  network.add(B, new Node(createPeer(new Introducer({id: ids.b}))))
+
+  var peer_easy = createNatPeer(network, createId('id:easy'), IndependentFirewallNat)
+  var peer_hard = createNatPeer(network, createId('id:hard'), DependentNat)
+
   network.iterate(-1)
-  console.log(peerE)
-  t.ok(peerE.swarm, 'peer has swarm object')
-  t.ok(peerE.swarm[swarm], 'peer has swarm key')
-  t.ok(peerE.peers[peerD.id])
-  t.ok(peerD.peers[peerE.id])
-*/
-//  console.log(peers[5])
+  peer_easy.join(swarm)
+  peer_hard.join(swarm)
+
+  network.iterate(-1)
+
+  //the introducer should know about everyone's nats now.
+  t.equal(intro.peers[peer_easy.id].nat, 'easy')
+  t.equal(intro.peers[peer_hard.id].nat, 'hard')
+
+  t.end()
+})
+
+//join, with hard nats.
+test.skip('swarm with hard nats included', function (t) {
+
+  var swarm = createId('test swarm')
+  var network = new Network()
+  var client
+  var intro
+  network.add(A, new Node(createPeer(intro = new Introducer({id: ids.a}))))
+  network.add(B, new Node(createPeer(new Introducer({id: ids.b}))))
+
+  var peers = []
+  var Easy = 10, Hard = 10
+  for(var i = 0; i < Easy+Hard; i++) {
+    var id = createId('id:'+i)
+    var address = idToAddress(id)
+    var prefix = /^\d+\./.exec(address)[1]
+    var natN = i < Easy ? new IndependentFirewallNat(prefix) : new DependentNat(prefix)
+
+    network.add(address, natN)
+
+    natN.add(address, new Node(createPeer(peers[i] = new Peer({id: id, ...intros}) )))
+  }
+
+
+  network.iterate(-1)
+  peers.forEach((peer, i) => {
+    if(i < Easy)
+      t.equal(peer.nat, 'easy')
+    else
+      t.equal(peer.nat, 'hard')
+    peer.join(swarm)
+  })
+
+  network.iterate(-1)  
+
+  //the introducer should know about everyone's nats now.
+  peers.forEach((peer, i) => { 
+    t.equal(intro.peers[peer.id].nat, i < Easy ? 'easy' : 'hard')
+    //console.log(peer.peers)
+  })
+
+  
+
   t.end()
 })
