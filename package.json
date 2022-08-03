@@ -4,14 +4,27 @@
   "description": "minimal useful holepunching p2p library",
   "main": "index.js",
   "directories": {
+    "example": "example",
     "test": "test"
   },
   "bin": {
-    "introchat": "./example/chat.js"
+    "introchat": "example/chat.js"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/socketsupply/introducer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/socketsupply/introducer/issues"
+  },
+  "homepage": "https://github.com/socketsupply/introducer#readme",
+  "devDependencies": {
+    "@socketsupply/netsim": "^2.2.0",
+    "tape": "^5.5.3"
+  }
 }
