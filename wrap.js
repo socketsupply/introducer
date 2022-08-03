@@ -20,7 +20,9 @@ function wrap (peer, ports, codec=json) {
 
   peer.send = (msg, addr, from_port) => {
     debug('send', msg, addr)
-    bind(from_port).send(codec.encode(msg), addr.port, addr.address)
+    var sock = bind(from_port)
+    if(addr === '255.255.255.255') sock.setBroadcast(true)
+    sock.send(codec.encode(msg), addr.port, addr.address)
   }
 
   peer.timer = (delay, repeat, fn) => {
