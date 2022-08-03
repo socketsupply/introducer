@@ -11,6 +11,55 @@ function cmpTs (a, b) {
 var {Peer, Introducer} = require('../')
 var util = require('../util')
 
+function equal_addr (a, b) {
+  return a && b && a.address === b.address && a.port === b.port
+}
+
+class Demo extends Peer {
+  constructor (opts) {
+    super(opts)
+    this.swarm = opts.swarm
+    this.messages = []
+  }
+
+  on_chat (msg, addr, port) {
+    for(var i = 0; i < this.messages.length; i++) {
+      var _msg = this.messages[i] 
+      //if we already have this message, ignore
+      if(_msg.ts == msg.ts && _msg.content == msg.content) 
+        return
+    }
+    this.messages.push(msg)
+    this.broadcast(msg, addr)
+  }
+
+  on_nat () {
+    console.log('have nat:', this.nat)
+    this.join(this.swarm)
+  }
+
+  on_error (msg) {
+    console.log('error', msg)
+  }
+
+  on_swarm_error (msg) {
+    console.log('error', msg)
+  }
+
+  on_peer (peer) {
+    console.log('connected peer!', peer)
+  }
+
+  //broadcast a message, optionally skipping a particular peer (such as the peer that sent this)
+  broadcast(msg, not_addr=null) {
+    for(var k in this.peers) {
+      if(!equal_addr(this.peers[k], not_addr.address))
+        this.send(msg, this.peers[k], this.port)
+    }
+  }
+}
+
+
 class ChatPeer extends Peer {
   //send a chat message to everyone
   chat ({name, content, ts = Date.now()}) {
@@ -95,62 +144,20 @@ class ChatPeer extends Peer {
 
 
 if(!module.parent) {
+  var config = require('../lib/config')({appname:'introducer-chat'})
+  var Wrap = require('../wrap')
   var cmd = process.argv[2]
-  var args = process.argv.slice(3)
-  var wrap = require('../wrap')
-  var crypto = require('crypto')
-  var fs = require('fs')
-  var path = require('path')
-  var appname = process.env.appname || 'introducer-chat'
-  var config_file = path.join(process.env.HOME, '.'+appname)
-  var config = {}
-
-  try {
-    config = JSON.parse(fs.readFileSync(config_file, 'utf8'))
-  } catch (_) {}
-
-  if(!config.id)
-    config.id = crypto.randomBytes(32).toString('hex')
-  if(!config.port)
-    config.port = 3456
-
-  fs.writeFileSync(config_file, JSON.stringify(config, null, 2)+'\n', 'utf8')
-
-  if(cmd === 'introducer') {
-    wrap(new Introducer(config), [config.port])
+  var swarm = util.createId('test swarm') 
+ if(cmd === 'introducer') {
+    Wrap(new Introducer(), [config.port])
     console.log(config.id)
-    return
   }
+  else {
+    Wrap(new Demo({swarm, ...config}), [config.port])
+    process.stdout.on('data', function (d) {
+      
 
-  var introducer1 = {
-    id: "5a40cd15d7266be9248ae8c8f10de00260f970b7dae18cafdfa753f6cc1d58ff",
-    address: '3.25.141.150', port: 3456
+    })
   }
-
-  var introducer2 = {
-    id: 'aaecb3746ecec8f9b72eef221ccdd55da8c6fdccd54ba9a9839e8927a8750861',
-    address: '13.211.129.58', port : 3456
-  }
- 
-  var swarm = process.argv[2] || util.createId('test swarm')
-  var cp = new ChatPeer({id: config.id, swarm, introducer1, introducer2})
-  cp.on_nat = function (nat) {
-    console.log('nat detected:', nat)
-  }
-  cp.on_change = function (state, msg) {
-    if(msg)
-      console.log(msg.ts+':', msg.content)
-    else
-      state.messages.forEach(function (msg) {
-        console.log(msg.ts+':', msg.content)
-      })
-  }
-
-  process.stdin.on('data', function (d) {
-    cp.chat(d.toString())
-    //console.log('>', d.toString())
-  })
-
-  wrap(cp, [3456])
 }
  
