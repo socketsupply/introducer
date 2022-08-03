@@ -167,18 +167,26 @@ if(!module.parent) {
   var Wrap = require('../wrap')
   var cmd = process.argv[2]
   var swarm = util.createId('test swarm') 
+
+  /* multicast
+    to find other peers on the local network,
+    we need a parallel multicast system.
+    it appears that a socket cannot be used for both
+  */
   var UDP = require('dgram')
-  var sock = UDP.createSocket('udp4')
-  sock.bind(3999)
+  var sock = UDP.createSocket('udp4', {reuseAddr: true})
+  sock.bind(3456)
   sock.on('listening', function () {
     sock.setBroadcast(true)
   })
-  sock.on('message', function (m) {
-    console.log('bm', m.toString())
+  sock.on('message', function (m, addr) {
+    console.log('bm', addr, m.toString())
   })
   setInterval(()=> {
-    sock.send(JSON.stringify({type:'broadcast', ts: Date.now()}), 3999, '255.255.255.255')
+    sock.send(JSON.stringify({type:'broadcast', id: config.id, ts: Date.now()}), 3456, '255.255.255.255')
   }, 1000)
+
+  //^^^ multicast
 
  if(cmd === 'introducer') {
     Wrap(new Introducer(), [config.port])
