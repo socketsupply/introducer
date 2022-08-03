@@ -148,8 +148,8 @@ test('swarm2', function (t) {
   network.iterate(-1)
   console.log(peerE)
 
-  t.ok(peerE.swarm, 'peer has swarm object')
-  t.ok(peerE.swarm[swarm], 'peer has swarm key')
+  t.ok(peerE.swarms, 'peer has swarm object')
+  t.ok(peerE.swarms[swarm], 'peer has swarm key')
   t.ok(peerE.peers[peerD.id])
   t.ok(peerD.peers[peerE.id])
 
@@ -199,7 +199,7 @@ test('swarmN', function (t) {
   for(var i = 0; i < N; i++) {
     console.log(peers[i])
     var pc = Object.keys(peers[i].peers).length
-    var sc = Object.keys(peers[i].swarm[swarm]).length
+    var sc = Object.keys(peers[i].swarms[swarm]).length
     t.ok(pc >= 3, `peers[${i}] has at least 3 peers, got ${pc}`)
     t.ok(sc >= 3, `peers[${i}] has at least 3 swarm, got: ${sc}`)
   }
