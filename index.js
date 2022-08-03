@@ -33,7 +33,7 @@ class Introducer {
       this.send({type:'connect', id: msg.target, address:peer.address, port: peer.port, nat: msg.nat}, addr, port)
     }
     else //respond with an error
-      this.send({type:'error', id: target.id}, addr, port)
+      this.send({type:'error', id: target.id, call: 'connect'}, addr, port)
   }
 
   connect (from_id, to_id, swarm, port) {
@@ -61,6 +61,11 @@ class Introducer {
     //send messages to the random peers indicating that they should connect now.
     //if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
     var max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
+
+    //if there are no other connectable peers, at least respond to the join msg
+    if(!max_peers) {
+      return this.send({type: 'error', id: msg.swarm, peers: Object.keys(swarm).length}, addr, port)
+    }
     for(var i = 0; i < max_peers; i++) {
       this.connect(ids[i], msg.id, msg.swarm, port)
       this.connect(msg.id, ids[i], msg.swarm, port)
@@ -114,7 +119,6 @@ class Peer {
     //TODO: we really want to end the tests after this but it keeps them running
     //so we need a way to unref...
     //because in practice I'm fairly sure this should poll to keep port open (say every minute)
-
     for(var k in this.introducers)
       this.ping(this.introducers[k])
   }
@@ -125,6 +129,8 @@ class Peer {
     this.send({type:'ping', id:this.id, nat:this.nat}, addr, port)
   }
   on_ping (msg, addr, _port) {
+    //XXX notify on_peer if we havn't heard from this peer before.
+    //(sometimes first contact with a peer will be ping, sometimes pong)
     this.peers[msg.id] = {id: msg.id, address:addr.address, port: addr.port, outport: _port, ts: Date.now()}
     //if(_port != port) throw new Error('receive on unexpected port')
     this.send({type:'pong', id: this.id, ...addr}, addr, _port)
@@ -142,6 +148,9 @@ class Peer {
     })
   }
   on_pong(msg, addr) {
+    //XXX notify if this is a new peer message.
+    //(sometimes we ping a peer, and their response is first contact)
+
     if(!msg.port) throw new Error('pong: missing port')
     var ts = Date.now()
     var peer = this.peers[msg.id] = this.peers[msg.id] || {id: msg.id, address:addr.address, port: addr.port, ts}
@@ -153,6 +162,7 @@ class Peer {
   connect (id) {
     this.send({type: 'connect', id:this.id, nat: this.nat, target: id}, this.introducer1, port)
   }
+
   join (swarm_id) {
     if(!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
     this.send({type:'join', id: this.id, swarm: swarm_id, nat: this.nat}, this.introducer1, port)
@@ -213,7 +223,7 @@ class Peer {
     }
   }
   //support sending directly to a peer
-  sendMsg (msg, peer) {
+  sendMessage (msg, peer) {
     if(peers[id]) {
       this.send(msg, peers[id], port)
       return true
