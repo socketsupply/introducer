@@ -4,6 +4,10 @@ function cmpRand () {
   return Math.random()-0.5
 }
 
+function isFunction (f) {
+  return 'function' === typeof f
+}
+
 var port = 3456
 
 class Introducer {
@@ -131,9 +135,14 @@ class Peer {
   on_ping (msg, addr, _port) {
     //XXX notify on_peer if we havn't heard from this peer before.
     //(sometimes first contact with a peer will be ping, sometimes pong)
+    var isNew = false
+    if(!this.peers[msg.id])
+      var isNew = true
     this.peers[msg.id] = {id: msg.id, address:addr.address, port: addr.port, outport: _port, ts: Date.now()}
     //if(_port != port) throw new Error('receive on unexpected port')
     this.send({type:'pong', id: this.id, ...addr}, addr, _port)
+    if(isNew && isFunction(this.on_peer))
+      this.on_peer(this.peers[msg.id])      
   }
   ping3 (addr, delay=500) {
     if(!addr.id) throw new Error('ping3 expects peer id')
@@ -152,11 +161,14 @@ class Peer {
     //(sometimes we ping a peer, and their response is first contact)
     if(!msg.port) throw new Error('pong: missing port')
     var ts = Date.now()
+
+    //NOTIFY new peers here.
+    if(!this.peers[msg.id]) var isNew = true
     var peer = this.peers[msg.id] = this.peers[msg.id] || {id: msg.id, address:addr.address, port: addr.port, ts}
     peer.ts = ts
     peer.pong = {ts, address: msg.address, port: msg.port}
     checkNat(this)
-    if(this.on_peer) this.on_peer(peer)
+    if(isNew && isFunction(this.on_peer)) this.on_peer(this.peers[msg.id])      
   }
   connect (id) {
     this.send({type: 'connect', id:this.id, nat: this.nat, target: id}, this.introducer1, port)
