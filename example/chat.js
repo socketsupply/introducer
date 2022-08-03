@@ -175,16 +175,27 @@ if(!module.parent) {
   */
   var UDP = require('dgram')
   var sock = UDP.createSocket({type: 'udp4', reuseAddr: true})
-  sock.bind(3456)
+  var mcast = {}
+  sock.bind(6543)
   sock.on('listening', function () {
     sock.setBroadcast(true)
   })
+  function bcast () {
+    sock.send(JSON.stringify({type:'broadcast', id: config.id, ts: Date.now()}), 6543, '255.255.255.255')
+  }
   sock.on('message', function (m, addr) {
-    console.log('bm', addr, m.toString())
+    var data = JSON.parse(m.toString())
+    if(data.id === config.id) return //our own message
+    console.log('bm', addr, data)
+    if(!mcast[addr.address]) {
+      bcast()
+    }
+    mcast[addr.address] = Date.now()
   })
-  setInterval(()=> {
-    sock.send(JSON.stringify({type:'broadcast', id: config.id, ts: Date.now()}), 3456, '255.255.255.255')
+  setTimeout(()=> {
+    bcast()
   }, 1000)
+  setInterval(bcast, 300_000).unref()
 
   //^^^ multicast
 
