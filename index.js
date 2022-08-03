@@ -105,7 +105,7 @@ function random_port (ports) {
 class Peer {
   constructor ({id, introducer1, introducer2, onPeer}) {
     this.peers = {}
-    this.swarm = {}
+    this.swarms = {}
     this.id = id
     if(!introducer1) throw new Error('must provide introducer1')
     if(!introducer2) throw new Error('must provide introducer2')
@@ -150,7 +150,6 @@ class Peer {
   on_pong(msg, addr) {
     //XXX notify if this is a new peer message.
     //(sometimes we ping a peer, and their response is first contact)
-
     if(!msg.port) throw new Error('pong: missing port')
     var ts = Date.now()
     var peer = this.peers[msg.id] = this.peers[msg.id] || {id: msg.id, address:addr.address, port: addr.port, ts}
@@ -170,10 +169,11 @@ class Peer {
 
   //we received connect request, ping the target 3 itmes
   on_connect (msg) {
+    var swarm
     //note: ping3 checks if we are already communicating
     if(isId(msg.swarm)) {
-      this.swarm[msg.swarm] = this.swarm[msg.swarm] || {}
-      this.swarm[msg.swarm][msg.id] = Date.now()
+      swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
+      swarm[msg.id] = Date.now()
     } 
     if(msg.nat === 'static')
       this.ping3(msg)
