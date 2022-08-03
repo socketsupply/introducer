@@ -167,6 +167,19 @@ if(!module.parent) {
   var Wrap = require('../wrap')
   var cmd = process.argv[2]
   var swarm = util.createId('test swarm') 
+  var UDP = require('dgram')
+  var sock = UDP.createSocket('udp4')
+  sock.bind(3999)
+  sock.on('listening', function () {
+    sock.setBroadcast(true)
+  })
+  sock.on('message', function (m) {
+    console.log('bm', m.toString())
+  })
+  setInterval(()=> {
+    sock.send(JSON.stringify({type:'broadcast', ts: Date.now()}), 3999, '255.255.255.255')
+  }, 1000)
+
  if(cmd === 'introducer') {
     Wrap(new Introducer(), [config.port])
     console.log(config.id)
