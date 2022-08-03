@@ -22,6 +22,12 @@ class Demo extends Peer {
     this.messages = []
   }
 
+  chat ({name, content, ts = Date.now()}) {
+    var msg = {type:'chat', id: this.id, swarm: this.swarm, content, ts}
+    this.send(msg, {address:'255.255.255.255', port:3456}, 3456)
+    return this.swarmcast(msg)
+  }
+
   on_chat (msg, addr, port) {
     for(var i = 0; i < this.messages.length; i++) {
       var _msg = this.messages[i] 
@@ -30,7 +36,8 @@ class Demo extends Peer {
         return
     }
     this.messages.push(msg)
-    this.broadcast(msg, addr)
+    this.swarm(msg, this.swarm, addr)
+    this.on_change(msg, this.messages)
   }
 
   on_nat () {
@@ -42,30 +49,42 @@ class Demo extends Peer {
     console.log('error', msg)
   }
 
-  on_swarm_error (msg) {
-    console.log('error', msg)
-  }
-
   on_peer (peer) {
+    console.log('***************')
     console.log('connected peer!', peer)
+    console.log('***************')
   }
 
   //broadcast a message, optionally skipping a particular peer (such as the peer that sent this)
   broadcast(msg, not_addr=null) {
     for(var k in this.peers) {
-      if(!equal_addr(this.peers[k], not_addr.address))
+      if(!this.introducers[k] && !equal_addr(this.peers[k], not_addr.address))
         this.send(msg, this.peers[k], this.port)
     }
   }
+
+  //broadcast a message within a particular swarm
+  swarmcast(msg, swarm, not_addr=null) {
+    var c = 0
+    for(var k in this.swarms[swarm]) {
+      if(!equal_addr(this.peers[k], not_addr.address)) {
+        this.send(msg, this.peers[k], this.port)
+        c++
+      }
+    }
+    return c
+  }
+
+
 }
 
 
 class ChatPeer extends Peer {
   //send a chat message to everyone
   chat ({name, content, ts = Date.now()}) {
-     
    for(var id in this.peers) {
-      this.send({type: 'chat', id: this.id, name, content, ts, state: state.hash})
+      if(!this.introducers[id])
+        this.send({type: 'chat', id: this.id, name, content, ts, state: state.hash})
     }
   }
 
@@ -153,10 +172,15 @@ if(!module.parent) {
     console.log(config.id)
   }
   else {
-    Wrap(new Demo({swarm, ...config}), [config.port])
-    process.stdout.on('data', function (d) {
+    var peer = new Demo({swarm, ...config})
+    peer.on_change = (msg) => {
+      console.log(msg.id.substring(0, 8), msg.ts, msg.content)
+    }
+    Wrap(peer, [config.port])
+    process.stdin.on('data', function (data) {
+      var c = peer.chat({ts:Date.now(), content: data.toString()})
+      console.log("DATA", data.toString(), c)
       
-
     })
   }
 }
