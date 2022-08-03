@@ -356,3 +356,38 @@ test('empty swarm', function (t) {
 //  console.log(peer_hard.peers[peer_easy.id])
   t.end()
 })
+
+test('notify on_peer', function (t) {
+  //t.fail('TODO: check that there is notification when a new peer connects for the first time')
+
+  var swarm = createId('test swarm')
+  var network = new Network()
+  var client
+  var intro
+  network.add(A, new Node(createPeer(intro = new Introducer({id: ids.a}))))
+  network.add(B, new Node(createPeer(new Introducer({id: ids.b}))))
+
+  var [peer1, nat1] = createNatPeer(network, createId('id:1'), '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
+  var [peer2, nat2] = createNatPeer(network, createId('id:2'), '5.6.7.8', '5.6.7.82', IndependentFirewallNat)
+
+  network.iterate(-1)
+  var notify = 0
+  peer1.on_peer = (peer) => {
+    console.log("ON PEER 1", peer)
+    notify |= 1
+    t.equal(peer.id, peer2.id)
+    t.ok(peer1.swarms[swarm][peer.id])
+  }
+  peer2.on_peer = (peer) => {
+    console.log("ON PEER 2", peer)
+    notify |= 2
+    t.equal(peer.id, peer1.id)
+    t.ok(peer2.swarms[swarm][peer.id])
+  }
+  peer1.join(swarm)
+  peer2.join(swarm)
+
+  network.iterate(-1)
+  t.equal(notify, 3, 'there were two peer notifications')
+  t.end()
+})
