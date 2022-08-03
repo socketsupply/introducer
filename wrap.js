@@ -53,6 +53,7 @@ function wrap (peer, ports, codec=json) {
     return bound[p] = dgram
       .createSocket('udp4')
       .bind(p)
+//      on('listening', function () { this.setBroadcast(true) })
       .on('message', (data, addr) => {
         onMessage(codec.decode(data), addr, p)
       })
