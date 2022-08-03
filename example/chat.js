@@ -174,7 +174,7 @@ if(!module.parent) {
     it appears that a socket cannot be used for both
   */
   var UDP = require('dgram')
-  var sock = UDP.createSocket('udp4', {reuseAddr: true})
+  var sock = UDP.createSocket({type: 'udp4', reuseAddr: true})
   sock.bind(3456)
   sock.on('listening', function () {
     sock.setBroadcast(true)
