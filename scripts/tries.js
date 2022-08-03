@@ -10,7 +10,7 @@ for(var i = 0; i < 256; i++)
 //the easy side needs to guess a port
 //if there are M tries, whats the chance of finding a port?
 var N = 10000, M = 512
-for(var M = 128; M < 2048; M *= 1.1) {
+for(var M = 128; M < 2048; M *= 1.25) {
 var total = 0, needed = 0
     for(var j = 0; j < N; j++) {
       for(var i = 0; i < M; i++)
