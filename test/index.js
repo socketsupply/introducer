@@ -281,7 +281,7 @@ test('swarm with 1 easy 1 hard', function (t) {
 })
 
 //join, with hard nats.
-test.skip('swarm with hard nats included', function (t) {
+test('swarm with hard nats included', function (t) {
 
   var swarm = createId('test swarm')
   var network = new Network()
@@ -321,7 +321,38 @@ test.skip('swarm with hard nats included', function (t) {
     //console.log(peer.peers)
   })
 
-  
+  t.end()
+})
 
+test('empty swarm', function (t) {
+  var swarm = createId('test swarm')
+  var network = new Network()
+  var client
+  var intro
+  network.add(A, new Node(createPeer(intro = new Introducer({id: ids.a}))))
+  network.add(B, new Node(createPeer(new Introducer({id: ids.b}))))
+
+  var [peer_easy, nat_easy] = createNatPeer(network, createId('id:easy'), '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
+  //var [peer_hard, nat_hard] = createNatPeer(network, createId('id:hard'), '5.6.7.8', '5.6.7.82', DependentNat)
+
+  network.iterate(-1)
+  peer_easy.join(swarm)
+//  peer_hard.join(swarm)
+
+  var empty
+  peer_easy.on_error = function (msg) {
+    empty = msg.id
+  }
+
+  network.iterate(-1)
+
+  //the introducer should know about everyone's nats now.
+  t.equal(intro.peers[peer_easy.id].nat, 'easy')
+//  t.equal(intro.peers[peer_hard.id].nat, 'hard')
+  t.equal(empty, swarm)
+  //console.log(nat_hard)
+
+//  console.log(peer_easy.peers[peer_hard.id])
+//  console.log(peer_hard.peers[peer_easy.id])
   t.end()
 })
