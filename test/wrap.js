@@ -1,4 +1,4 @@
-const wrap = require('../wrap')
+const wrap = require('../wrap')(require('dgram'))
 
 wrap({
   init: () => {},
@@ -7,9 +7,10 @@ wrap({
   }
 }, [1234])
 
-const client = {
+var client = {
   on_pong () {
     console.log('PONG')
+    process.exit(0)
   }
 }
 
