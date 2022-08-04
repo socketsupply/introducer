@@ -173,32 +173,8 @@ if(!module.parent) {
     we need a parallel multicast system.
     it appears that a socket cannot be used for both
   */
-  var UDP = require('dgram')
-  var sock = UDP.createSocket({type: 'udp4', reuseAddr: true})
-  var mcast = {}
-  sock.bind(6543)
-  sock.on('listening', function () {
-    sock.setBroadcast(true)
-  })
-  function bcast () {
-    sock.send(JSON.stringify({type:'broadcast', id: config.id, ts: Date.now()}), 6543, '255.255.255.255')
-  }
-  sock.on('message', function (m, addr) {
-    var data = JSON.parse(m.toString())
-    if(data.id === config.id) return //our own message
-    console.log('bm', addr, data)
-    if(!mcast[addr.address]) {
-      bcast()
-    }
-    mcast[addr.address] = Date.now()
-  })
-  setTimeout(()=> {
-    bcast()
-  }, 1000)
-  setInterval(bcast, 300_000).unref()
 
-  //^^^ multicast
-
+ 
  if(cmd === 'introducer') {
     Wrap(new Introducer(), [config.port])
     console.log(config.id)
@@ -211,9 +187,25 @@ if(!module.parent) {
     Wrap(peer, [config.port])
     process.stdin.on('data', function (data) {
       var c = peer.chat({ts:Date.now(), content: data.toString()})
-      console.log("DATA", data.toString(), c)
-      
+      console.log("DATA", data.toString(), c)     
     })
+    //broadcast our presense on local network.
+    //our address is detectable.
+    //but include our port, because message will be received on multicast
+    //only port which won't receive direct packets. 
+    Broadcast(6543, function () {
+      return JSON.stringify({ type:'broadcast', id: config.id, port: config.port, ts: Date.now() })
+    }, function (data, addr) {
+      //when we detect a peer, just ping them,
+      //that will trigger the other peer management stuff.
+      //hmm, also need to join swarms with them?
+      var msg = JSON.parse(data.toString())
+      peer.ping({address:addr.address, port: msg.port})    
+
+      //mark as a local peer,
+      //when you join a swarm, also message local peers to join the swarm
+      //(just incase they are in it, cheap to message locally)
+    })
+
   }
 }
- 
