@@ -167,7 +167,7 @@ if(!module.parent) {
   var Wrap = require('../wrap')
   var cmd = process.argv[2]
   var swarm = util.createId('test swarm') 
-
+  var Multicast = require('../lib/multicast')
   /* multicast
     to find other peers on the local network,
     we need a parallel multicast system.
@@ -193,13 +193,14 @@ if(!module.parent) {
     //our address is detectable.
     //but include our port, because message will be received on multicast
     //only port which won't receive direct packets. 
-    Broadcast(6543, function () {
+    Multicast(6543, function () {
       return JSON.stringify({ type:'broadcast', id: config.id, port: config.port, ts: Date.now() })
     }, function (data, addr) {
       //when we detect a peer, just ping them,
       //that will trigger the other peer management stuff.
       //hmm, also need to join swarms with them?
       var msg = JSON.parse(data.toString())
+      if(msg.id === peer.id) return //ignore our own messages
       peer.ping({address:addr.address, port: msg.port})    
 
       //mark as a local peer,
