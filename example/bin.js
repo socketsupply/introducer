@@ -6,7 +6,7 @@ const path = require('path')
 
 const Demo = require('./chat')
 const Config = require('../lib/config')
-const Wrap = require('../wrap')(require('dgram'))
+const Wrap = require('../wrap')(udp)
 const Multicast = require('../lib/multicast')(udp)
 const util = require('../util')
 
