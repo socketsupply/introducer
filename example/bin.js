@@ -1,3 +1,4 @@
+#! /usr/bin/env node
 const udp = require('dgram')
 const crypto = require('crypto')
 const fs = require('fs')

@@ -1,5 +1,3 @@
-#! /usr/bin/env node
-//
 // TODO
 // run this code to point of nat check
 // run to communicate with another peer
