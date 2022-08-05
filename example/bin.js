@@ -21,7 +21,7 @@ function main (argv) {
   */
 
   if (cmd === 'introducer') {
-    Wrap(udp, new Introducer(), [config.port])
+    Wrap(new Introducer(), [config.port])
     console.log(config.id)
     return
   }
