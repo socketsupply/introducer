@@ -46,8 +46,8 @@ function main (argv) {
   Wrap(peer, [config.port])
 
   process.stdin.on('data', function (data) {
+    console.log('DATA', data.toString())
     const c = peer.chat({ ts: Date.now(), content: data.toString() })
-    console.log('DATA', data.toString(), c)
   })
 
   // broadcast our presense on local network.
@@ -57,11 +57,13 @@ function main (argv) {
   Multicast(6543, function () {
     return JSON.stringify({ type: 'broadcast', id: config.id, port: config.port, ts: Date.now() })
   }, function (data, addr) {
+    console.log("receive multicast", data.toString(), addr)
     // when we detect a peer, just ping them,
     // that will trigger the other peer management stuff.
     // hmm, also need to join swarms with them?
     const msg = JSON.parse(data.toString())
     if (msg.id === peer.id) return // ignore our own messages
+    console.log('ping', { address: addr.address, port: msg.port })
     peer.ping({ address: addr.address, port: msg.port })
 
     // mark as a local peer,

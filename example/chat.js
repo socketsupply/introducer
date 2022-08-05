@@ -23,8 +23,8 @@ module.exports = class Demo extends Peer {
 
   chat ({ name, content, ts = Date.now() }) {
     const msg = { type: 'chat', id: this.id, swarm: this.swarm, content, ts }
-    this.send(msg, { address: '255.255.255.255', port: 3456 }, 3456)
-    return this.swarmcast(msg)
+//    this.send(msg, { address: '255.255.255.255', port: 3456 }, 3456)
+    return this.broadcast(msg)
   }
 
   on_chat (msg, addr, port) {
@@ -34,7 +34,7 @@ module.exports = class Demo extends Peer {
       if (_msg.ts == msg.ts && _msg.content == msg.content) { return }
     }
     this.messages.push(msg)
-    this.swarm(msg, this.swarm, addr)
+    this.broadcast(msg, addr)
     this.on_change(msg, this.messages)
   }
 
@@ -54,17 +54,29 @@ module.exports = class Demo extends Peer {
   }
 
   // broadcast a message, optionally skipping a particular peer (such as the peer that sent this)
-  broadcast (msg, not_addr = null) {
+  broadcast (msg, not_addr = {address:null}) {
     for (const k in this.peers) {
-      if (!this.introducers[k] && !Demo.equalAddr(this.peers[k], not_addr.address)) { this.send(msg, this.peers[k], this.port) }
+      console.log('bcast', k)
+      if (!this.introducers[k] && !Demo.equalAddr(this.peers[k], not_addr.address)) {
+        this.send(msg, this.peers[k], this.port)
+      }
     }
   }
 
   // broadcast a message within a particular swarm
-  swarmcast (msg, swarm, not_addr = null) {
+  swarmcast (msg, swarm, not_addr = {address:null}) {
+    //send to peers in the same swarm
+//    console.log("swarmcast", msg, swarm)
     let c = 0
     for (const k in this.swarms[swarm]) {
       if (!Demo.equalAddr(this.peers[k], not_addr.address)) {
+        this.send(msg, this.peers[k], this.port)
+        c++
+      }
+    }
+    //and other local peers
+    for(const k in this.peers) {
+      if((this.swarms[swarm] && !this.swarms[swarm][k]) && /^192.168/.test(this.peers[k].address)) {
         this.send(msg, this.peers[k], this.port)
         c++
       }
