@@ -11,7 +11,7 @@
     "introchat": "example/bin.js"
   },
   "scripts": {
-    "test": "node test/index.js && node test/wrap.js && node example/bin.js nat"
+    "test": "node test/index.js && node test/wrap.js && ./example/bin.js nat"
   },
   "author": "",
   "license": "ISC",
