@@ -1,4 +1,4 @@
-const { toAddress, isId } = require('./util')
+const { isId } = require('./util')
 
 function cmpRand () {
   return Math.random() - 0.5

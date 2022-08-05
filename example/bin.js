@@ -5,15 +5,15 @@ const fs = require('fs')
 const path = require('path')
 
 const Demo = require('./chat')
-const Config = require('../lib/config')
+const Config = require('../lib/config')(crypto, fs, path)
 const Wrap = require('../wrap')(udp)
 const Multicast = require('../lib/multicast')(udp)
 const util = require('../util')
 
 function main (argv) {
-  const config = Config({ appname: 'introducer-chat' }, crypto, fs, path)
+  const config = Config({ appname: 'introducer-chat' })
   const cmd = argv[0]
-  const swarm = util.createId('test swarm')
+  const swarm = util.createId(crypto, 'test swarm')
   /* multicast
     to find other peers on the local network,
     we need a parallel multicast system.
