@@ -75,11 +75,15 @@ class Introducer {
     if (peer && msg.nat) peer.nat = msg.nat
     // trigger random connections
     // if there are no other peers in the swarm, do nothing
-    let ids = Object.keys(swarm)
+    // peers that have pinged in last 2 minutes
+    let ids = Object.keys(swarm).filter(id => this.peers[id].ts > ts - 120_000)
     // remove ourself, then randomly shuffle list
     ids.splice(ids.indexOf(msg.id), 1).sort(cmpRand)
 
-    if (peer.nat == 'hard') { ids = ids.filter(id => this.peers[id].nat === 'easy') }
+    if (peer.nat == 'hard') {
+      //hard nat can only connect to easy nats, but can also connect to peers on the same nat
+      ids = ids.filter(id => this.peers[id].nat === 'easy' || this.peers[id].address === peer.address)
+    }
 
     // send messages to the random peers indicating that they should connect now.
     // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
