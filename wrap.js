@@ -18,15 +18,20 @@ const json = {
   decode: (buf) => JSON.parse(buf.toString())
 }
 
+function toAddress (a) {
+  return a.address+':'+a.port
+}
+
 module.exports = (UDP, OS) => { 
   const IP = createIP(OS)
   return function wrap (peer, ports, codec = json) {
     const bound = {}
 
     peer.send = (msg, addr, from_port) => {
-      debug('send', msg, addr)
+      debug('send', msg, from_port+'->'+toAddress(addr))
       const sock = bind(from_port)
       if (addr === '255.255.255.255') sock.setBroadcast(true)
+      if(from_port === undefined) throw new Error('source port is not defined!')
       sock.send(codec.encode(msg), addr.port, addr.address)
     }
 
@@ -45,7 +50,7 @@ module.exports = (UDP, OS) => {
     peer.localAddress = IP.check()
 
     function onMessage (msg, addr, port) {
-      debug('recv', msg)
+      debug('recv', msg, toAddress(addr)+'->'+port)
       if (isString(msg.type) && isFunction(peer['on_' + msg.type])) { peer['on_' + msg.type](msg, addr, port) }
     }
 
