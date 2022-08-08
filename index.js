@@ -24,6 +24,16 @@ class Introducer {
     this.send({ type: 'pong', id: this.id, ...addr }, addr, port)
   }
 
+  //sending on-local requests other peer to connect directly to our local address
+  //a connect message is not sent back because we can receive an unsolicited packet locally.
+  on_local (msg, addr) {
+    const peer = this.peers[msg.target]
+    if(peer) {
+      console.log('on_local', msg, addr)
+      this.send({type: 'local', id: msg.id, address: msg.address, port: msg.port}, peer, port)
+    }
+  }
+
   on_connect (msg, addr) {
     // check nat types:
     // if both peers are easy, just tell each to connect to the other
@@ -80,12 +90,18 @@ class Introducer {
 function checkNat (peer) {
   // if we have just discovered our nat, ping the introducer again to let them know
   const update = !peer.nat
-  let port
+  let port, address
   for (const k in peer.introducers) {
     const _peer = peer.peers[k]
     if (_peer && _peer.pong) {
-      if (!port) { port = _peer.pong.port } else if (_peer.pong.port != port) {
-        if (peer.nat != 'hard') { peer.on_nat(peer.nat = 'hard') }
+      if (!port) {
+        port = _peer.pong.port
+        address = _peer.pong.address
+        peer.publicAddress = address
+        peer.publicPort = port
+      }
+      else if (_peer.pong.port != port) {
+        if (peer.nat != 'hard') peer.on_nat(peer.nat = 'hard')
         if (update) peer.ping(peer.introducer1)
         return
       }
@@ -171,7 +187,7 @@ class Peer {
   }
 
   connect (id) {
-    this.send({ type: 'connect', id: this.id, nat: this.nat, target: id }, this.introducer1, port)
+    this.send({ type: 'connect', id: this.id, nat: this.nat, target: id}, this.introducer1, port)
   }
 
   join (swarm_id) {
@@ -179,15 +195,36 @@ class Peer {
     this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat }, this.introducer1, port)
   }
 
+  local (id) {
+    console.log("LOCAL", this)
+    this.send({type: 'local', target: id, id: this.id, address: this.localAddress, port}, this.introducer1, port)
+  }
+
+  on_local (msg) {
+    this.ping3(msg)
+  }
+
   // we received connect request, ping the target 3 itmes
   on_connect (msg) {
     let swarm
     // note: ping3 checks if we are already communicating
+
     if (isId(msg.swarm)) {
       swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
       swarm[msg.id] = Date.now()
     }
     if (msg.nat === 'static') { this.ping3(msg) } else if (this.nat === 'easy') {
+      if(msg.address === this.publicAddress) {
+        //if the dest has the same public ip as we do, it must be on the same nat.
+        //since NAT hairpinning is usually not supported, we should request a direct connection.
+        //implement this by sending another message requesting a local introduction.
+        //of course, this is pretty absurd, to require internet connectivity just to make a local connection!
+        //unfortunately, the app stores are strongly against local multicast
+        //however, in the future we can have a real local experience here using bluetooth.
+        this.local(msg.id)
+        return
+      }
+
       // if nat is missing, guess that it's easy nat.
       // we should generally know our own nat by now.
       if (msg.nat === 'easy' || msg.nat == null) { this.ping3(msg) } // we are both easy, just do ping3
