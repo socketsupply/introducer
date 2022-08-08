@@ -48,7 +48,19 @@ function main (argv) {
   Wrap(peer, [config.port])
 
   process.stdin.on('data', function (data) {
-    const c = peer.chat({ ts: Date.now(), content: data.toString() })
+    data = data.toString()
+    var m = /^\s*\/(\w+)/.exec(data)
+    if(m) {
+      var cmd = m[1]
+      if(cmd === 'peers')
+        console.log(peer.peers)
+      else if(cmd === 'ip')
+        console.log(peer.publicAddress+':'+peer.publicPort)
+      else
+        console.log('unknown command:'+cmd)
+      return
+    }
+    peer.chat({ ts: Date.now(), content: data.toString() })
   })
 
 }
