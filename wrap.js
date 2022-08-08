@@ -62,7 +62,7 @@ module.exports = (UDP, OS) => {
     }
 
     // support binding anynumber of ports on demand (necessary for birthday paradox connection)
-    function bind (p) {
+    function bind (p, must_bind) {
       debug('bind', p)
       return bound[p] = UDP
         .createSocket('udp4')
@@ -73,18 +73,19 @@ module.exports = (UDP, OS) => {
         })
         .on('error', (err) => {
           if (err.code === 'EACCES' && process.env.DEBUG) {
+            if(must_bind) throw err
             console.error('could not bind port:' + err.port)
           }
         })
     }
 
-    function maybe_bind (p) {
+    function maybe_bind (p, must_bind) {
       if (!isPort(p)) { throw new Error('expected port, got:' + p) }
       if (bound[p]) return bound[p]
-      return bind(p)
+      return bind(p, must_bind)
     }
 
     if (peer.init) peer.init()
-    if (ports) ports.forEach(maybe_bind)
+    if (ports) ports.forEach(p => maybe_bind(p, true))
   }
 }
