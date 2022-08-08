@@ -28,6 +28,10 @@ function main (argv) {
   peer.on_change = (msg) => {
     console.log(msg.id.substring(0, 8), msg.ts, msg.content)
   }
+  peer.on_peer = (other) => {
+    if(!peer.introducers[other.id])
+    console.log('connected', other.id.substring(0, 8),  other.address+':'+other.port)
+  }
 
   //detect the nat type and exit
   if(cmd === 'nat') {
@@ -44,7 +48,6 @@ function main (argv) {
   Wrap(peer, [config.port])
 
   process.stdin.on('data', function (data) {
-    console.log('DATA', data.toString())
     const c = peer.chat({ ts: Date.now(), content: data.toString() })
   })
 
