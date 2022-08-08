@@ -39,7 +39,7 @@ module.exports = class Demo extends Peer {
   }
 
   on_nat () {
-    console.log('have nat:', this.nat)
+    console.log('have nat:', this.nat, {public: this.publicAddress+':'+this.publicPort, local:this.localAddress+':'+this.port})
     this.join(this.swarm)
   }
 
