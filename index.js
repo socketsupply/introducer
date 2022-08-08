@@ -29,7 +29,6 @@ class Introducer {
   on_local (msg, addr) {
     const peer = this.peers[msg.target]
     if(peer) {
-      console.log('on_local', msg, addr)
       this.send({type: 'local', id: msg.id, address: msg.address, port: msg.port}, peer, port)
     }
   }
@@ -196,7 +195,6 @@ class Peer {
   }
 
   local (id) {
-    console.log("LOCAL", this)
     this.send({type: 'local', target: id, id: this.id, address: this.localAddress, port}, this.introducer1, port)
   }
 
