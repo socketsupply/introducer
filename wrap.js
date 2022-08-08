@@ -1,4 +1,4 @@
-
+const createIP = require('./lib/ip')
 const debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
 
 function isPort (p) {
@@ -18,8 +18,8 @@ const json = {
   decode: (buf) => JSON.parse(buf.toString())
 }
 
-module.exports = (UDP) => { 
-
+module.exports = (UDP, OS) => { 
+  const IP = createIP(OS)
   return function wrap (peer, ports, codec = json) {
     const bound = {}
 
@@ -40,6 +40,8 @@ module.exports = (UDP) => {
         }, delay)
       }
     }
+
+    peer.localAddress = IP.check()
 
     function onMessage (msg, addr, port) {
       debug('recv', msg)
