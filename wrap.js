@@ -22,7 +22,7 @@ module.exports = (UDP, OS, Buffer) => {
 
   const json = {
     encode: (obj) => Buffer.from(JSON.stringify(obj)),
-    decode: (buf) => JSON.parse(buf.toString())
+    decode: (buf) => JSON.parse(Buffer.from(buf).toString())
   }
 
   return function wrap (peer, ports, codec = json) {
