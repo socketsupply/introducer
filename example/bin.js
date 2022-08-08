@@ -3,6 +3,7 @@ const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const Demo = require('./chat')
+const {Introducer} = require('..')
 const Config = require('../lib/config')(crypto, fs, path)
 const Wrap = require('../wrap')(require('dgram'), require('os'))
 const util = require('../util')
@@ -18,7 +19,7 @@ function main (argv) {
   */
 
   if (cmd === 'introducer') {
-    Wrap(new Introducer(), [config.port])
+    Wrap(new Introducer(config), [config.port])
     console.log(config.id)
     return
   }
