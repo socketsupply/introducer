@@ -1,11 +1,14 @@
 const wrap = require('../wrap')(require('dgram'), require('os'))
 
+var s_port = 1234
+var c_port = 1235
+
 wrap({
   init: () => {},
   on_ping (msg, addr, port) {
     this.send({ type: 'pong', addr }, addr, port)
   }
-}, [1234])
+}, [s_port])
 
 var client = {
   on_pong () {
@@ -14,6 +17,6 @@ var client = {
   }
 }
 
-wrap(client, [1235])
+wrap(client, [c_port])
 console.log(client)
-client.send({ type: 'ping' }, { address: '127.0.0.1', port: 1234 })
+client.send({ type: 'ping' }, { address: '127.0.0.1', port: s_port }, c_port)
