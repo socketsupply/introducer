@@ -109,7 +109,7 @@ class Peer {
       const peer = this.peers[id]
       peer.address = address
       peer.port = port
-      peer.nat = nat
+      peer.nat = nat || peer.nat
       peer.ts = Date.now()
       peer.outport = outport
       if(this.introducers[peer.id])
