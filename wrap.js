@@ -29,20 +29,27 @@ module.exports = (UDP, OS) => {
 
     peer.send = (msg, addr, from_port) => {
       debug('send', msg, from_port+'->'+toAddress(addr))
-      const sock = bind(from_port)
-      if (addr === '255.255.255.255') sock.setBroadcast(true)
+      const sock = maybe_bind(from_port)
+      //if (addr === '255.255.255.255') sock.setBroadcast(true)
       if(from_port === undefined) throw new Error('source port is not defined!')
       sock.send(codec.encode(msg), addr.port, addr.address)
     }
 
     peer.timer = (delay, repeat, fn) => {
       let int
+
       function interval () {
         if (fn() === false) clearInterval(int)
       }
-      if (!delay && fn() !== false && repeat) { int = setInterval(interval, repeat) } else {
-        setTimeout(function interval () {
-          if (fn() !== false && repeat) { int = setInterval(interval, repeat) }
+
+      if (!delay && fn() !== false && repeat) {
+        int = setInterval(interval, repeat)
+      }
+      else {
+        setTimeout(function () {
+          if (fn() !== false && repeat) {
+            int = setInterval(interval, repeat)
+          }
         }, delay)
       }
     }
@@ -56,8 +63,6 @@ module.exports = (UDP, OS) => {
 
     // support binding anynumber of ports on demand (necessary for birthday paradox connection)
     function bind (p) {
-      if (!isPort(p)) { throw new Error('expected port, got:' + p) }
-      if (bound[p]) return bound[p]
       debug('bind', p)
       return bound[p] = UDP
         .createSocket('udp4')
@@ -73,7 +78,13 @@ module.exports = (UDP, OS) => {
         })
     }
 
+    function maybe_bind (p) {
+      if (!isPort(p)) { throw new Error('expected port, got:' + p) }
+      if (bound[p]) return bound[p]
+      return bind(p)
+    }
+
     if (peer.init) peer.init()
-    if (ports) ports.forEach(bind)
+    if (ports) ports.forEach(maybe_bind)
   }
 }
