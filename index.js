@@ -100,13 +100,13 @@ class Peer {
 
   __set_peer (id, address, port, nat, outport) {
     if(!this.peers[id]) {
-      this.peers[id] = { id, address, port, nat, ts: Date.now(), outport }
+      const peer = this.peers[id] = { id, address, port, nat, ts: Date.now(), outport }
       if(this.introducers[peer.id])
         peer.introducer = true
       return true
     }
     else {
-      var peer = this.peers[id]
+      const peer = this.peers[id]
       peer.address = address
       peer.port = port
       peer.nat = nat
