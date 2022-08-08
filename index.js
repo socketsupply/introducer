@@ -1,5 +1,7 @@
 const { isId } = require('./util')
 
+const debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
+
 function cmpRand () {
   return Math.random() - 0.5
 }
@@ -145,26 +147,24 @@ class Peer {
     // because in practice I'm fairly sure this should poll to keep port open (say every minute)
     for (const k in this.introducers) { this.ping(this.introducers[k]) }
 
-    console.log('init')
     if(this.keepalive) {
-      console.log('keepalive scheduled')
+      debug('keepalive scheduled')
       let ts = Date.now()
       this.timer(this.keepalive, this.keepalive, ()=> {
-        console.log('keepalive')
         let _ts = Date.now()
-        if(_ts - ts > this.keepalive*2) {
+        if((_ts - ts) > this.keepalive*2) {
           //we have woken up
-          console.log('woke up')
-
+          debug('woke up', (_ts - ts)/1000)
         }
+        ts = _ts
         for(var id in this.peers) {
           var peer = this.peers[id]
           if(peer.pong && peer.pong.ts > ts - (this.keepalive*2)) {
-            console.log('alive peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
+            debug('alive peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
             this.ping(this.peers[id])
           }
           else
-            console.log("dead peer:", peer)
+            debug("dead peer:", peer)
         }
       })
     }
