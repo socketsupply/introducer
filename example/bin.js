@@ -24,7 +24,7 @@ function main (argv) {
     return
   }
 
-  const peer = new Demo({ swarm, ...config })
+  const peer = new Demo({ swarm, ...config, keepalive: 30_000 })
   peer.on_change = (msg) => {
     console.log(msg.id.substring(0, 8), msg.ts, msg.content)
   }

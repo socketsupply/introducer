@@ -11,10 +11,11 @@ function isFunction (f) {
 const port = 3456
 
 class Introducer {
-  constructor ({ id }) {
+  constructor ({ id, keepalive }) {
     this.id = id
     this.peers = {}
     this.swarms = {}
+    this.keepalive = keepalive
   }
 
   init () {}
@@ -118,17 +119,17 @@ function random_port (ports) {
 }
 
 class Peer {
-  constructor ({ id, introducer1, introducer2, onPeer }) {
+  constructor ({ id, introducer1, introducer2, keepalive }) {
     this.peers = {}
     this.swarms = {}
     this.id = id
     if (!introducer1) throw new Error('must provide introducer1')
     if (!introducer2) throw new Error('must provide introducer2')
+    this.keepalive = keepalive
     this.introducers = {
       [introducer1.id]: this.introducer1 = introducer1,
       [introducer2.id]: introducer2
     }
-    this.on_peer = onPeer
   }
 
   init () {
@@ -136,6 +137,25 @@ class Peer {
     // so we need a way to unref...
     // because in practice I'm fairly sure this should poll to keep port open (say every minute)
     for (const k in this.introducers) { this.ping(this.introducers[k]) }
+
+    console.log('init')
+    if(this.keepalive) {
+      console.log('keepalive scheduled')
+      this.timer(this.keepalive, this.keepalive, ()=> {
+        console.log('keepalive')
+        var ts = Date.now()
+        for(var id in this.peers) {
+          var peer = this.peers[id]
+          if(peer.pong && peer.pong.ts > ts - (this.keepalive*2)) {
+            console.log('alive peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
+            this.ping(this.peers[id])
+          }
+          else
+            console.log("dead peer:", peer)
+        }
+      })
+    }
+
   }
 
   on_nat (type) {
@@ -143,6 +163,8 @@ class Peer {
   }
 
   ping (addr) {
+    //save ping time so we can detect latency
+    if(addr.id && this.peers[addr.id]) this.peers[addr.id].ping = Date.now()
     this.send({ type: 'ping', id: this.id, nat: this.nat }, addr, port)
   }
 
@@ -180,7 +202,7 @@ class Peer {
     if (!this.peers[msg.id]) var isNew = true
     const peer = this.peers[msg.id] = this.peers[msg.id] || { id: msg.id, address: addr.address, port: addr.port, ts }
     peer.ts = ts
-    peer.pong = { ts, address: msg.address, port: msg.port }
+    peer.pong = { ts, address: msg.address, port: msg.port, latency: peer.ping ? ts - peer.ping : null }
     checkNat(this)
     if (isNew && isFunction(this.on_peer)) this.on_peer(this.peers[msg.id])
   }
