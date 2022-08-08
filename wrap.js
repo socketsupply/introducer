@@ -13,17 +13,18 @@ function isFunction (f) {
   return typeof f === 'function'
 }
 
-const json = {
-  encode: (obj) => Buffer.from(JSON.stringify(obj)),
-  decode: (buf) => JSON.parse(buf.toString())
-}
-
 function toAddress (a) {
   return a.address+':'+a.port
 }
 
-module.exports = (UDP, OS) => { 
+module.exports = (UDP, OS, Buffer) => {
   const IP = createIP(OS)
+
+  const json = {
+    encode: (obj) => Buffer.from(JSON.stringify(obj)),
+    decode: (buf) => JSON.parse(buf.toString())
+  }
+
   return function wrap (peer, ports, codec = json) {
     const bound = {}
 

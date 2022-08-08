@@ -1,4 +1,6 @@
-const wrap = require('../wrap')(require('dgram'), require('os'))
+const udp = require('dgram')
+const os = require('os')
+const wrap = require('../wrap')(udp, os, Buffer)
 
 var s_port = 1234
 var c_port = 1235

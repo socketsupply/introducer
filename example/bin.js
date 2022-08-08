@@ -1,11 +1,13 @@
 #! /usr/bin/env node
 const crypto = require('crypto')
 const fs = require('fs')
+const os = require('os')
+const dgram = require('dgram')
 const path = require('path')
 const Demo = require('./chat')
 const Introducer = require('../introducer')
 const Config = require('../lib/config')(crypto, fs, path)
-const Wrap = require('../wrap')(require('dgram'), require('os'))
+const Wrap = require('../wrap')(dgram, os, Buffer)
 const util = require('../util')
 
 function main (argv) {

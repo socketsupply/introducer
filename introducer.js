@@ -69,6 +69,7 @@ class Introducer {
 
   on_join (msg, addr, port) {
     if (port == undefined) throw new Error('undefined port')
+    const ts = Date.now()
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = Date.now()
     const peer = this.peers[msg.id]
