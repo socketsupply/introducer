@@ -31,12 +31,13 @@ module.exports = (UDP, OS) => {
     }
 
     peer.timer = (delay, repeat, fn) => {
+      let int
       function interval () {
         if (fn() === false) clearInterval(int)
       }
-      if (!delay && fn() !== false && repeat) { setInterval(interval, repeat) } else {
+      if (!delay && fn() !== false && repeat) { int = setInterval(interval, repeat) } else {
         setTimeout(function interval () {
-          if (fn() !== false && repeat) { const int = setInterval(interval, repeat) }
+          if (fn() !== false && repeat) { int = setInterval(interval, repeat) }
         }, delay)
       }
     }
