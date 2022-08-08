@@ -19,10 +19,17 @@ class Introducer {
   }
 
   init () {}
-  on_ping (msg, addr) {
+  on_ping (msg, addr, _port) {
     if (!isId(msg.id)) return
-    this.peers[msg.id] = { id: msg.id, ...addr, nat: msg.nat, ts: Date.now() }
-    this.send({ type: 'pong', id: this.id, ...addr }, addr, port)
+    if(!this.peers[msg.id])
+      this.peers[msg.id] = { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: _port }
+    else {
+      var peer = this.peers[msg.id]
+      peer.nat = msg.nat
+      peer.ts = Date.now()
+      peer.output = _port
+    }
+    this.send({ type: 'pong', id: this.id, ...addr }, addr, _port)
   }
 
   //sending on-local requests other peer to connect directly to our local address
@@ -141,9 +148,15 @@ class Peer {
     console.log('init')
     if(this.keepalive) {
       console.log('keepalive scheduled')
+      let ts = Date.now()
       this.timer(this.keepalive, this.keepalive, ()=> {
         console.log('keepalive')
-        var ts = Date.now()
+        let _ts = Date.now()
+        if(_ts - ts > this.keepalive*2) {
+          //we have woken up
+          console.log('woke up')
+
+        }
         for(var id in this.peers) {
           var peer = this.peers[id]
           if(peer.pong && peer.pong.ts > ts - (this.keepalive*2)) {
@@ -165,7 +178,7 @@ class Peer {
   ping (addr) {
     //save ping time so we can detect latency
     if(addr.id && this.peers[addr.id]) this.peers[addr.id].ping = Date.now()
-    this.send({ type: 'ping', id: this.id, nat: this.nat }, addr, port)
+    this.send({ type: 'ping', id: this.id, nat: this.nat }, addr, addr.outport || port)
   }
 
   on_ping (msg, addr, _port) {
@@ -173,7 +186,16 @@ class Peer {
     // (sometimes first contact with a peer will be ping, sometimes pong)
     var isNew = false
     if (!this.peers[msg.id]) { var isNew = true }
-    this.peers[msg.id] = { id: msg.id, address: addr.address, port: addr.port, outport: _port, ts: Date.now() }
+
+    if(!this.peers[msg.id])
+      this.peers[msg.id] = { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: _port }
+    else {
+      var peer = this.peers[msg.id]
+      peer.nat = msg.nat
+      peer.ts = Date.now()
+      peer.output = _port
+    }
+
     // if(_port != port) throw new Error('receive on unexpected port')
     this.send({ type: 'pong', id: this.id, ...addr }, addr, _port)
     if (isNew && isFunction(this.on_peer)) { this.on_peer(this.peers[msg.id]) }
