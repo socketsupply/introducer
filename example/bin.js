@@ -1,18 +1,16 @@
 #! /usr/bin/env node
-const udp = require('dgram')
 const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const Demo = require('./chat')
-const Config = require('../lib/config')
+const Config = require('../lib/config')(crypto, fs, path)
 const Wrap = require('../wrap')(require('dgram'), require('os'))
-const Multicast = require('../lib/multicast')(udp)
 const util = require('../util')
 
 function main (argv) {
-  const config = Config({ appname: 'introducer-chat' }, crypto, fs, path)
+  const config = Config({ appname: 'introducer-chat' })
   const cmd = argv[0]
-  const swarm = util.createId('test swarm')
+  const swarm = util.createId(crypto, 'test swarm')
   /* multicast
     to find other peers on the local network,
     we need a parallel multicast system.
@@ -20,7 +18,7 @@ function main (argv) {
   */
 
   if (cmd === 'introducer') {
-    Wrap(udp, new Introducer(), [config.port])
+    Wrap(new Introducer(), [config.port])
     console.log(config.id)
     return
   }
@@ -49,29 +47,6 @@ function main (argv) {
     const c = peer.chat({ ts: Date.now(), content: data.toString() })
   })
 
-  //multicast is disabled by default because it's a big hassel to support on the app stores
-  if(config.multicast) {
-    // broadcast our presense on local network.
-    // our address is detectable.
-    // but include our port, because message will be received on multicast
-    // only port which won't receive direct packets.
-    Multicast(6543, function () {
-      return JSON.stringify({ type: 'broadcast', id: config.id, port: config.port, ts: Date.now() })
-    }, function (data, addr) {
-      console.log("receive multicast", data.toString(), addr)
-      // when we detect a peer, just ping them,
-      // that will trigger the other peer management stuff.
-      // hmm, also need to join swarms with them?
-      const msg = JSON.parse(data.toString())
-      if (msg.id === peer.id) return // ignore our own messages
-      console.log('ping', { address: addr.address, port: msg.port })
-      peer.ping({ address: addr.address, port: msg.port })
-
-      // mark as a local peer,
-      // when you join a swarm, also message local peers to join the swarm
-      // (just incase they are in it, cheap to message locally)
-    })
-  }
 }
 
 if(!module.parent)

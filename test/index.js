@@ -1,7 +1,10 @@
 const test = require('tape')
+const crypto = require('crypto')
 
-const { createId } = require('../util')
+const { createId: _createId } = require('../util')
 const { Introducer, Peer } = require('../')
+
+const createId = (...args) => _createId(crypto, ...args)
 
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
 // var nc = require('../')

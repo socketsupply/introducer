@@ -1,4 +1,4 @@
-const wrap = require('../wrap')(require('dgram'))
+const wrap = require('../wrap')(require('dgram'), require('os'))
 
 wrap({
   init: () => {},

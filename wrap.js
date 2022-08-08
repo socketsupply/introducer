@@ -69,6 +69,5 @@ module.exports = (UDP, OS) => {
 
     if (peer.init) peer.init()
     if (ports) ports.forEach(bind)
-}
-
+  }
 }
