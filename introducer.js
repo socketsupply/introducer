@@ -77,9 +77,11 @@ class Introducer {
     // trigger random connections
     // if there are no other peers in the swarm, do nothing
     // peers that have pinged in last 2 minutes
-    let ids = Object.keys(swarm).filter(id => this.peers[id].ts > ts - 120_000)
+    let ids = Object.keys(swarm)
     // remove ourself, then randomly shuffle list
-    ids.splice(ids.indexOf(msg.id), 1).sort(cmpRand)
+    ids.splice(ids.indexOf(msg.id), 1)
+    .filter(id => this.peers[id].ts > (ts - 120_000))
+    .sort(cmpRand)
 
     if (peer.nat == 'hard') {
       //hard nat can only connect to easy nats, but can also connect to peers on the same nat
