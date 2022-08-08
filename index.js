@@ -72,6 +72,7 @@ class Peer {
         if((_ts - ts) > this.keepalive*2) {
           //we have woken up
           debug('woke up', (_ts - ts)/1000)
+          if(this.on_wakeup) this.on_wakeup()
         }
         ts = _ts
         for(var id in this.peers) {
@@ -80,8 +81,12 @@ class Peer {
             debug('alive peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
             this.ping(this.peers[id])
           }
-          else
+          else {
+            console.log('disconnect', id.substring(0, 8))
+            if(this.on_disconnect) this.on_disconnect(peer)
+            delete this.peers[id]
             debug("dead peer:", peer)
+          }
         }
       })
     }
