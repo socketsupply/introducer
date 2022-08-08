@@ -101,6 +101,8 @@ class Peer {
   __set_peer (id, address, port, nat, outport) {
     if(!this.peers[id]) {
       this.peers[id] = { id, address, port, nat, ts: Date.now(), outport }
+      if(this.introducers[peer.id])
+        peer.introducer = true
       return true
     }
     else {
@@ -110,6 +112,8 @@ class Peer {
       peer.nat = nat
       peer.ts = Date.now()
       peer.outport = outport
+      if(this.introducers[peer.id])
+        peer.introducer = true
       //if(this.on_peer) this.on_peer(peer)
       return false
     }
