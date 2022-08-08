@@ -73,9 +73,10 @@ module.exports = (UDP, OS, Buffer) => {
           onMessage(codec.decode(data), addr, p)
         })
         .on('error', (err) => {
-          if ((err.code === 'EACCES' || err.code === 'EADDRINUSE') && process.env.DEBUG) {
+          if ((err.code === 'EACCES' || err.code === 'EADDRINUSE')) {
             if(must_bind) throw err
-            console.error('could not bind port:' + err.port)
+            if(process.env.DEBUG)
+              console.error('could not bind port:' + err.port)
           }
         })
     }
