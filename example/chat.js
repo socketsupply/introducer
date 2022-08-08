@@ -3,7 +3,7 @@
 // run to communicate with another peer
 // extend netsim to represent local multicast and bluetooth
 //
-const { Peer, Introducer } = require('../')
+const Peer = require('../')
 
 module.exports = class Demo extends Peer {
   constructor (opts) {
