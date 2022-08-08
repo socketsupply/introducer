@@ -29,9 +29,10 @@ for (let i = 0; i < 1000; i++) {
 }
 
 function createPeer (p) {
-  return function (send, timer) {
+  return function (send, timer, node) {
     p.send = send
     p.timer = timer
+    p.localAddress = node.address
     // console.log('timer', timer.toString())
     if (p.init) p.init()
     return function (msg, addr, port) {
@@ -371,5 +372,45 @@ test('notify on_peer', function (t) {
 
   network.iterate(-1)
   t.equal(notify, 3, 'there were two peer notifications')
+  t.end()
+})
+
+
+test('local connection established without hairpinning support', function (t) {
+
+  const swarm = createId('test swarm')
+  const network = new Network()
+  let client
+  let intro
+  network.add(A, new Node(createPeer(intro = new Introducer({ id: ids.a }))))
+  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+
+//  const id = createId('id:nat')
+  const nat = new IndependentFirewallNat('2.4.')
+  nat.hairpinning = false
+  var nat_address = '2.4.6.8'
+  network.add(nat_address, nat)
+
+  var id_a = createId('id:a')
+  var id_b = createId('id:b')
+
+  var address_a = '2.4.0.1', address_b = '2.4.0.2'
+  nat.add(address_a, new Node(createPeer(peer_a = new Peer({ id: id_a, ...intros }))))
+  nat.add(address_b, new Node(createPeer(peer_b = new Peer({ id: id_b, ...intros }))))
+
+  network.iterate(-1)
+
+  peer_a.join(swarm)
+  peer_b.join(swarm)
+
+  network.iterate(-1)
+  t.equal(peer_a.publicAddress, nat_address)
+  t.equal(peer_b.publicAddress, nat_address)
+  t.equal(peer_a.publicPort, nat.map[address_a+':3456'])
+  t.equal(peer_b.publicPort, nat.map[address_b+':3456'])
+
+  t.ok(peer_a.peers[peer_b.id], 'peer_a has found peer_b')
+  t.ok(peer_b.peers[peer_a.id], 'peer_b has found peer_a')  
+
   t.end()
 })
