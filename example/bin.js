@@ -56,8 +56,11 @@ function main (argv) {
         console.log(peer.peers)
       else if(cmd === 'ip')
         console.log(peer.publicAddress+':'+peer.publicPort)
+      else if(cmd === 'join')
+        peer.join(swarm)
       else
         console.log('unknown command:'+cmd)
+
       return
     }
     peer.chat({ ts: Date.now(), content: data.toString() })
