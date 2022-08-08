@@ -98,24 +98,29 @@ class Peer {
     this.send({ type: 'ping', id: this.id, nat: this.nat }, addr, addr.outport || port)
   }
 
+  __set_peer (id, address, port, nat, outport) {
+    if(!this.peers[id]) {
+      this.peers[id] = { id, address, port, nat, ts: Date.now(), outport }
+      return true
+    }
+    else {
+      var peer = this.peers[id]
+      peer.address = address
+      peer.port = port
+      peer.nat = nat
+      peer.ts = Date.now()
+      peer.outport = outport
+      //if(this.on_peer) this.on_peer(peer)
+      return false
+    }
+  }
+
   on_ping (msg, addr, _port) {
     // XXX notify on_peer if we havn't heard from this peer before.
     // (sometimes first contact with a peer will be ping, sometimes pong)
-    var isNew = false
-    if (!this.peers[msg.id]) { var isNew = true }
-
-    if(!this.peers[msg.id])
-      this.peers[msg.id] = { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: _port }
-    else {
-      var peer = this.peers[msg.id]
-      peer.nat = msg.nat
-      peer.ts = Date.now()
-      peer.output = _port
-    }
-
-    // if(_port != port) throw new Error('receive on unexpected port')
     this.send({ type: 'pong', id: this.id, ...addr }, addr, _port)
-    if (isNew && isFunction(this.on_peer)) { this.on_peer(this.peers[msg.id]) }
+    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port)
+    if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
   }
 
   ping3 (addr, delay = 500) {
@@ -131,19 +136,18 @@ class Peer {
     })
   }
 
-  on_pong (msg, addr) {
+  on_pong (msg, addr, _port) {
     // XXX notify if this is a new peer message.
     // (sometimes we ping a peer, and their response is first contact)
     if (!msg.port) throw new Error('pong: missing port')
     const ts = Date.now()
 
     // NOTIFY new peers here.
-    if (!this.peers[msg.id]) var isNew = true
-    const peer = this.peers[msg.id] = this.peers[msg.id] || { id: msg.id, address: addr.address, port: addr.port, ts }
-    peer.ts = ts
+    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port)
+    const peer = this.peers[msg.id]
     peer.pong = { ts, address: msg.address, port: msg.port, latency: peer.ping ? ts - peer.ping : null }
     checkNat(this)
-    if (isNew && isFunction(this.on_peer)) this.on_peer(this.peers[msg.id])
+    if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
   }
 
   connect (id) {
