@@ -129,7 +129,9 @@ module.exports = (EventEmitter) => class Peer extends EventEmitter {
     // (sometimes first contact with a peer will be ping, sometimes pong)
     this.send({ type: 'pong', id: this.id, ...addr }, addr, _port)
     const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port)
-    this.emit('ping', this.peers[msg.id])
+    this.emit('ping', msg, addr, port)
+
+    if (isNew) this.emit('peer', this.peers[msg.id])
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
   }
 
@@ -158,6 +160,7 @@ module.exports = (EventEmitter) => class Peer extends EventEmitter {
     const peer = this.peers[msg.id]
     peer.pong = { ts, address: msg.address, port: msg.port, latency: peer.ping ? ts - peer.ping : null }
     checkNat(this)
+    if (isNew) this.emit('peer', this.peers[msg.id])
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
     this.emit('pong', this.peers[msg.id])
   }
