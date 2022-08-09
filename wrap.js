@@ -68,15 +68,14 @@ module.exports = (UDP, OS, Buffer) => {
       return bound[p] = UDP
         .createSocket('udp4')
         .bind(p)
-        // .on('listening', function () { this.setBroadcast(true) })
         .on('message', (data, addr) => {
-        let msg
-        try { msg = codec.decode(data) }
-        catch (err) {
-          console.error(err)
-          console.error('while parsing:', data)
-        }
-        onMessage(msg, addr, p)
+          let msg
+          try { msg = codec.decode(data) }
+          catch (err) {
+            console.error(err)
+            console.error('while parsing:', data)
+          }
+          onMessage(msg, addr, p)
         })
         .on('error', (err) => {
           if ((err.code === 'EACCES' || err.code === 'EADDRINUSE')) {
