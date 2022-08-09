@@ -1,3 +1,5 @@
+const debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
+
 function isIp (s) {
   return 'string' === typeof s && s.split('.').every(e => +e === +e && 0xff)
 }
@@ -39,6 +41,7 @@ function isPeer (p) {
 module.exports = {
   isIp,
   createId,
+  debug,
   isPort,
   isId,
   isNat,

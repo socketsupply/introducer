@@ -3,7 +3,7 @@ const crypto = require('crypto')
 const { EventEmitter } = require('events')
 
 const { createId: _createId } = require('../util')
-const Peer = require('../')
+const Peer = require('../')(EventEmitter)
 const Introducer = require('../introducer')(EventEmitter)
 const createId = (...args) => _createId(crypto, ...args)
 

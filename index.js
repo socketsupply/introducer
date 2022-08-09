@@ -1,6 +1,4 @@
-const { isId } = require('./util')
-
-const debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
+const { isId, debug } = require('./util')
 
 function cmpRand () {
   return Math.random() - 0.5
@@ -11,7 +9,6 @@ function isFunction (f) {
 }
 
 const port = 3456
-
 
 function checkNat (peer) {
   // if we have just discovered our nat, ping the introducer again to let them know
@@ -44,8 +41,10 @@ function random_port (ports) {
   return p
 }
 
-class Peer {
+module.exports = (EventEmitter) => class Peer extends EventEmitter {
   constructor ({ id, introducer1, introducer2, keepalive }) {
+    super()
+
     this.peers = {}
     this.swarms = {}
     this.id = id
@@ -94,6 +93,7 @@ class Peer {
   }
 
   on_nat (type) {
+    this.emit('nat', type)
     // override this to implement behaviour for when nat is detected.
   }
 
@@ -129,9 +129,11 @@ class Peer {
     // (sometimes first contact with a peer will be ping, sometimes pong)
     this.send({ type: 'pong', id: this.id, ...addr }, addr, _port)
     const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port)
+    this.emit('ping', this.peers[msg.id])
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
   }
 
+  // method to check if we are already communicating
   ping3 (addr, delay = 500) {
     if (!addr.id) throw new Error('ping3 expects peer id')
     this.ping(addr)
@@ -157,6 +159,7 @@ class Peer {
     peer.pong = { ts, address: msg.address, port: msg.port, latency: peer.ping ? ts - peer.ping : null }
     checkNat(this)
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
+    this.emit('pong', this.peers[msg.id])
   }
 
   connect (id) {
@@ -185,14 +188,15 @@ class Peer {
       swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
       swarm[msg.id] = Date.now()
     }
+
     if (msg.nat === 'static') { this.ping3(msg) } else if (this.nat === 'easy') {
       if(msg.address === this.publicAddress) {
-        //if the dest has the same public ip as we do, it must be on the same nat.
-        //since NAT hairpinning is usually not supported, we should request a direct connection.
-        //implement this by sending another message requesting a local introduction.
-        //of course, this is pretty absurd, to require internet connectivity just to make a local connection!
-        //unfortunately, the app stores are strongly against local multicast
-        //however, in the future we can have a real local experience here using bluetooth.
+        // if the dest has the same public ip as we do, it must be on the same nat.
+        // since NAT hairpinning is usually not supported, we should request a direct connection.
+        // implement this by sending another message requesting a local introduction.
+        // of course, this is pretty absurd, to require internet connectivity just to make a local connection!
+        // unfortunately, the app stores are strongly against local multicast
+        // however, in the future we can have a real local experience here using bluetooth.
         this.local(msg.id)
         return
       }
@@ -235,6 +239,8 @@ class Peer {
         throw new Error('cannot connect to unknown nat')
       }
     }
+
+    this.emit('connect', msg)
   }
 
   // support sending directly to a peer
@@ -245,5 +251,3 @@ class Peer {
     } else { return false }
   }
 }
-
-module.exports = Peer //{ Introducer: require('./introducer'), Peer }

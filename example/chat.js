@@ -3,75 +3,80 @@
 // run to communicate with another peer
 // extend netsim to represent local multicast and bluetooth
 //
-const Peer = require('../')
+const { debug } = require('../util')
+const PeerWrap = require('../')
 
 function equalAddr (a, b) {
   return a && b && a.address === b.address && a.port === b.port
 }
 
-module.exports = class Demo extends Peer {
-  constructor (opts) {
-    super(opts)
-    this.swarm = opts.swarm
-    this.messages = []
-  }
+module.exports = (EventEmitter) => {
+  const Peer = PeerWrap(EventEmitter)
 
-  chat ({ name, content, ts = Date.now() }) {
-    const msg = { type: 'chat', id: this.id, swarm: this.swarm, content, ts }
-    this.messages.push(msg)
-    this.on_change(msg, this.messages)
-    return this.broadcast(msg)
-  }
+  return class Demo extends Peer {
+    constructor (opts) {
+      super(opts)
+      this.swarm = opts.swarm
+      this.messages = []
+    }
 
-  on_chat (msg, addr, port) {
-    if(this.messages.find(_msg => _msg.ts == msg.ts && _msg.content == msg.content)) return
-    this.messages.push(msg)
-    this.on_change(msg, this.messages)
-    this.broadcast(msg, addr)
-  }
+    chat ({ name, content, ts = Date.now() }) {
+      const msg = { type: 'chat', id: this.id, swarm: this.swarm, content, ts }
+      this.messages.push(msg)
+      this.on_change(msg, this.messages)
+      return this.broadcast(msg)
+    }
 
-  on_nat () {
-    console.log('have nat:', this.nat, {public: this.publicAddress+':'+this.publicPort, local:this.localAddress+':'+this.port})
-    this.join(this.swarm)
-  }
+    on_chat (msg, addr, port) {
+      if(this.messages.find(_msg => _msg.ts == msg.ts && _msg.content == msg.content)) return
+      this.messages.push(msg)
+      this.on_change(msg, this.messages)
+      this.broadcast(msg, addr)
+    }
 
-  on_error (msg) {
-    console.log('error', msg)
-  }
+    on_nat () {
+      console.log('have nat:', this.nat, {public: this.publicAddress+':'+this.publicPort, local:this.localAddress+':'+this.port})
+      this.join(this.swarm)
+    }
 
-  on_peer (peer) {
-    console.log('***************')
-    console.log('connected peer!', peer)
-    console.log('***************')
-  }
+    on_error (msg) {
+      console.log('error', msg)
+    }
 
-  // broadcast a message, optionally skipping a particular peer (such as the peer that sent this)
-  broadcast (msg, not_addr = {address:null}) {
-    for (const k in this.peers) {
-      if (!this.introducers[k] && !equalAddr(this.peers[k], not_addr)) {
-        this.send(msg, this.peers[k], this.peers[k].outport || this.port)
+    on_peer (peer) {
+      console.log('***************')
+      console.log('connected peer!', peer)
+      console.log('***************')
+    }
+
+    // broadcast a message, optionally skipping a particular peer (such as the peer that sent this)
+    broadcast (msg, not_addr = {address:null}) {
+      for (const k in this.peers) {
+        if (!this.introducers[k] && !equalAddr(this.peers[k], not_addr)) {
+          this.send(msg, this.peers[k], this.peers[k].outport || this.port)
+        }
       }
     }
-  }
 
-  // broadcast a message within a particular swarm
-  swarmcast (msg, swarm, not_addr = {address:null}) {
-    //send to peers in the same swarm
-//    console.log("swarmcast", msg, swarm)
-    let c = 0
-    for (const k in this.swarms[swarm]) {
-      if (!Demo.equalAddr(this.peers[k], not_addr.address)) {
-        this.send(msg, this.peers[k], this.port)
-        c++
+    // broadcast a message within a particular swarm
+    swarmcast (msg, swarm, not_addr = {address:null}) {
+      //send to peers in the same swarm
+  //    console.log("swarmcast", msg, swarm)
+      let c = 0
+      for (const k in this.swarms[swarm]) {
+        if (!Demo.equalAddr(this.peers[k], not_addr.address)) {
+          this.send(msg, this.peers[k], this.port)
+          c++
+        }
       }
-    }
-    //and other local peers
-    for(const k in this.peers) {
-      if((this.swarms[swarm] && !this.swarms[swarm][k]) && /^192.168/.test(this.peers[k].address)) {
-        this.send(msg, this.peers[k], this.port)
-        c++
+      //and other local peers
+      for(const k in this.peers) {
+        if((this.swarms[swarm] && !this.swarms[swarm][k]) && /^192.168/.test(this.peers[k].address)) {
+          this.send(msg, this.peers[k], this.port)
+          c++
+        }
       }
+      return c
     }
-    return c
   }
 }
