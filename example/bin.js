@@ -44,6 +44,10 @@ function main (argv) {
     }, 3_000)
     peer.on_nat = (n) => {
       console.log(n)
+      if(Object.keys(peer.peers).length < 2) {
+        console.error('found only '+Object.keys(peer.peers).length+' peers')
+        process.exit(1)
+      }
       process.exit(0)
     }
   }
