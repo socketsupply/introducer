@@ -1,19 +1,15 @@
 const { isId } = require('./util')
 
-const debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
-
 function cmpRand () {
   return Math.random() - 0.5
 }
 
-function isFunction (f) {
-  return typeof f === 'function'
-}
-
 const port = 3456
 
-class Introducer {
-  constructor ({ id, keepalive }) {
+module.exports = (EventEmitter) => class Introducer extends EventEmitter {
+  constructor ({ id, keepalive, port }) {
+    super()
+
     this.id = id
     this.peers = {}
     this.swarms = {}
@@ -21,25 +17,31 @@ class Introducer {
   }
 
   init () {}
+
   on_ping (msg, addr, _port) {
     if (!isId(msg.id)) return
-    if(!this.peers[msg.id])
-      this.peers[msg.id] = { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: _port }
-    else {
-      var peer = this.peers[msg.id]
+    let peer
+
+    if (!this.peers[msg.id]) {
+      peer = this.peers[msg.id] = { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: _port }
+    } else {
+      peer = this.peers[msg.id]
       peer.nat = msg.nat
       peer.ts = Date.now()
       peer.output = _port
     }
+
+    this.emit('ping', peer)
     this.send({ type: 'pong', id: this.id, ...addr }, addr, _port)
   }
 
-  //sending on-local requests other peer to connect directly to our local address
-  //a connect message is not sent back because we can receive an unsolicited packet locally.
+  // sending on-local requests other peer to connect directly to our local address
+  // a connect message is not sent back because we can receive an unsolicited packet locally.
   on_local (msg, addr) {
     const peer = this.peers[msg.target]
-    if(peer) {
-      this.send({type: 'local', id: msg.id, address: msg.address, port: msg.port}, peer, port)
+    if (peer) {
+      this.send({ type: 'local', id: msg.id, address: msg.address, port: msg.port }, peer, port)
+      this.emit('local', peer)
     }
   }
 
@@ -52,23 +54,29 @@ class Introducer {
     //    OR just error, and expect apps to handle case where not every pair can communicate
     //    OR let the peers decide who can replay, maybe they already have a mutual peer?
     const peer = this.peers[msg.target]
+
     if (peer) {
       // tell the target peer to connect, and also tell the source peer the addr/port to connect to.
       this.send({ type: 'connect', id: msg.id, address: addr.address, port: addr.port, nat: peer.nat }, peer, port)
       this.send({ type: 'connect', id: msg.target, address: peer.address, port: peer.port, nat: msg.nat }, addr, port)
-    } else // respond with an error
-    { this.send({ type: 'error', id: target.id, call: 'connect' }, addr, port) }
+      this.emit('connect', peer)
+    } else {
+      // respond with an error
+      this.send({ type: 'error', id: msg.target.id, call: 'connect' }, addr, port)
+    }
   }
 
   connect (from_id, to_id, swarm, port) {
-    if (port == undefined) throw new Error('port cannot be undefined')
+    if (port === undefined) throw new Error('port cannot be undefined')
+
     const from = this.peers[from_id]
     const to = this.peers[to_id]
     this.send({ type: 'connect', id: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port }, from, port)
   }
 
   on_join (msg, addr, port) {
-    if (port == undefined) throw new Error('undefined port')
+    if (port === undefined) throw new Error('undefined port')
+
     const ts = Date.now()
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = Date.now()
@@ -80,13 +88,15 @@ class Introducer {
     let ids = Object.keys(swarm)
     // remove ourself, then randomly shuffle list
     ids.splice(ids.indexOf(msg.id), 1)
-    .filter(id => this.peers[id].ts > (ts - 120_000))
-    .sort(cmpRand)
+      .filter(id => this.peers[id].ts > (ts - 120_000))
+      .sort(cmpRand)
 
-    if (peer.nat == 'hard') {
-      //hard nat can only connect to easy nats, but can also connect to peers on the same nat
+    if (peer.nat === 'hard') {
+      // hard nat can only connect to easy nats, but can also connect to peers on the same nat
       ids = ids.filter(id => this.peers[id].nat === 'easy' || this.peers[id].address === peer.address)
     }
+
+    this.emit('join', peer)
 
     // send messages to the random peers indicating that they should connect now.
     // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
@@ -96,11 +106,10 @@ class Introducer {
     if (!max_peers) {
       return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length }, addr, port)
     }
+
     for (let i = 0; i < max_peers; i++) {
       this.connect(ids[i], msg.id, msg.swarm, port)
       this.connect(msg.id, ids[i], msg.swarm, port)
     }
   }
 }
-
-module.exports = Introducer

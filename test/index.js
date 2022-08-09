@@ -1,9 +1,10 @@
 const test = require('tape')
 const crypto = require('crypto')
+const { EventEmitter } = require('events')
 
 const { createId: _createId } = require('../util')
 const Peer = require('../')
-const Introducer = require('../introducer')
+const Introducer = require('../introducer')(EventEmitter)
 const createId = (...args) => _createId(crypto, ...args)
 
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
@@ -413,7 +414,7 @@ test('local connection established without hairpinning support', function (t) {
   t.equal(peer_b.publicPort, nat.map[address_b+':3456'])
 
   t.ok(peer_a.peers[peer_b.id], 'peer_a has found peer_b')
-  t.ok(peer_b.peers[peer_a.id], 'peer_b has found peer_a')  
+  t.ok(peer_b.peers[peer_a.id], 'peer_b has found peer_a')
 
   t.end()
 })
