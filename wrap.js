@@ -69,10 +69,12 @@ module.exports = (UDP, OS, Buffer) => {
     // support binding anynumber of ports on demand (necessary for birthday paradox connection)
     function bind (p, must_bind) {
       debug('bind', p, must_bind)
+      peer.emit('bind', p)
+
       return bound[p] = UDP
         .createSocket('udp4')
         .bind(p)
-        .on('listening', function () {
+        .on('listening', () => {
           peer.emit('listening', p)
           // this.setBroadcast(true)
         })
