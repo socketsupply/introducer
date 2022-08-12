@@ -13,10 +13,12 @@ const port = 3456
 function checkNat (peer) {
   // if we have just discovered our nat, ping the introducer again to let them know
   const update = !peer.nat
-  let port, address
+  let port, address, intros = 0
+
   for (const k in peer.introducers) {
     const _peer = peer.peers[k]
     if (_peer && _peer.pong) {
+      intros ++
       if (!port) {
         port = _peer.pong.port
         address = _peer.pong.address
@@ -31,7 +33,7 @@ function checkNat (peer) {
     }
   }
   if (update) peer.ping(peer.introducer1)
-  if (peer.nat != 'easy') { peer.on_nat(peer.nat = 'easy') }
+  if (peer.nat != 'easy' && intros > 1) { peer.on_nat(peer.nat = 'easy') }
 }
 
 function random_port (ports) {
