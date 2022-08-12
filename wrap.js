@@ -72,7 +72,10 @@ module.exports = (UDP, OS, Buffer) => {
       return bound[p] = UDP
         .createSocket('udp4')
         .bind(p)
-        // .on('listening', function () { this.setBroadcast(true) })
+        .on('listening', function () {
+          peer.emit('listening', p)
+          // this.setBroadcast(true)
+        })
         .on('message', (data, addr) => {
           let msg
           try {
