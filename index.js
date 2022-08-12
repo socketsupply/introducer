@@ -63,7 +63,7 @@ module.exports = (EventEmitter) => class Peer extends EventEmitter {
     // because in practice I'm fairly sure this should poll to keep port open (say every minute)
     for (const k in this.introducers) { this.ping(this.introducers[k]) }
 
-    if(this.keepalive) {
+    if (this.keepalive) {
       debug('keepalive scheduled')
       let ts = Date.now()
       this.timer(this.keepalive, this.keepalive, ()=> {
@@ -71,25 +71,30 @@ module.exports = (EventEmitter) => class Peer extends EventEmitter {
         if((_ts - ts) > this.keepalive*2) {
           //we have woken up
           debug('woke up', (_ts - ts)/1000)
-          if(this.on_wakeup) this.on_wakeup()
+          if (this.on_wakeup) {
+            this.on_wakeup()
+            this.emit('awoke')
+          }
         }
         ts = _ts
-        for(var id in this.peers) {
+        for (var id in this.peers) {
           var peer = this.peers[id]
-          if(peer.pong && peer.pong.ts > ts - (this.keepalive*2)) {
+          if (peer.pong && peer.pong.ts > ts - (this.keepalive*2)) {
             debug('alive peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
-            this.ping(this.peers[id])
+            this.ping(peer)
+            this.emit('alive', peer)
           }
           else {
             console.log('disconnect', id.substring(0, 8))
-            if(this.on_disconnect) this.on_disconnect(peer)
+            if (this.on_disconnect) this.on_disconnect(peer)
             delete this.peers[id]
             debug("dead peer:", peer)
+            this.emit('dead', peer)
           }
         }
       })
     }
-
+    this.emit('init', this)
   }
 
   on_nat (type) {

@@ -30,6 +30,7 @@ module.exports = (UDP, OS, Buffer) => {
 
     peer.send = (msg, addr, from_port) => {
       debug('send', msg, from_port+'->'+toAddress(addr))
+      peer.emit('send', msg, addr, from_port)
       const sock = maybe_bind(from_port)
       //if (addr === '255.255.255.255') sock.setBroadcast(true)
       if(from_port === undefined) throw new Error('source port is not defined!')
@@ -59,7 +60,10 @@ module.exports = (UDP, OS, Buffer) => {
 
     function onMessage (msg, addr, port) {
       debug('recv', msg, toAddress(addr)+'->'+port)
-      if (isString(msg.type) && isFunction(peer['on_' + msg.type])) { peer['on_' + msg.type](msg, addr, port) }
+      peer.emit('recv', msg, addr, port)
+      if (isString(msg.type) && isFunction(peer['on_' + msg.type])) {
+        peer['on_' + msg.type](msg, addr, port)
+      }
     }
 
     // support binding anynumber of ports on demand (necessary for birthday paradox connection)
@@ -70,15 +74,19 @@ module.exports = (UDP, OS, Buffer) => {
         .bind(p)
         // .on('listening', function () { this.setBroadcast(true) })
         .on('message', (data, addr) => {
-        let msg
-        try { msg = codec.decode(data) }
-        catch (err) {
-          console.error(err)
-          console.error('while parsing:', data)
-        }
-        onMessage(msg, addr, p)
+          let msg
+          try {
+            msg = codec.decode(data)
+          } catch (err) {
+            peer.emit('error', err)
+            console.error(err)
+            console.error('while parsing:', data)
+            return
+          }
+          onMessage(msg, addr, p)
         })
         .on('error', (err) => {
+          peer.emit('error', err)
           if ((err.code === 'EACCES' || err.code === 'EADDRINUSE')) {
             if(must_bind) throw err
             if(process.env.DEBUG)
