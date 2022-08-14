@@ -24,13 +24,13 @@ module.exports = class Demo extends Peer {
     return this.broadcast(msg)
   }
 
-  // isn't used anywhere
-  // on_chat (msg, addr, port) {
-  //   if(this.messages.find(_msg => _msg.ts == msg.ts && _msg.content == msg.content)) return
-  //   this.messages.push(msg)
-  //   this.on_change(msg, this.messages)
-  //   this.broadcast(msg, addr)
-  // }
+  // when a message is received, if it is new, broadcast it to our other peers.
+  on_chat (msg, addr, port) {
+    if(this.messages.find(_msg => _msg.ts == msg.ts && _msg.content == msg.content)) return
+    this.messages.push(msg)
+    this.on_change(msg, this.messages)
+    this.broadcast(msg, addr)
+  }
 
   on_nat () {
     const info = {
