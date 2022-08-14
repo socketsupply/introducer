@@ -83,7 +83,6 @@ module.exports = (UDP, OS, Buffer) => {
           try {
             msg = codec.decode(data)
           } catch (err) {
-            peer.emit('error', err)
             console.error(err)
             console.error('while parsing:', data)
             return
