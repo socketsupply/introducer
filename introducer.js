@@ -1,12 +1,12 @@
 const { isId } = require('./util')
-
+const EventEmitter = require('events')
 function cmpRand () {
   return Math.random() - 0.5
 }
 
 const port = 3456
 
-module.exports = (EventEmitter) => class Introducer extends EventEmitter {
+module.exports = class Introducer extends EventEmitter {
   constructor ({ id, keepalive, port }) {
     super()
 

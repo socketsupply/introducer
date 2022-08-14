@@ -27,5 +27,8 @@
   "devDependencies": {
     "@socketsupply/netsim": "^2.4.0",
     "tape": "^5.5.3"
+  },
+  "dependencies": {
+    "events": "^3.3.0"
   }
 }

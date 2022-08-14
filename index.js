@@ -1,4 +1,5 @@
 const { isId, debug } = require('./util')
+const EventEmitter = require('events')
 
 function cmpRand () {
   return Math.random() - 0.5
@@ -43,7 +44,7 @@ function random_port (ports) {
   return p
 }
 
-module.exports = (EventEmitter) => class Peer extends EventEmitter {
+module.exports = class Peer extends EventEmitter {
   constructor ({ id, introducer1, introducer2, keepalive }) {
     super()
 

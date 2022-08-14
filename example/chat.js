@@ -10,7 +10,7 @@ function equalAddr (a, b) {
   return a && b && a.address === b.address && a.port === b.port
 }
 
-module.exports = (EventEmitter) => class Demo extends Peer(EventEmitter) {
+module.exports = class Demo extends Peer {
   constructor (opts) {
     super(opts)
     this.swarm = opts.swarm
