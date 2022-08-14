@@ -34,11 +34,18 @@ function main (argv) {
 
   const peer = new Demo({ swarm, ...config, keepalive: 30_000 })
   peer.on_change = (msg) => {
-    console.log(msg.id.substring(0, 8), msg.ts, msg.content)
+    console.log(msg.id.substring(0, 8), peerType(other), msg.ts, msg.content)
   }
+  function peerType (peer) {
+    return (/192\.168\.\d+\.\d+/.test(peer.address) ? 'local' : peer.nat) || '???'
+  }
+
   peer.on_peer = (other) => {
-    if(!peer.introducers[other.id])
-    console.log('connected', other.id.substring(0, 8),  other.address+':'+other.port)
+    if(!peer.introducers[other.id]) {
+    console.log(other)
+    
+    console.log('connected', other.id.substring(0, 8),  peerType(other), other.address+':'+other.port)
+    }
   }
 
   //detect the nat type and exit
@@ -59,6 +66,7 @@ function main (argv) {
 
   Wrap(peer, [config.port])
 
+  console.log('id:',config.id)
   process.stdin.on('data', function (data) {
     data = data.toString()
     var m = /^\s*\/(\w+)/.exec(data)
