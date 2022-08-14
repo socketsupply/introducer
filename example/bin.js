@@ -10,6 +10,7 @@ const Introducer = require('../introducer')
 const Config = require('../lib/config')(crypto, fs, path)
 const Wrap = require('../wrap')(dgram, os, Buffer)
 const util = require('../util')
+const http = require('http')
 
 function main (argv) {
   const config = Config({ appname: 'introducer-chat' })
@@ -22,8 +23,12 @@ function main (argv) {
   */
 
   if (cmd === 'introducer') {
+    var intro = new Introducer(config)
     Wrap(new Introducer(config), [config.port])
     console.log(config.id)
+    http.createServer(function (req, res) {
+      res.end(JSON.stringify(intro, null, 2))
+    }).listen(8080)
     return
   }
 
