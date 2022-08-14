@@ -42,9 +42,8 @@ function main (argv) {
 
   peer.on_peer = (other) => {
     if(!peer.introducers[other.id]) {
-    console.log(other)
     
-    console.log('connected', other.id.substring(0, 8),  peerType(other), other.address+':'+other.port)
+      console.log('connected', other.id.substring(0, 8),  peerType(other), other.address+':'+other.port)
     }
   }
 
