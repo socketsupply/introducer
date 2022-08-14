@@ -51,6 +51,7 @@ module.exports = class Peer extends EventEmitter {
     this.peers = {}
     this.swarms = {}
     this.id = id
+    this.restart = Date.now()
     if (!introducer1) throw new Error('must provide introducer1')
     if (!introducer2) throw new Error('must provide introducer2')
     this.keepalive = keepalive
@@ -111,9 +112,9 @@ module.exports = class Peer extends EventEmitter {
     this.send({ type: 'ping', id: this.id, nat: this.nat }, addr, addr.outport || port)
   }
 
-  __set_peer (id, address, port, nat, outport) {
+  __set_peer (id, address, port, nat, outport, restart) {
     if(!this.peers[id]) {
-      const peer = this.peers[id] = { id, address, port, nat, ts: Date.now(), outport }
+      const peer = this.peers[id] = { id, address, port, nat, ts: Date.now(), outport, restart }
       if(this.introducers[peer.id])
         peer.introducer = true
       return true
@@ -125,10 +126,21 @@ module.exports = class Peer extends EventEmitter {
       peer.nat = nat || peer.nat
       peer.ts = Date.now()
       peer.outport = outport
+      var _restart = peer.restart
+      peer.restart = restart
       if(this.introducers[peer.id])
         peer.introducer = true
       //if(this.on_peer) this.on_peer(peer)
+      if(this.on_peer_restart) this.on_peer_restart(peer, _restart)
       return false
+    }
+  }
+
+  //if the introducer server restarts, rejoin swarms
+  on_peer_restart (other, restart) {
+    if(this.introducers[other.id]) {
+      for(var k in this.swarms)
+        this.join(k)
     }
   }
 
@@ -164,7 +176,7 @@ module.exports = class Peer extends EventEmitter {
     const ts = Date.now()
 
     // NOTIFY new peers here.
-    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port)
+    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart)
     const peer = this.peers[msg.id]
     peer.pong = { ts, address: msg.address, port: msg.port, latency: peer.ping ? ts - peer.ping : null }
     checkNat(this)
