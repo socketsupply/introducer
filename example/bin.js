@@ -11,6 +11,7 @@ const Config = require('../lib/config')(crypto, fs, path)
 const Wrap = require('../wrap')(dgram, os, Buffer)
 const util = require('../util')
 const http = require('http')
+const version = require('../package.json').version
 
 function main (argv) {
   const config = Config({ appname: 'introducer-chat' })
@@ -27,7 +28,11 @@ function main (argv) {
     Wrap(intro, [config.port])
     console.log(config.id)
     http.createServer(function (req, res) {
-      res.end(JSON.stringify({peers: intro.peers, swarms:intro.swarms, connections: intro.connections}, null, 2))
+      res.end(JSON.stringify({
+        restart: new Date(intro.restart).toString(),
+        version,
+        peers: intro.peers, swarms:intro.swarms, connections: intro.connections
+      }, null, 2))
     }).listen(8080)
     return
   }
