@@ -78,13 +78,17 @@ module.exports = class Introducer extends EventEmitter {
     this.send({ type: 'connect', id: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port }, from, port)
   }
 
+  //__set_peer (id, address, port, nat, outport, restart) {
   on_join (msg, addr, port) {
     if (port === undefined) throw new Error('undefined port')
+
 
     const ts = Date.now()
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = Date.now()
-    const peer = this.peers[msg.id]
+    const peer = this.peers[msg.id] = 
+      this.peers[msg.id] || { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: port }
+
     if (peer && msg.nat) peer.nat = msg.nat
     // trigger random connections
     // if there are no other peers in the swarm, do nothing
