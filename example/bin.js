@@ -24,7 +24,7 @@ function main (argv) {
 
   if (cmd === 'introducer') {
     var intro = new Introducer(config)
-    Wrap(new Introducer(config), [config.port])
+    Wrap(intro, [config.port])
     console.log(config.id)
     http.createServer(function (req, res) {
       res.end(JSON.stringify({peers: intro.peers, swarms:intro.swarms}, null, 2))
