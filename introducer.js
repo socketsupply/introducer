@@ -30,7 +30,7 @@ module.exports = class Introducer extends EventEmitter {
       peer = this.peers[msg.id]
       peer.nat = msg.nat
       peer.ts = Date.now()
-      peer.output = _port
+      peer.outport = _port
     }
 
     this.emit('ping', peer)
