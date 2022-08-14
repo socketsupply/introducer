@@ -101,6 +101,11 @@ module.exports = class Peer extends EventEmitter {
     this.emit('init', this)
   }
 
+  on_wakeup () {
+    for(var k in this.swarms)
+      this.join(k)
+  }
+
   on_nat (type) {
     this.emit('nat', type)
     // override this to implement behaviour for when nat is detected.
