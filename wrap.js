@@ -91,22 +91,23 @@ module.exports = (UDP, OS, Buffer) => {
           onMessage(msg, addr, p)
         })
         .on('error', (err) => {
-          peer.emit('error', err)
           if ((err.code === 'EACCES' || err.code === 'EADDRINUSE')) {
             if(must_bind) throw err
             if(process.env.DEBUG)
               console.error('could not bind port:' + err.port)
           }
+          else
+            peer.emit('error', err)
         })
     }
 
-    function maybe_bind (p, must_bind) {
+    function maybe_bind (p) {
       if (!isPort(p)) { throw new Error('expected port, got:' + p) }
       if (bound[p]) return bound[p]
-      return bind(p, must_bind)
+      return bind(p, false)
     }
 
-    if (ports) ports.forEach(p => maybe_bind(p, true))
+    if (ports) ports.forEach(p => bind(p, true))
     if (peer.init) peer.init()
   }
 }
