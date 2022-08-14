@@ -34,7 +34,7 @@ module.exports = class Introducer extends EventEmitter {
     }
 
     this.emit('ping', peer)
-    this.send({ type: 'pong', id: this.id, ...addr }, addr, _port)
+    this.send({ type: 'pong', id: this.id, ...addr, restart: this.restart }, addr, _port)
   }
 
   // sending on-local requests other peer to connect directly to our local address
