@@ -37,7 +37,7 @@ function main (argv) {
     console.log(msg.id.substring(0, 8), peerType(peer.peers[msg.id]), msg.ts, msg.content)
   }
   function peerType (peer) {
-    return (/192\.168\.\d+\.\d+/.test(peer.address) ? 'local' : peer.nat) || '???'
+    return peer ? (/192\.168\.\d+\.\d+/.test(peer.address) ? 'local' : peer.nat) || '???' : '!!!'
   }
 
   peer.on_peer = (other) => {
