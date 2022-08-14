@@ -1,4 +1,6 @@
 const { isId } = require('./util')
+const debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
+
 const EventEmitter = require('events')
 function cmpRand () {
   return Math.random() - 0.5
@@ -91,6 +93,8 @@ module.exports = class Introducer extends EventEmitter {
       .filter(id => this.peers[id].ts > (ts - 120_000))
       .sort(cmpRand)
 
+    //a better strategy could be for hard nats to connect to easy or fellow network
+    //but easy nats to connect to other easy nats first, to ensure a strong network.
     if (peer.nat === 'hard') {
       // hard nat can only connect to easy nats, but can also connect to peers on the same nat
       ids = ids.filter(id => this.peers[id].nat === 'easy' || this.peers[id].address === peer.address)
@@ -101,7 +105,7 @@ module.exports = class Introducer extends EventEmitter {
     // send messages to the random peers indicating that they should connect now.
     // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
     const max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
-
+    debug('max_peers', max_peers, ids, msg.peers)
     // if there are no other connectable peers, at least respond to the join msg
     if (!max_peers) {
       return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length }, addr, port)
