@@ -34,7 +34,7 @@ function main (argv) {
 
   const peer = new Demo({ swarm, ...config, keepalive: 30_000 })
   peer.on_change = (msg) => {
-    console.log(msg.id.substring(0, 8), peerType(other), msg.ts, msg.content)
+    console.log(msg.id.substring(0, 8), peerType(peer.peers[msg.id]), msg.ts, msg.content)
   }
   function peerType (peer) {
     return (/192\.168\.\d+\.\d+/.test(peer.address) ? 'local' : peer.nat) || '???'
