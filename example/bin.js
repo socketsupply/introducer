@@ -27,7 +27,7 @@ function main (argv) {
     Wrap(new Introducer(config), [config.port])
     console.log(config.id)
     http.createServer(function (req, res) {
-      res.end(JSON.stringify(intro, null, 2))
+      res.end(JSON.stringify({peers: intro.peers, swarms:intro.swarms}, null, 2))
     }).listen(8080)
     return
   }
