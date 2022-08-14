@@ -15,6 +15,7 @@ module.exports = class Introducer extends EventEmitter {
     this.id = id
     this.peers = {}
     this.swarms = {}
+    this.restart = Date.now()
     this.keepalive = keepalive
   }
 
@@ -90,7 +91,7 @@ module.exports = class Introducer extends EventEmitter {
     let ids = Object.keys(swarm)
     // remove ourself, then randomly shuffle list
     ids.splice(ids.indexOf(msg.id), 1)
-      .filter(id => this.peers[id].ts > (ts - 120_000))
+      .filter(id => this.peers[id] && this.peers[id].ts > (ts - 120_000))
       .sort(cmpRand)
 
     //a better strategy could be for hard nats to connect to easy or fellow network
