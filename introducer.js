@@ -17,6 +17,7 @@ module.exports = class Introducer extends EventEmitter {
     this.swarms = {}
     this.restart = Date.now()
     this.keepalive = keepalive
+    this.connections = {}
   }
 
   init () {}
@@ -100,6 +101,8 @@ module.exports = class Introducer extends EventEmitter {
       // hard nat can only connect to easy nats, but can also connect to peers on the same nat
       ids = ids.filter(id => this.peers[id].nat === 'easy' || this.peers[id].address === peer.address)
     }
+    this.connections[msg.id] = {}
+
 
     this.emit('join', peer)
 
@@ -113,6 +116,7 @@ module.exports = class Introducer extends EventEmitter {
     }
 
     for (let i = 0; i < max_peers; i++) {
+      this.connections[msg.id][ids[i]] = i
       this.connect(ids[i], msg.id, msg.swarm, port)
       this.connect(msg.id, ids[i], msg.swarm, port)
     }
