@@ -30,6 +30,8 @@ module.exports = class Introducer extends EventEmitter {
       peer = this.peers[msg.id] = { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: _port }
     } else {
       peer = this.peers[msg.id]
+      peer.address = addr.address
+      peer.port = addr.port
       peer.nat = msg.nat
       peer.ts = Date.now()
       peer.outport = _port
@@ -119,6 +121,7 @@ module.exports = class Introducer extends EventEmitter {
       return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length }, addr, port)
     }
 
+    console.log('
     for (let i = 0; i < max_peers; i++) {
       this.connections[msg.id][ids[i]] = i
       this.connect(ids[i], msg.id, msg.swarm, port)
