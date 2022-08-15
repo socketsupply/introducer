@@ -36,7 +36,7 @@ module.exports = class Introducer extends EventEmitter {
     }
 
     this.emit('ping', peer)
-    this.send({ type: 'pong', id: this.id, ...addr, restart: this.restart }, addr, _port)
+    this.send({ type: 'pong', id: this.id, ...addr, nat: peer.nat, restart: this.restart }, addr, _port)
   }
 
   // sending on-local requests other peer to connect directly to our local address
@@ -57,13 +57,13 @@ module.exports = class Introducer extends EventEmitter {
     //    then relay their messages through that peer
     //    OR just error, and expect apps to handle case where not every pair can communicate
     //    OR let the peers decide who can replay, maybe they already have a mutual peer?
-    const peer = this.peers[msg.target]
+    const to_peer = this.peers[msg.target]
+    const from_peer = this.peers[msg.id]
 
-    if (peer) {
+    if (to_peer && from_peer) {
       // tell the target peer to connect, and also tell the source peer the addr/port to connect to.
-      this.send({ type: 'connect', id: msg.id, address: addr.address, port: addr.port, nat: peer.nat }, peer, port)
-      this.send({ type: 'connect', id: msg.target, address: peer.address, port: peer.port, nat: msg.nat }, addr, port)
-      this.emit('connect', peer)
+      this.send({ type: 'connect', id: msg.id, address: addr.address, port: addr.port, nat: msg.nat }, from_peer, port)
+      this.send({ type: 'connect', id: msg.target, address: to_peer.address, port: to_peer.port, nat: to_peer.nat }, addr, port)
     } else {
       // respond with an error
       this.send({ type: 'error', id: msg.target.id, call: 'connect' }, addr, port)
