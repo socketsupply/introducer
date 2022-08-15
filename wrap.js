@@ -58,6 +58,10 @@ module.exports = (UDP, OS, Buffer) => {
 
     peer.localAddress = IP.check()
 
+    peer.timer(1000, 1000, function () {
+      peer.localAddress = IP.check()
+    })
+
     function onMessage (msg, addr, port) {
       debug('recv', msg, toAddress(addr)+'->'+port)
       peer.emit('recv', msg, addr, port)
