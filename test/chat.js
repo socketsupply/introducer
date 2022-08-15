@@ -20,6 +20,7 @@ const F = '62.5.5.5'
 
 const d = '42.4.4.42'
 const e = '52.5.5.52'
+const f = '62.5.5.52'
 
 const P = ':3489'
 
@@ -56,7 +57,11 @@ const intros = {
   introducer2: { id: ids.b, address: B, port: 3456 }
 }
 
+
+
+
 //chat broadcasts across the network
+
 test('broadcast', function (t) {
   const network = new Network()
   let peerD, peerE
@@ -86,6 +91,127 @@ test('broadcast', function (t) {
 
   t.ok(peerE.peers[peerD.id])
   t.ok(peerF.peers[peerE.id])
+  t.deepEqual(peerE.messages, peerD.messages)
+  t.deepEqual(peerF.messages, peerD.messages)
+
+  t.end()
+})
+
+function createNatPeer (network, id, address_nat, address, Nat) {
+  const prefix = /^\d+\./.exec(address_nat)[1]
+  const nat = new Nat(prefix)
+  network.add(address_nat, nat)
+  nat.add(address, new Node(createPeer(peer = new Chat({ id, ...intros, swarm }))))
+  return [peer, nat]
+}
+
+test('broadcast, easy nat', function (t) {
+  const network = new Network()
+  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
+  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+
+  let [peerD] = createNatPeer(network, ids.d, D, d, IndependentFirewallNat)
+  let [peerE] = createNatPeer(network, ids.e, E, e, IndependentFirewallNat)
+  let [peerF] = createNatPeer(network, ids.f, F, f, IndependentFirewallNat)
+
+  network.iterate(-1)
+
+  t.equal(peerD.nat, 'easy')
+  t.equal(peerE.nat, 'easy')
+  t.equal(peerF.nat, 'easy')
+
+  peerD.on_change = peerE.on_change = peerF.on_change = () => {}
+
+  peerD.connect(peerE.id)
+  peerF.connect(peerE.id)
+
+//  network.iterate(-1)
+
+  var ts = Date.now()
+  peerD.chat({content: "hello!", ts}) //message should be broadcast across network.
+  t.equal(peerD.messages.length, 1)
+
+  network.iterate(-1)
+
+  t.ok(peerE.peers[peerD.id])
+  t.ok(peerF.peers[peerE.id])
+  t.deepEqual(peerE.messages, peerD.messages)
+  t.deepEqual(peerF.messages, peerD.messages)
+
+  t.end()
+})
+
+test('broadcast, hard,easy,hard nat', function (t) {
+  const network = new Network()
+  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
+  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+
+  let [peerD] = createNatPeer(network, ids.d, D, d, DependentNat)
+  let [peerE] = createNatPeer(network, ids.e, E, e, IndependentFirewallNat)
+  let [peerF] = createNatPeer(network, ids.f, F, f, DependentNat)
+
+  network.iterate(-1)
+
+  t.equal(peerD.nat, 'hard')
+  t.equal(peerE.nat, 'easy')
+  t.equal(peerF.nat, 'hard')
+
+  peerD.on_change = peerE.on_change = peerF.on_change = () => {}
+
+  peerD.connect(peerE.id)
+  peerF.connect(peerE.id)
+
+  network.iterate(-1)
+  console.log(peerE.peers)
+
+  var ts = Date.now()
+  peerD.chat({content: "hello!", ts}) //message should be broadcast across network.
+  t.equal(peerD.messages.length, 1)
+
+  network.iterate(-1)
+
+  t.ok(peerD.peers[peerE.id])
+  t.ok(peerF.peers[peerE.id])
+  console.log(peerD.peers[peerE.id])
+  t.deepEqual(peerE.messages, peerD.messages)
+  t.deepEqual(peerF.messages, peerD.messages)
+
+  t.end()
+})
+
+
+test('broadcast, easy, hard, easy nat', function (t) {
+  const network = new Network()
+  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
+  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+
+  let [peerD] = createNatPeer(network, ids.d, D, d, IndependentFirewallNat)
+  let [peerE] = createNatPeer(network, ids.e, E, e, DependentNat)
+  let [peerF] = createNatPeer(network, ids.f, F, f, IndependentFirewallNat)
+
+  network.iterate(-1)
+
+  t.equal(peerD.nat, 'easy')
+  t.equal(peerE.nat, 'hard')
+  t.equal(peerF.nat, 'easy')
+
+  peerD.on_change = peerE.on_change = peerF.on_change = () => {}
+
+  peerD.connect(peerE.id)
+  peerF.connect(peerE.id)
+
+  network.iterate(-1)
+  console.log(peerE.peers)
+
+  var ts = Date.now()
+  peerD.chat({content: "hello!", ts}) //message should be broadcast across network.
+  t.equal(peerD.messages.length, 1)
+
+  network.iterate(-1)
+
+  t.ok(peerD.peers[peerE.id])
+  t.ok(peerF.peers[peerE.id])
+  console.log(peerD.peers[peerE.id])
   t.deepEqual(peerE.messages, peerD.messages)
   t.deepEqual(peerF.messages, peerD.messages)
 
