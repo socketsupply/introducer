@@ -1,6 +1,6 @@
 {
   "name": "@socketsupply/introducer",
-  "version": "1.6.15",
+  "version": "1.6.16",
   "description": "minimal useful holepunching p2p library",
   "main": "index.js",
   "directories": {
