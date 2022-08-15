@@ -11,7 +11,7 @@
     "introchat": "example/bin.js"
   },
   "scripts": {
-    "test": "node test/index.js && node test/wrap.js && ./example/bin.js nat",
+    "test": "set -e; for t in test/*.js; do node $t; done && ./example/bin.js nat",
     "pub": "npm pub && npm publish --registry https://npm.pkg.github.com"
   },
   "author": "",
