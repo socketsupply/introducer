@@ -17,7 +17,7 @@ module.exports = class Demo extends Peer {
     this.messages = []
   }
 
-  chat ({ name, content, ts = Date.now() }) {
+  chat ({ content, ts = Date.now() }) {
     const msg = { type: 'chat', id: this.id, swarm: this.swarm, content, ts }
     this.messages.push(msg)
     this.on_change(msg, this.messages)
