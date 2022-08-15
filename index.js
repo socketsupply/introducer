@@ -39,7 +39,7 @@ function checkNat (peer) {
 
 function random_port (ports) {
   let i = 0
-  do { var p = ~~(Math.random() * 0xffff); i++ } while (ports[p])
+  do { var p = 1 + ~~(Math.random() * 0xffff); i++ } while (ports[p])
   ports[p] = true
   return p
 }
