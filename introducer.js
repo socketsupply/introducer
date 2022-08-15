@@ -121,7 +121,6 @@ module.exports = class Introducer extends EventEmitter {
       return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length }, addr, port)
     }
 
-    console.log('
     for (let i = 0; i < max_peers; i++) {
       this.connections[msg.id][ids[i]] = i
       this.connect(ids[i], msg.id, msg.swarm, port)
