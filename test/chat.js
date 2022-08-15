@@ -1,12 +1,15 @@
 
 //TODO: peers change ip addresses
 //      peers reconnect after wakeup
+//      connect, nat, timeouts
 //      resend old messages
 //      don't overdo CPU
+//      event emitter
 //      relay
 //      upnp
-
+//
 //      DHT
+//      encryption
 
 var test = require('tape')
 var Chat = require('../example/chat')

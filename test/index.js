@@ -47,6 +47,14 @@ function createPeer (p) {
   }
 }
 
+function createNatPeer (network, id, address_nat, address, Nat) {
+  const prefix = /^\d+\./.exec(address_nat)[1]
+  const nat = new Nat(prefix)
+  network.add(address_nat, nat)
+  nat.add(address, new Node(createPeer(peer = new Peer({ id, ...intros }))))
+  return [peer, nat]
+}
+
 const intros = {
   introducer1: { id: ids.a, address: A, port: 3456 },
   introducer2: { id: ids.b, address: B, port: 3456 }
@@ -227,14 +235,6 @@ test('detect hard nat', function (t) {
 
   t.end()
 })
-
-function createNatPeer (network, id, address_nat, address, Nat) {
-  const prefix = /^\d+\./.exec(address_nat)[1]
-  const nat = new Nat(prefix)
-  network.add(address_nat, nat)
-  nat.add(address, new Node(createPeer(peer = new Peer({ id, ...intros }))))
-  return [peer, nat]
-}
 
 test('swarm with 1 easy 1 hard', function (t) {
   const swarm = createId('test swarm')
