@@ -61,13 +61,52 @@ module.exports = class Peer extends EventEmitter {
     }
   }
 
+  discoverNat () {
+    this.publicAddress = null
+    this.nat = null
+    for (const k in this.introducers) {
+      this.peers[k].pong = null
+      this.ping(this.introducers[k])
+    }
+  }
+
+  checkPeers () {
+    let _ts = Date.now()
+    ts = _ts
+    for (var id in this.peers) {
+      var peer = this.peers[id]
+      if (peer.pong && peer.pong.ts > ts - (this.keepalive*2)) {
+        debug('alive peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
+        this.ping(peer)
+        this.emit('alive', peer)
+      }
+      else {
+        console.log('disconnect', id.substring(0, 8))
+        if (this.on_disconnect) this.on_disconnect(peer)
+        delete this.peers[id]
+        debug("dead peer:", peer)
+        this.emit('dead', peer)
+      }
+    }
+  }
+
   init () {
+    if(this._once) return
+    this._once = true
     // TODO: we really want to end the tests after this but it keeps them running
     // so we need a way to unref...
     // because in practice I'm fairly sure this should poll to keep port open (say every minute)
     for (const k in this.introducers) { this.ping(this.introducers[k]) }
-
     if (this.keepalive) {
+      //every second, check if our address has changed.
+      //that is, have we connected to another network?
+      //or disconnected from wifi.
+      this.timer(1000, 1000, (ts) => {
+        if(this._localAddress && this._localAddress != this.localAddress) {
+          this.discoverNat()
+        }
+        this._localAddress = this.localAddress
+      })
       debug('keepalive scheduled')
       let ts = Date.now()
       this.timer(this.keepalive, this.keepalive, ()=> {
@@ -80,22 +119,7 @@ module.exports = class Peer extends EventEmitter {
             this.emit('awoke')
           }
         }
-        ts = _ts
-        for (var id in this.peers) {
-          var peer = this.peers[id]
-          if (peer.pong && peer.pong.ts > ts - (this.keepalive*2)) {
-            debug('alive peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
-            this.ping(peer)
-            this.emit('alive', peer)
-          }
-          else {
-            console.log('disconnect', id.substring(0, 8))
-            if (this.on_disconnect) this.on_disconnect(peer)
-            delete this.peers[id]
-            debug("dead peer:", peer)
-            this.emit('dead', peer)
-          }
-        }
+        this.checkPeers()
       })
     }
     this.emit('init', this)
