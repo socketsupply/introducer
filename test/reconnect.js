@@ -35,7 +35,12 @@ for (let i = 0; i < 1000; i++) {
 function createPeer (p) {
   return function (send, timer, node) {
     p.send = send
-    p.timer = timer
+    p.timer = function (delay, repeat, fn) {
+      timer(delay, repeat, () => {
+        p.localAddress = node.address
+        return fn()
+      })
+    }
     p.localAddress = node.address
     // console.log('timer', timer.toString())
     if (p.init) p.init()
@@ -49,9 +54,11 @@ function createPeer (p) {
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
+  let peer = new Peer({ id, ...intros, keepalive: 60_000 })
+  let node = new Node(createPeer(peer))
   network.add(address_nat, nat)
-  nat.add(address, new Node(createPeer(peer = new Peer({ id, ...intros }))))
-  return [peer, nat]
+  nat.add(address, node)
+  return [peer, nat, node]
 }
 
 
@@ -65,17 +72,17 @@ test('swarm with 1 easy 1 hard', function (t) {
   const network = new Network()
   let client
   let intro
-  network.add(A, new Node(createPeer(intro = new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(createPeer(intro = new Introducer({ id: ids.a, keepalive: 5_000 }))))
+  network.add(B, new Node(createPeer(new Introducer({ id: ids.b, keepalive: 5_000 }))))
 
   const [peer_easy, nat_easy] = createNatPeer(network, createId('id:easy'), '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
-  const [peer_hard, nat_hard] = createNatPeer(network, createId('id:hard'), '5.6.7.8', '5.6.7.82', DependentNat)
+  const [peer_hard, nat_hard, node_hard] = createNatPeer(network, createId('id:hard'), '5.6.7.8', '5.6.7.82', DependentNat)
 
-  network.iterate(-1)
+  network.iterateUntil(10_000)
   peer_easy.join(swarm)
   peer_hard.join(swarm)
 
-  network.iterate(-1)
+  network.iterateUntil(20_000)
 
   // the introducer should know about everyone's nats now.
   t.equal(intro.peers[peer_easy.id].nat, 'easy')
@@ -88,6 +95,19 @@ test('swarm with 1 easy 1 hard', function (t) {
 
   console.log(peer_easy.peers[peer_hard.id])
   console.log(peer_hard.peers[peer_easy.id])
+
+  var new_nat = new IndependentFirewallNat()
+
+  network.add('2.4.6.8', new_nat)
+  new_nat.add('2.4.6.80', node_hard)
+
+  network.iterateUntil(30_000)
+
+  console.log(peer_hard)
+  t.equal(peer_hard.localAddress, '2.4.6.80')
+  t.equal(peer_hard.publicAddress, '2.4.6.8', 'public address is correct')
+  t.equal(peer_easy.peers[peer_hard.id].address, '2.4.6.8', 'other peer knows the new public address')
+  //now, move one peer to another address, iterate, and check they regain connection.
 
 
   //  console.log(peer_easy)
