@@ -1,5 +1,6 @@
 
 //TODO: peers change ip addresses
+//      iterate until timeout
 //      peers reconnect after wakeup
 //      connect, nat, timeouts
 //      resend old messages
@@ -37,7 +38,7 @@ const f = '62.5.5.52'
 const P = ':3489'
 
 const ids = {}
-const swarm = createId('test:swarm')
+//const swarm = createId('test:swarm')
 let id_count = 0
 
 for (let i = 0; i < 1000; i++) {
@@ -69,16 +70,20 @@ const intros = {
   introducer2: { id: ids.b, address: B, port: 3456 }
 }
 
-
-
+const swarm = createId('test swarm')
 
 //chat broadcasts across the network
+
+function dejoin (intro) {
+  intro.on_join = null
+  return intro
+}
 
 test('broadcast', function (t) {
   const network = new Network()
   let peerD, peerE
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(createPeer(dejoin(new Introducer({ id: ids.a })))))
+  network.add(B, new Node(createPeer(dejoin(new Introducer({ id: ids.b })))))
 
   network.add(D, new Node(createPeer(peerD = new Chat({ id: ids.d, ...intros, swarm }))))
   network.add(E, new Node(createPeer(peerE = new Chat({ id: ids.e, ...intros, swarm }))))
@@ -89,17 +94,25 @@ test('broadcast', function (t) {
   t.equal(peerD.nat, 'easy')
   t.equal(peerE.nat, 'easy')
   t.equal(peerF.nat, 'easy')
+  console.log(peerE.peers)
 
   peerD.on_change = peerE.on_change = peerF.on_change = () => {}
 
-  peerD.connect(peerE.id)
-  peerF.connect(peerE.id)
+  peerD.connect(peerE.id, swarm)
+  peerF.connect(peerE.id, swarm)
+
+  network.iterate(-1)
 
   var ts = Date.now()
   peerD.chat({content: "hello!", ts}) //message should be broadcast across network.
   t.equal(peerD.messages.length, 1)
 
   network.iterate(-1)
+
+  t.ok(peerD.swarms[swarm][peerE.id])
+  t.ok(peerE.swarms[swarm][peerD.id])
+  t.ok(peerE.swarms[swarm][peerF.id])
+  t.ok(peerF.swarms[swarm][peerE.id])
 
   t.ok(peerE.peers[peerD.id])
   t.ok(peerF.peers[peerE.id])
@@ -137,7 +150,7 @@ test('broadcast, easy nat', function (t) {
   peerD.connect(peerE.id)
   peerF.connect(peerE.id)
 
-//  network.iterate(-1)
+  network.iterate(-1)
 
   var ts = Date.now()
   peerD.chat({content: "hello!", ts}) //message should be broadcast across network.
@@ -170,16 +183,22 @@ test('broadcast, hard,easy,hard nat', function (t) {
 
   peerD.on_change = peerE.on_change = peerF.on_change = () => {}
 
-  peerD.connect(peerE.id)
-  peerF.connect(peerE.id)
+  while(!(peerD.peers[peerE.id] && peerF.peers[peerE.id])) {
+    if(!peerD.peers[peerE.id])
+      peerD.connect(peerE.id)
+    if(!peerF.peers[peerE.id])
+      peerF.connect(peerE.id)
 
-  network.iterate(-1)
-  console.log(peerE.peers)
+    network.iterate(-1)
+  }
 
+  console.log("**************")
   var ts = Date.now()
   peerD.chat({content: "hello!", ts}) //message should be broadcast across network.
   t.equal(peerD.messages.length, 1)
-
+  console.log(peerE.peers)
+  console.log('d->e', peerD.peers[peerE.id])
+  console.log('f->e', peerF.peers[peerE.id])
   network.iterate(-1)
 
   t.ok(peerD.peers[peerE.id])
@@ -194,7 +213,8 @@ test('broadcast, hard,easy,hard nat', function (t) {
 
 test('broadcast, easy, hard, easy nat', function (t) {
   const network = new Network()
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
+  var intro1
+  network.add(A, new Node(createPeer(intro1 = new Introducer({ id: ids.a }))))
   network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
 
   let [peerD] = createNatPeer(network, ids.d, D, d, IndependentFirewallNat)
@@ -203,16 +223,23 @@ test('broadcast, easy, hard, easy nat', function (t) {
 
   network.iterate(-1)
 
+  console.log("INTRO", intro1)
   t.equal(peerD.nat, 'easy')
   t.equal(peerE.nat, 'hard')
   t.equal(peerF.nat, 'easy')
 
+  t.equal(intro1.peers[peerD.id].nat, 'easy')
+  t.equal(intro1.peers[peerE.id].nat, 'hard')
+  t.equal(intro1.peers[peerF.id].nat, 'easy')
+
   peerD.on_change = peerE.on_change = peerF.on_change = () => {}
 
-  peerD.connect(peerE.id)
-  peerF.connect(peerE.id)
+  while(!(peerD.peers[peerE.id] && peerF.peers[peerE.id])) {
+    peerD.connect(peerE.id)
+    peerF.connect(peerE.id)
 
-  network.iterate(-1)
+    network.iterate(-1)
+  }
   console.log(peerE.peers)
 
   var ts = Date.now()
