@@ -78,8 +78,7 @@ module.exports = class Peer extends EventEmitter {
   }
 
   checkPeers () {
-    let _ts = Date.now()
-    ts = _ts
+    let ts = Date.now()
     for (var id in this.peers) {
       var peer = this.peers[id]
       if (peer.pong && peer.pong.ts > ts - (this.keepalive*2)) {
@@ -116,8 +115,7 @@ module.exports = class Peer extends EventEmitter {
       })
       debug('keepalive scheduled')
       let ts = Date.now()
-      this.timer(this.keepalive, this.keepalive, ()=> {
-        let _ts = Date.now()
+      this.timer(this.keepalive, this.keepalive, (_ts)=> {
         if((_ts - ts) > this.keepalive*2) {
           //we have woken up
           debug('woke up', (_ts - ts)/1000)
