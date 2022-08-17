@@ -1,6 +1,6 @@
 
-//TODO: peers change ip addresses
-//      iterate until timeout
+//TODO: peers change ip addresses - done
+//      iterate until timeout - done
 //      peers reconnect after wakeup
 //      connect, nat, timeouts
 //      resend old messages
