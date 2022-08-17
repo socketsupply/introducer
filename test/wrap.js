@@ -16,9 +16,26 @@ wrap(new class extends EventEmitter {
 var client = new class extends EventEmitter {
   on_pong () {
     console.log('PONG')
-    process.exit(0)
+    done()
   }
 }
 
 wrap(client, [c_port])
 client.send({ type: 'ping' }, { address: '127.0.0.1', port: s_port }, c_port)
+
+var D = 2
+var count = 0, _ts = Date.now()
+client.timer(100, 200, function (ts) {
+  if(ts < _ts) throw new Error('new ts should be greater')
+  console.log('ts=', ts)
+  _ts = ts
+  if(count ++ >0) {
+    done()
+    return false
+  }
+})
+
+function done () {
+  if(--D) return
+  process.exit(0)
+}
