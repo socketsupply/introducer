@@ -32,7 +32,11 @@ module.exports = class Introducer extends EventEmitter {
       peer = this.peers[msg.id]
       peer.address = addr.address
       peer.port = addr.port
-      peer.nat = msg.nat
+      if(peer.nat && !msg.nat) {
+        console.log(msg)
+//        throw new Error('peer removed nat!')
+      }
+      peer.nat = peer.nat || msg.nat
       peer.ts = Date.now()
       peer.outport = _port
     }
@@ -61,30 +65,32 @@ module.exports = class Introducer extends EventEmitter {
     //    OR let the peers decide who can replay, maybe they already have a mutual peer?
     const to_peer = this.peers[msg.target]
     const from_peer = this.peers[msg.id]
-
     if (to_peer && from_peer) {
       // tell the target peer to connect, and also tell the source peer the addr/port to connect to.
-      this.send({ type: 'connect', id: msg.id, address: addr.address, port: addr.port, nat: msg.nat }, from_peer, port)
-      this.send({ type: 'connect', id: msg.target, address: to_peer.address, port: to_peer.port, nat: to_peer.nat }, addr, port)
+
+      this.connect(msg.target, msg.id, msg.swarm)
+      this.connect(msg.id, msg.target, msg.swarm)
     } else {
       // respond with an error
-      this.send({ type: 'error', id: msg.target.id, call: 'connect' }, addr, port)
+      this.send({ type: 'error', target: msg.target, id: msg.id, call: 'connect' }, addr, port)
     }
   }
 
   connect (from_id, to_id, swarm, port) {
-    if (port === undefined) throw new Error('port cannot be undefined')
 
     const from = this.peers[from_id]
     const to = this.peers[to_id]
-    this.send({ type: 'connect', id: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port }, from, port)
+    if ((port || from.outport) === undefined) throw new Error('port cannot be undefined')
+    //if(!from.nat) throw new Error('cannot connect FROM unknown nat')
+    //if(!to.nat) throw new Error('cannot connect TO unknown nat')
+    this.send({ type: 'connect', id: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port }, from, port || from.outport)
   }
 
   //__set_peer (id, address, port, nat, outport, restart) {
   on_join (msg, addr, port) {
     if (port === undefined) throw new Error('undefined port')
 
-
+    if(!isId(msg.swarm)) return
     const ts = Date.now()
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = Date.now()
