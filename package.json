@@ -8,10 +8,10 @@
     "test": "test"
   },
   "bin": {
-    "introchat": "example/bin.js"
+    "introchat": "./bin.js"
   },
   "scripts": {
-    "test": "set -e; for t in test/*.js; do node $t; done; ./example/bin.js nat",
+    "test": "set -e; for t in test/*.js; do node $t; done; ./bin.js nat",
     "pub": "npm pub && npm publish --registry https://npm.pkg.github.com"
   },
   "author": "",

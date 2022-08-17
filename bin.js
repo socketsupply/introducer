@@ -5,13 +5,13 @@ const os = require('os')
 const dgram = require('dgram')
 const path = require('path')
 const { EventEmitter } = require('events')
-const Demo = require('./chat')
+const Demo = require('./swarm')
 const Introducer = require('../introducer')
-const Config = require('../lib/config')(crypto, fs, path)
-const Wrap = require('../wrap')(dgram, os, Buffer)
-const util = require('../util')
+const Config = require('./lib/config')(crypto, fs, path)
+const Wrap = require('./wrap')(dgram, os, Buffer)
+const util = require('./util')
 const http = require('http')
-const version = require('../package.json').version
+const version = require('./package.json').version
 
 function main (argv) {
   const config = Config({ appname: 'introducer-chat' })

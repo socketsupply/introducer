@@ -13,7 +13,7 @@
 //      encryption
 
 var test = require('tape')
-var Chat = require('../example/chat')
+var Chat = require('../swarm')
 var Introducer = require('../introducer')
 
 const crypto = require('crypto')
