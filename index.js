@@ -13,7 +13,7 @@ const port = 3456
 
 function checkNat (peer) {
   // if we have just discovered our nat, ping the introducer again to let them know
-  const update = !peer.nat
+  const _nat = peer.nat
   let port, address, intros = 0
 
   for (const k in peer.introducers) {
@@ -27,14 +27,21 @@ function checkNat (peer) {
         peer.publicPort = port
       }
       else if (_peer.pong.port != port) {
-        if (peer.nat != 'hard') peer.on_nat(peer.nat = 'hard')
-        if (update) peer.ping(peer.introducer1)
+        if (_nat != 'hard') {
+          peer.nat = 'hard'
+          peer.ping(peer.introducer1)
+          peer.on_nat(peer.nat)
+        }
         return
       }
     }
   }
-  if (update) peer.ping(peer.introducer1)
-  if (peer.nat != 'easy' && intros > 1) { peer.on_nat(peer.nat = 'easy') }
+  if (_nat != 'easy' && intros > 1) {
+    peer.nat = 'easy'
+    for(var id in peer.introducers)
+      peer.ping(peer.peers[id])
+    peer.on_nat(peer.nat)
+  }
 }
 
 function random_port (ports) {
@@ -176,7 +183,7 @@ module.exports = class Peer extends EventEmitter {
   on_ping (msg, addr, _port) {
     // XXX notify on_peer if we havn't heard from this peer before.
     // (sometimes first contact with a peer will be ping, sometimes pong)
-    this.send({ type: 'pong', id: this.id, ...addr }, addr, _port)
+    this.send({ type: 'pong', id: this.id, ...addr, nat: this.nat }, addr, _port)
     const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port)
     this.emit('ping', msg, addr, port)
 
@@ -214,8 +221,18 @@ module.exports = class Peer extends EventEmitter {
     this.emit('pong', this.peers[msg.id])
   }
 
-  connect (id) {
-    this.send({ type: 'connect', id: this.id, nat: this.nat, target: id}, this.introducer1, port)
+  retry (test, action) {
+    var tries = 0
+    var next = ()=>{
+      if(!test() && tries < 3) {
+        action()
+        this.delay(1000*Math.pow(2, tries++), next)
+      }
+    }
+  }
+
+  connect (id, swarm) {
+      this.send({ type: 'connect', id: this.id, nat: this.nat, target: id, swarm}, this.introducer1, port)
   }
 
   join (swarm_id) {
@@ -260,17 +277,15 @@ module.exports = class Peer extends EventEmitter {
         // we are easy, they are hard
         var i = 0
         var ports = {}
-        var timer = this.timer(0, 10, () => {
+        this.timer(0, 10, () => {
           // send messages until we receive a message from them. giveup after sending 1000 packets.
           // 50% of the time 250 messages should be enough.
-          if (i++ > 1000 || this.peers[msg.id] && this.peers[msg.id].pong) {
-            clearInterval(timer)
+          if (i++ > 2000 || this.peers[msg.id] && this.peers[msg.id].pong) {
             return false
           }
-          this.send({ type: 'ping', id: this.id }, {
+          this.send({ type: 'ping', id: this.id, nat: this.nat }, {
             address: msg.address,
-            port: random_port(ports),
-            nat: this.nat
+            port: random_port(ports)
           }, port)
         })
       }
@@ -288,7 +303,7 @@ module.exports = class Peer extends EventEmitter {
         // then we could relay messages through it.
         console.log('cannot connect hard-hard nats', msg)
       } else {
-        throw new Error('cannot connect to unknown nat')
+        throw new Error('cannot connect to unknown nat:'+JSON.stringify(msg))
       }
     }
 
