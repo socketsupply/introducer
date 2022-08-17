@@ -41,15 +41,15 @@ module.exports = (UDP, OS, Buffer) => {
       let int
 
       function interval () {
-        if (fn() === false) clearInterval(int)
+        if (fn(Date.now()) === false) clearInterval(int)
       }
 
-      if (!delay && fn() !== false && repeat) {
+      if (!delay && fn(Date.now()) !== false && repeat) {
         int = setInterval(interval, repeat)
       }
       else {
         setTimeout(function () {
-          if (fn() !== false && repeat) {
+          if (fn(Date.now()) !== false && repeat) {
             int = setInterval(interval, repeat)
           }
         }, delay)
