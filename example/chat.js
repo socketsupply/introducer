@@ -5,7 +5,8 @@
 //
 const { debug } = require('../util')
 const Peer = require('../')
-
+var {isId} = require('../util')
+ 
 function equalAddr (a, b) {
   return a && b && a.address === b.address && a.port === b.port
 }
@@ -14,6 +15,8 @@ module.exports = class Demo extends Peer {
   constructor (opts) {
     super(opts)
     this.swarm = opts.swarm
+    if(!isId(opts.swarm))
+      throw new Error('swarm id *must* be provided')
     this.messages = []
   }
 
