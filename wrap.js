@@ -111,6 +111,6 @@ module.exports = (UDP, OS, Buffer) => {
     }
 
     if (ports) ports.forEach(p => bind(p, true))
-    if (peer.init) peer.init()
+    if (peer.init) peer.init(Date.now())
   }
 }
