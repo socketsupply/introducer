@@ -4,11 +4,6 @@ function isIp (s) {
   return 'string' === typeof s && s.split('.').every(e => +e === +e && 0xff)
 }
 
-function createId(crypto, seed) {
-  return crypto.createHash('sha256').update(seed).digest('hex')
-  //return crypto.randomBytes(32).toString('hex')
-}
-
 function isPort (p) {
   return p === p & 0xffff
 }
@@ -40,7 +35,6 @@ function isPeer (p) {
 
 module.exports = {
   isIp,
-  createId,
   debug,
   isPort,
   isId,
