@@ -1,8 +1,9 @@
 
 //TODO: peers change ip addresses - done
 //      iterate until timeout - done
-//      peers reconnect after wakeup
-//      connect, nat, timeouts
+//      peers reconnect after wakeup - done
+//
+//      connect, nat, timeouts (cancelled, not actually a problem)
 //      resend old messages
 //      don't overdo CPU
 //      event emitter
