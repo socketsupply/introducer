@@ -101,19 +101,31 @@ IndependentFirewallNat)
 
   peer_easy.chat({content: 'missing', ts: 40_000}) //node_hard will not see this
   
-  network.iterateUntil(2*60_000)
+  //TODO test emit wakeup/lost peer event
+
+  network.iterateUntil(10*60_000)
+
+  //another half minute is enough to wake up
+  t.notOk(peer_easy.peers[peer_hard.id], 'easy has forgotten hard, after being offline for 10 minutes')
 
   console.log("WAKEUP")
   node_hard.sleep(false)
 
-  //another half minute is enough to wake up
-  network.iterateUntil(10*60_000)
+  network.iterateUntil(11*60_000)
+
+  //TODO test emit found peer event
+
+  //give the peer a chance to reconnect,
+  //since we have not yet any form of implemented eventual consistency
 
   console.log(peer_easy.peers[peer_hard.id])
   peer_easy.chat({content: 'expected', ts: 11*60_000}) //node_hard will not see this
 
   network.iterateUntil(12*60_000)
+  t.ok(peer_easy.peers[peer_hard.id], 'easy has found hard again')
 
+  t.equal(peer_easy.messages.length, 2)
+  t.equal(peer_hard.messages.length, 1)
   console.log(peer_easy.messages)
   console.log(peer_hard.messages)
 
