@@ -86,16 +86,16 @@ module.exports = class Peer extends EventEmitter {
     for (var id in this.peers) {
       var peer = this.peers[id]
       if (peer.pong && peer.pong.ts > ts - (this.keepalive*2)) {
-        debug('alive peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
+        debug('found peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
         this.ping(peer)
-        this.emit('alive', peer)
+        this.emit('alive', peer) //XXX change to "found"
       }
       else {
         console.log('disconnect', id.substring(0, 8))
         if (this.on_disconnect) this.on_disconnect(peer)
         delete this.peers[id]
-        debug("dead peer:", peer)
-        this.emit('dead', peer)
+        debug("lost peer:", peer)
+        this.emit('dead', peer) //XXX change to "lost"
       }
     }
   }
@@ -121,6 +121,7 @@ module.exports = class Peer extends EventEmitter {
       })
       debug('keepalive scheduled')
       this.timer(this.keepalive, this.keepalive, (_ts)=> {
+        //do this every second, every minute, ping all peers
         assertTs(_ts)
         if((_ts - ts) > this.keepalive*2) {
           //we have woken up
@@ -130,6 +131,7 @@ module.exports = class Peer extends EventEmitter {
             this.emit('awoke')
           }
         }
+        ts = _ts
         this.checkPeers(ts)
       })
     }
@@ -147,10 +149,6 @@ module.exports = class Peer extends EventEmitter {
   }
 
   ping (addr) {
-    //assertTs(ts)
-
-    //save ping time so we can detect latency
-//    if(addr.id && this.peers[addr.id]) this.peers[addr.id].ping = ts
     this.send({ type: 'ping', id: this.id, nat: this.nat }, addr, addr.outport || port)
   }
 
@@ -258,7 +256,7 @@ module.exports = class Peer extends EventEmitter {
   // we received connect request, ping the target 3 itmes
   on_connect (msg, _addr, _port, ts) {
     assertTs(ts)
-    if(!ts) throw new Error('ts must not be zero:'+ts)
+    if(!ts) throw new Error('ts must not be zero:'+tsF)
     let swarm
     // note: ping3 checks if we are already communicating
 
@@ -279,7 +277,7 @@ module.exports = class Peer extends EventEmitter {
         return
       }
 
-      // if nat is missing, guess that it's easy nat.
+      // if nat is missing, guess that it's easy nat, or a server.
       // we should generally know our own nat by now.
       if (msg.nat === 'easy' || msg.nat == null) { this.ping3(msg) } // we are both easy, just do ping3
       else if (msg.nat === 'hard') {
