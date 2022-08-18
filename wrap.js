@@ -62,11 +62,11 @@ module.exports = (UDP, OS, Buffer) => {
       peer.localAddress = IP.check()
     })
 
-    function onMessage (msg, addr, port) {
-      debug('recv', msg, toAddress(addr)+'->'+port)
-      peer.emit('recv', msg, addr, port)
+    function onMessage (msg, addr, port, ts) {
+      debug('recv', msg, toAddress(addr)+'->'+port, ts)
+      peer.emit('recv', msg, addr, port, ts)
       if (isString(msg.type) && isFunction(peer['on_' + msg.type])) {
-        peer['on_' + msg.type](msg, addr, port)
+        peer['on_' + msg.type](msg, addr, port, ts)
       }
     }
 
@@ -91,7 +91,7 @@ module.exports = (UDP, OS, Buffer) => {
             console.error('while parsing:', data)
             return
           }
-          onMessage(msg, addr, p)
+          onMessage(msg, addr, p, Date.now())
         })
         .on('error', (err) => {
           if ((err.code === 'EACCES' || err.code === 'EADDRINUSE')) {
