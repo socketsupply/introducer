@@ -33,16 +33,16 @@ for (let i = 0; i < 1000; i++) {
 }
 
 function createPeer (p) {
-  return function (send, timer, node) {
+  return function (send, timer, node, ts) {
     p.send = send
     p.timer = timer
     p.localAddress = node.address
     // console.log('timer', timer.toString())
-    if (p.init) p.init()
-    return function (msg, addr, port) {
+    if (p.init) p.init(ts)
+    return function (msg, addr, port, ts) {
       const type = msg.type
-      if (p['on_' + type]) p['on_' + type](msg, addr, port)
-      else if (p.on_msg) p.on_msg(msg, addr, port)
+      if (p['on_' + type]) p['on_' + type](msg, addr, port, ts)
+      else if (p.on_msg) p.on_msg(msg, addr, port, ts)
     }
   }
 }
