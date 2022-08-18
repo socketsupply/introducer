@@ -7,16 +7,21 @@ const path = require('path')
 const { EventEmitter } = require('events')
 const Demo = require('./swarm')
 const Introducer = require('../introducer')
-const Config = require('./lib/config')(crypto, fs, path)
+const Config = require('./lib/config')(fs)
 const Wrap = require('./wrap')(dgram, os, Buffer)
 const util = require('./util')
 const http = require('http')
 const version = require('./package.json').version
 
+function createId(seed) {
+  if(seed) return crypto.createHash('sha256').update(seed).digest('hex')
+  return crypto.randomBytes(32).toString('hex')
+}
+
 function main (argv) {
-  const config = Config({ appname: 'introducer-chat' })
+  const config = Config({ filename: path.join(process.env.HOME, '.introducer-chat'), createId })
   const cmd = argv[0]
-  const swarm = util.createId(crypto, 'test swarm')
+  const swarm = createId('test swarm')
   /* multicast
     to find other peers on the local network,
     we need a parallel multicast system.

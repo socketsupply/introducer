@@ -19,8 +19,7 @@ var Introducer = require('../introducer')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
 
-const { createId: _createId } = require('../util')
-const createId = (...args) => _createId(crypto, ...args)
+const { createId } = require('./util')
 
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
 

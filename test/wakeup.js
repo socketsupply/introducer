@@ -1,15 +1,13 @@
-
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
 
-const { createId: _createId } = require('../util')
-const Chat = require('../example/chat')
+const { createId } = require('./util')
+
+const Chat = require('../swarm')
 const Introducer = require('../introducer')
-const createId = (...args) => _createId(crypto, ...args)
 const swarm = createId('test swarm')
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
-// var nc = require('../')
 
 const A = '1.1.1.1'
 const B = '2.2.2.2'
