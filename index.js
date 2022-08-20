@@ -112,26 +112,28 @@ module.exports = class Peer extends EventEmitter {
       //every second, check if our address has changed.
       //that is, have we connected to another network?
       //or disconnected from wifi.
-      this.timer(1000, 1000, (ts) => {
+      const sec = 1000
+      this.timer(sec, sec, (_ts) => {
         assertTs(ts)
+
         if(this._localAddress && this._localAddress != this.localAddress) {
           this.discoverNat()
         }
         this._localAddress = this.localAddress
-      })
-      debug('keepalive scheduled')
-      this.timer(this.keepalive, this.keepalive, (_ts)=> {
-        //do this every second, every minute, ping all peers
-        assertTs(_ts)
-        if((_ts - ts) > this.keepalive*2) {
+
+        if((_ts - ts) > 2*sec) {
           //we have woken up
-          debug('woke up', (_ts - ts)/1000)
+          debug('woke up', (_ts - ts)/sec)
           if (this.on_wakeup) {
             this.on_wakeup()
             this.emit('awoke')
           }
         }
         ts = _ts
+      })
+      debug('keepalive scheduled')
+      this.timer(this.keepalive, this.keepalive, (ts)=> {
+        //do this every second, every minute, ping all peers
         this.checkPeers(ts)
       })
     }
@@ -226,16 +228,6 @@ module.exports = class Peer extends EventEmitter {
     this.emit('pong', this.peers[msg.id])
   }
 
-  retry (test, action) {
-    var tries = 0
-    var next = ()=>{
-      if(!test() && tries < 3) {
-        action()
-        this.delay(1000*Math.pow(2, tries++), next)
-      }
-    }
-  }
-
   connect (id, swarm) {
       this.send({ type: 'connect', id: this.id, nat: this.nat, target: id, swarm}, this.introducer1, port)
   }
@@ -315,13 +307,5 @@ module.exports = class Peer extends EventEmitter {
     }
 
     this.emit('connect', msg)
-  }
-
-  // support sending directly to a peer
-  sendMessage (msg, peer) {
-    if (peers[id]) {
-      this.send(msg, peers[id], port)
-      return true
-    } else { return false }
   }
 }
