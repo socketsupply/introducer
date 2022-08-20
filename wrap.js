@@ -56,10 +56,10 @@ module.exports = (UDP, OS, Buffer) => {
       }
     }
 
-    peer.localAddress = IP.check()
+    peer.localAddress = IP()
 
     peer.timer(1000, 1000, function () {
-      peer.localAddress = IP.check()
+      peer.localAddress = IP()
     })
 
     function onMessage (msg, addr, port, ts) {
