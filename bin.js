@@ -1,5 +1,6 @@
 #! /usr/bin/env node
 const crypto = require('crypto')
+const debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
 const fs = require('fs')
 const os = require('os')
 const dgram = require('dgram')
@@ -22,11 +23,6 @@ function main (argv) {
   const config = Config({ filename: path.join(process.env.HOME, '.introducer-chat'), createId })
   const cmd = argv[0]
   const swarm = createId('test swarm')
-  /* multicast
-    to find other peers on the local network,
-    we need a parallel multicast system.
-    it appears that a socket cannot be used for both
-  */
 
   if (cmd === 'introducer') {
     var intro = new Introducer(config)
@@ -41,7 +37,7 @@ function main (argv) {
     }).listen(8080)
     return
   }
-
+  
   const peer = new Demo({ swarm, ...config, keepalive: 30_000 })
   peer.on_change = (msg) => {
     console.log(msg.id.substring(0, 8), peerType(peer.peers[msg.id]), msg.ts, msg.content)
