@@ -103,7 +103,7 @@ module.exports = class Introducer extends EventEmitter {
   on_join (msg, addr, port) {
     if (port === undefined) throw new Error('undefined port')
 
-    if(!isId(msg.swarm)) return
+    if(!isId(msg.swarm)) return debug('join, no swarm:', msg)
     const ts = Date.now()
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = Date.now()
@@ -129,7 +129,6 @@ module.exports = class Introducer extends EventEmitter {
     this.connections[msg.id] = {}
 
 
-    this.emit('join', peer)
 
     // send messages to the random peers indicating that they should connect now.
     // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
@@ -139,11 +138,13 @@ module.exports = class Introducer extends EventEmitter {
     if (!max_peers) {
       return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length }, addr, port)
     }
-
+    
     for (let i = 0; i < max_peers; i++) {
       this.connections[msg.id][ids[i]] = i
       this.connect(ids[i], msg.id, msg.swarm, port)
       this.connect(msg.id, ids[i], msg.swarm, port)
     }
+
+    this.emit('join', peer)
   }
 }
