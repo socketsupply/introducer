@@ -2,7 +2,7 @@ const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
 
-const Peer = require('../')
+const Swarm = require('../swarm')
 const Introducer = require('../introducer')
 const { createId } = require('./util')
 
@@ -19,6 +19,7 @@ const d = '42.4.4.42'
 const e = '52.5.5.52'
 
 const P = ':3489'
+const swarm = createId('test swarm')
 
 const ids = {}; let id_count = 0
 
@@ -53,7 +54,7 @@ function createPeer (p) {
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
-  let peer = new Peer({ id, ...intros, keepalive: 60_000 })
+  let peer = new Swarm({ id, ...intros, keepalive: 60_000, swarm })
   let node = new Node(createPeer(peer))
   network.add(address_nat, nat)
   nat.add(address, node)
@@ -118,7 +119,6 @@ test('swarm with 1 easy 1 hard', function (t) {
 
 test('disconnect, reconnect', function (t) {
 
-  const swarm = createId('test swarm')
   const network = new Network()
   let client
   let intro
