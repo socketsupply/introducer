@@ -135,8 +135,8 @@ module.exports = class Introducer extends EventEmitter {
     const max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
     debug('max_peers', max_peers, ids, msg.peers)
     // if there are no other connectable peers, at least respond to the join msg
-    if (!max_peers) {
-      return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length }, addr, port)
+    if (!max_peers || !ids.length) {
+      return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length, call:'join' }, addr, port)
     }
     
     for (let i = 0; i < max_peers; i++) {
