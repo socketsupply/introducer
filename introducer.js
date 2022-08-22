@@ -35,12 +35,12 @@ module.exports = class Introducer extends EventEmitter {
 
   init () {}
 
-  on_ping (msg, addr, _port) {
+  on_ping (msg, addr, _port, ts) {
     if (!isId(msg.id)) return
     let peer
 
     if (!this.peers[msg.id]) {
-      peer = this.peers[msg.id] = { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: _port }
+      peer = this.peers[msg.id] = { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: _port, ts }
     } else {
       peer = this.peers[msg.id]
       peer.address = addr.address
@@ -50,7 +50,7 @@ module.exports = class Introducer extends EventEmitter {
 //        throw new Error('peer removed nat!')
       }
       peer.nat = peer.nat || msg.nat
-      peer.ts = Date.now()
+      peer.ts = ts
       peer.outport = _port
     }
 
