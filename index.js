@@ -112,7 +112,7 @@ module.exports = class Peer extends EventEmitter {
       //every second, check if our address has changed.
       //that is, have we connected to another network?
       //or disconnected from wifi.
-      const sec = 1000
+      const sec = 1_000
       this.timer(sec, sec, (_ts) => {
         assertTs(ts)
 
@@ -154,7 +154,7 @@ module.exports = class Peer extends EventEmitter {
     this.send({ type: 'ping', id: this.id, nat: this.nat }, addr, addr.outport || port)
   }
 
-  __set_peer (id, address, port, nat, outport, restart, ts) {
+  __set_peer (id, address, port, nat, outport, restart = null, ts) {
     assertTs(ts)
     if(!this.peers[id]) {
       const peer = this.peers[id] = { id, address, port, nat, ts, outport, restart }
@@ -174,7 +174,12 @@ module.exports = class Peer extends EventEmitter {
       if(this.introducers[peer.id])
         peer.introducer = true
       //if(this.on_peer) this.on_peer(peer)
-      if(this.on_peer_restart) this.on_peer_restart(peer, _restart)
+      if(_restart != peer.restart) {
+        if(this.on_peer_restart) {
+          debug('peer_restart', peer.id.substring(0, 8), _restart, peer.restart)
+          this.on_peer_restart(peer, _restart)
+        }
+      }
       return false
     }
   }
@@ -219,7 +224,7 @@ module.exports = class Peer extends EventEmitter {
     if (!msg.port) throw new Error('pong: missing port')
 
     // NOTIFY new peers here.
-    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart, ts)
+    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart || null, ts)
     const peer = this.peers[msg.id]
     peer.pong = { ts, address: msg.address, port: msg.port, latency: peer.ping ? ts - peer.ping : null }
     checkNat(this)
@@ -271,15 +276,27 @@ module.exports = class Peer extends EventEmitter {
 
       // if nat is missing, guess that it's easy nat, or a server.
       // we should generally know our own nat by now.
-      if (msg.nat === 'easy' || msg.nat == null) { this.ping3(msg) } // we are both easy, just do ping3
+      if (msg.nat === 'easy' || msg.nat == null) {
+         // we are both easy, just do ping3
+        this.ping3(msg)
+      }
       else if (msg.nat === 'hard') {
         // we are easy, they are hard
-        var i = 0
+        debug('attempt BDP easy->hard', msg.id.substring(0, 8))
+        var i = 0, start = Date.now(), ts = start
         var ports = {}
         this.timer(0, 10, () => {
+          if(Date.now() - 1000 > ts) {
+            debug('packets', i, msg.id.substring(0, 8))
+            ts = Date.now()
+          }
           // send messages until we receive a message from them. giveup after sending 1000 packets.
           // 50% of the time 250 messages should be enough.
-          if (i++ > 2000 || this.peers[msg.id] && this.peers[msg.id].pong) {
+          if (i++ > 2000) {
+            debug('failed to connect:', i, (Date.now()-start)/1000, msg)
+            return false            
+          } else if (this.peers[msg.id] && this.peers[msg.id].pong) {
+            debug('successfully connected:', i, (Date.now()-start)/1000, msg)
             return false
           }
           this.send({ type: 'ping', id: this.id, nat: this.nat }, {
@@ -290,6 +307,7 @@ module.exports = class Peer extends EventEmitter {
       }
     } else if (this.nat === 'hard') {
       if (msg.nat === 'easy') {
+        debug('attempt BDP hard->easy')
         // we are the hard side, open 256 random ports
         var ports = {}
         for (var i = 0; i < 256; i++) {
@@ -300,7 +318,7 @@ module.exports = class Peer extends EventEmitter {
         // if we are both hard nats, we must implement tunneling
         // in that case, we ask both us and them to connect a shared easy nat.
         // then we could relay messages through it.
-        console.log('cannot connect hard-hard nats', msg)
+        debug('cannot connect hard-hard nats', msg)
       } else {
         throw new Error('cannot connect to unknown nat:'+JSON.stringify(msg))
       }
