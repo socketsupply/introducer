@@ -88,8 +88,12 @@ test('swarm with 1 easy 1 hard', function (t) {
   t.equal(intro.peers[peer_easy.id].nat, 'easy')
   t.equal(intro.peers[peer_hard.id].nat, 'hard')
 
+  t.ok(intro.peers[peer_easy.id].ts)
+  t.ok(intro.peers[peer_hard.id].ts)
+
   t.ok(peer_easy.peers[peer_hard.id], 'easy peer knows hard peer')
   t.ok(peer_hard.peers[peer_easy.id], 'hard peer knows easy peer')
+
 
   // console.log(nat_hard)
 
