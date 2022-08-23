@@ -58,7 +58,8 @@ module.exports = (UDP, OS, Buffer) => {
 
     peer.localAddress = IP()
 
-    peer.timer(1000, 10_000, function () {
+    //TODO make way to trigger this check
+    peer.timer(1000, 1000, function () {
       peer.localAddress = IP()
     })
 
