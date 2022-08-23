@@ -117,6 +117,7 @@ module.exports = class Peer extends EventEmitter {
         assertTs(ts)
 
         if(this._localAddress && this._localAddress != this.localAddress) {
+          debug(1, 'address changed', this._localAddress+'->'+this.localAddress)
           this.discoverNat()
         }
         this._localAddress = this.localAddress
