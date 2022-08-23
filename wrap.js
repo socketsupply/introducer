@@ -28,6 +28,8 @@ module.exports = (UDP, OS, Buffer) => {
   return function wrap (peer, ports, codec = json) {
     const bound = {}
 
+
+    peer._localAddress = peer.localAddress = IP()
     peer.send = (msg, addr, from_port) => {
       debug(2, 'send', msg, from_port+'->'+toAddress(addr))
       peer.emit('send', msg, addr, from_port)
@@ -55,8 +57,6 @@ module.exports = (UDP, OS, Buffer) => {
         }, delay)
       }
     }
-
-    peer.localAddress = IP()
 
     //TODO make way to trigger this check
     peer.timer(1000, 1000, function () {
