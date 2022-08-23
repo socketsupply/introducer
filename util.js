@@ -1,5 +1,3 @@
-const debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
-
 function isIp (s) {
   return 'string' === typeof s && s.split('.').every(e => +e === +e && 0xff)
 }
@@ -33,13 +31,18 @@ function isPeer (p) {
     )
 }
 
+var LEVEL = +process.env.DEBUG | 0
+var debug = LEVEL === 0 ? ()=>{} : function debug (level, ...args) {
+    if(level <= LEVEL) console.log(...args)
+  }
+
 module.exports = {
   isIp,
-  debug,
   isPort,
   isId,
   isNat,
   fromAddress,
   toAddress,
-  isPeer
+  isPeer,
+  debug
 }

@@ -1,5 +1,5 @@
 const createIP = require('./lib/ip')
-const debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
+const {debug} = require('./util')
 
 function isPort (p) {
   return p == p & 0xffff
@@ -29,7 +29,7 @@ module.exports = (UDP, OS, Buffer) => {
     const bound = {}
 
     peer.send = (msg, addr, from_port) => {
-      debug('send', msg, from_port+'->'+toAddress(addr))
+      debug(2, 'send', msg, from_port+'->'+toAddress(addr))
       peer.emit('send', msg, addr, from_port)
       const sock = maybe_bind(from_port)
       //if (addr === '255.255.255.255') sock.setBroadcast(true)
@@ -63,7 +63,7 @@ module.exports = (UDP, OS, Buffer) => {
     })
 
     function onMessage (msg, addr, port, ts) {
-      debug('recv', msg, toAddress(addr)+'->'+port, ts)
+      debug(2, 'recv', msg, toAddress(addr)+'->'+port, ts)
       peer.emit('recv', msg, addr, port, ts)
       if (isString(msg.type) && isFunction(peer['on_' + msg.type])) {
         peer['on_' + msg.type](msg, addr, port, ts)
@@ -72,7 +72,7 @@ module.exports = (UDP, OS, Buffer) => {
 
     // support binding anynumber of ports on demand (necessary for birthday paradox connection)
     function bind (p, must_bind) {
-      debug('bind', p, must_bind)
+      debug(2, 'bind', p, must_bind)
       peer.emit('bind', p)
 
       return bound[p] = UDP

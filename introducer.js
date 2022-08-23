@@ -1,5 +1,4 @@
-const { isId } = require('./util')
-const debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
+const { isId, debug } = require('./util')
 
 const EventEmitter = require('events')
 function cmpRand () {
@@ -46,8 +45,7 @@ module.exports = class Introducer extends EventEmitter {
       peer.address = addr.address
       peer.port = addr.port
       if(peer.nat && !msg.nat) {
-        console.log(msg)
-//        throw new Error('peer removed nat!')
+        debug(1, 'msg missing nat', msg)
       }
       peer.nat = peer.nat || msg.nat
       peer.ts = ts
@@ -67,7 +65,7 @@ module.exports = class Introducer extends EventEmitter {
       this.emit('local', peer)
     }
   }
-
+p
   on_connect (msg, addr) {
     // check nat types:
     // if both peers are easy, just tell each to connect to the other
@@ -103,7 +101,7 @@ module.exports = class Introducer extends EventEmitter {
   on_join (msg, addr, port) {
     if (port === undefined) throw new Error('undefined port')
 
-    if(!isId(msg.swarm)) return debug('join, no swarm:', msg)
+    if(!isId(msg.swarm)) return debug(1, 'join, no swarm:', msg)
     const ts = Date.now()
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = Date.now()
@@ -128,14 +126,13 @@ module.exports = class Introducer extends EventEmitter {
     }
     this.connections[msg.id] = {}
 
-
-
     // send messages to the random peers indicating that they should connect now.
     // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
     const max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
-    debug('max_peers', max_peers, ids, msg.peers)
+    debug(1, 'join', max_peers, msg.id+'->'+ids.join(','))
     // if there are no other connectable peers, at least respond to the join msg
     if (!max_peers || !ids.length) {
+      debug(1,'join error: no peers')
       return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length, call:'join' }, addr, port)
     }
     

@@ -43,17 +43,17 @@ module.exports = class Demo extends Peer {
       local: this.localAddress + ':' + this.port
     }
 
-    debug('have nat:', this.nat, info)
+    debug(1, 'have nat:', this.nat, info)
 
     this.join(this.swarm)
   }
 
   on_error (msg) {
-    debug('error:', msg)
+    debug(1, 'error:', msg)
   }
 
   on_peer (peer) {
-    debug('connected peer:', peer)
+    debug(1, 'connected peer:', peer)
   }
 
   // broadcast a message, optionally skipping a particular peer (such as the peer that sent this)

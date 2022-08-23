@@ -86,7 +86,7 @@ module.exports = class Peer extends EventEmitter {
     for (var id in this.peers) {
       var peer = this.peers[id]
       if (peer.pong && peer.pong.ts > ts - (this.keepalive*2)) {
-        debug('found peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
+        debug(2, 'found peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
         this.ping(peer)
         this.emit('alive', peer) //XXX change to "found"
       }
@@ -94,7 +94,7 @@ module.exports = class Peer extends EventEmitter {
         console.log('disconnect', id.substring(0, 8))
         if (this.on_disconnect) this.on_disconnect(peer)
         delete this.peers[id]
-        debug("lost peer:", peer)
+        debug(1, "lost peer:", peer)
         this.emit('dead', peer) //XXX change to "lost"
       }
     }
@@ -123,7 +123,7 @@ module.exports = class Peer extends EventEmitter {
 
         if((_ts - ts) > 2*sec) {
           //we have woken up
-          debug('woke up', (_ts - ts)/sec)
+          debug(1, 'detected wakeup', (_ts - ts)/sec)
           if (this.on_wakeup) {
             this.on_wakeup()
             this.emit('awoke')
@@ -131,7 +131,7 @@ module.exports = class Peer extends EventEmitter {
         }
         ts = _ts
       })
-      debug('keepalive scheduled')
+      debug(1, 'keepalive active:', this.keepalive)
       this.timer(this.keepalive, this.keepalive, (ts)=> {
         //do this every second, every minute, ping all peers
         this.checkPeers(ts)
@@ -141,11 +141,13 @@ module.exports = class Peer extends EventEmitter {
   }
 
   on_wakeup () {
+    debug(1, 'wakeup')
     for(var k in this.swarms)
       this.join(k)
   }
 
   on_nat (type) {
+    debug(1, 'nat', type)
     this.emit('nat', type)
     // override this to implement behaviour for when nat is detected.
   }
@@ -157,6 +159,7 @@ module.exports = class Peer extends EventEmitter {
   __set_peer (id, address, port, nat, outport, restart = null, ts) {
     assertTs(ts)
     if(!this.peers[id]) {
+      debug(1, 'new peer', id.substring(0, 8), address+':'+port, nat)
       const peer = this.peers[id] = { id, address, port, nat, ts, outport, restart }
       if(this.introducers[peer.id])
         peer.introducer = true
@@ -176,7 +179,7 @@ module.exports = class Peer extends EventEmitter {
       //if(this.on_peer) this.on_peer(peer)
       if(_restart != peer.restart) {
         if(this.on_peer_restart) {
-          debug('peer_restart', peer.id.substring(0, 8), _restart, peer.restart)
+          debug(1, 'restart peer', id.substring(0, 8))
           this.on_peer_restart(peer, _restart)
         }
       }
@@ -234,7 +237,7 @@ module.exports = class Peer extends EventEmitter {
   }
 
   connect (id, swarm) {
-      this.send({ type: 'connect', id: this.id, nat: this.nat, target: id, swarm}, this.introducer1, port)
+    this.send({ type: 'connect', id: this.id, nat: this.nat, target: id, swarm}, this.introducer1, port)
   }
 
   join (swarm_id) {
@@ -256,7 +259,7 @@ module.exports = class Peer extends EventEmitter {
     if(!ts) throw new Error('ts must not be zero:'+tsF)
     let swarm
     // note: ping3 checks if we are already communicating
-
+    const ap = msg.address+':'+msg.port
     if (isId(msg.swarm)) {
       swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
       swarm[msg.id] = ts
@@ -282,32 +285,33 @@ module.exports = class Peer extends EventEmitter {
       }
       else if (msg.nat === 'hard') {
         // we are easy, they are hard
-        debug('attempt BDP easy->hard', msg.id.substring(0, 8))
+        var short_id = msg.id.substring(0, 8)
+        debug(1, 'BDP easy->hard', short_id, ap)
         var i = 0, start = Date.now(), ts = start
         var ports = {}
         this.timer(0, 10, () => {
           if(Date.now() - 1000 > ts) {
-            debug('packets', i, msg.id.substring(0, 8))
+            debug(1, 'packets', i, short_id)
             ts = Date.now()
           }
           // send messages until we receive a message from them. giveup after sending 1000 packets.
           // 50% of the time 250 messages should be enough.
+          var s = Math.round((Date.now()-start)/100)/10
           if (i++ > 2000) {
-            debug('failed to connect:', i, (Date.now()-start)/1000, msg)
+            debug(1, 'connection failed:', i, s, short_id, ap)
             return false            
           } else if (this.peers[msg.id] && this.peers[msg.id].pong) {
-            debug('successfully connected:', i, (Date.now()-start)/1000, msg)
+            debug(1, 'connected:', i, s, short_id, ap)
             return false
           }
           this.send({ type: 'ping', id: this.id, nat: this.nat }, {
-            address: msg.address,
-            port: random_port(ports)
+            address: msg.address, port: random_port(ports)
           }, port)
         })
       }
     } else if (this.nat === 'hard') {
       if (msg.nat === 'easy') {
-        debug('attempt BDP hard->easy')
+        debug(1, 'BDP hard->easy', short_id)
         // we are the hard side, open 256 random ports
         var ports = {}
         for (var i = 0; i < 256; i++) {
@@ -318,7 +322,7 @@ module.exports = class Peer extends EventEmitter {
         // if we are both hard nats, we must implement tunneling
         // in that case, we ask both us and them to connect a shared easy nat.
         // then we could relay messages through it.
-        debug('cannot connect hard-hard nats', msg)
+        debug(1, 'cannot connect hard-hard nats', msg)
       } else {
         throw new Error('cannot connect to unknown nat:'+JSON.stringify(msg))
       }

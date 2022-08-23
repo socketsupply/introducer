@@ -5,7 +5,7 @@
 //
 //      connect, nat, timeouts (cancelled, not actually a problem)
 //      resend old messages
-//      don't overdo CPU
+//      don't overdo CPU - DONE. could return, don't try to connect too many times.
 //      event emitter
 //      relay
 //      upnp
