@@ -275,18 +275,29 @@ module.exports = class Peer extends EventEmitter {
       swarm[msg.id] = ts
     }
 
-    if (msg.nat === 'static') { this.ping3(msg) } else if (this.nat === 'easy') {
-      if(msg.address === this.publicAddress) {
-        // if the dest has the same public ip as we do, it must be on the same nat.
-        // since NAT hairpinning is usually not supported, we should request a direct connection.
-        // implement this by sending another message requesting a local introduction.
-        // of course, this is pretty absurd, to require internet connectivity just to make a local connection!
-        // unfortunately, the app stores are strongly against local multicast
-        // however, in the future we can have a real local experience here using bluetooth.
-        this.local(msg.id)
-        return
-      }
+    //if we already know this peer, but the address has changed,
+    //reset the connection to them...
+    if(this.peers[msg.id]) {
+      var peer = this.peers[msg.id]
+      if(peer.address != msg.address)
+        peer.pong = null
+    }
+    if(msg.address === this.publicAddress) {
+      // if the dest has the same public ip as we do, it must be on the same nat.
+      // since NAT hairpinning is usually not supported, we should request a direct connection.
+      // implement this by sending another message requesting a local introduction.
+      // of course, this is pretty absurd, to require internet connectivity just to make a local connection!
+      // unfortunately, the app stores are strongly against local multicast
+      // however, in the future we can have a real local experience here using bluetooth.
+      debug(1, 'local peer', this.localAddress+'->'+msg.address)
+      this.local(msg.id)
+      return
+    }
 
+    if (msg.nat === 'static') {
+      this.ping3(msg)
+    }
+    else if (this.nat === 'easy') {
       // if nat is missing, guess that it's easy nat, or a server.
       // we should generally know our own nat by now.
       if (msg.nat === 'easy' || msg.nat == null) {
