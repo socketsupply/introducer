@@ -131,6 +131,14 @@ module.exports = class Peer extends EventEmitter {
             this.emit('awoke')
           }
         }
+        //sometimes when switching networks, the initial ping gets dropped
+        //so trigger a ping again soon if there is no nat
+        if(!this.nat) {
+          for(var k in this.introducers)
+            this.ping(this.peers[k])
+        }
+//          this.discoverNat()
+
         ts = _ts
       })
       debug(1, 'keepalive active:', this.keepalive)
