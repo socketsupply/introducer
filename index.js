@@ -93,7 +93,7 @@ module.exports = class Peer extends EventEmitter {
       else {
         console.log('disconnect', id.substring(0, 8))
         if (this.on_disconnect) this.on_disconnect(peer)
-        delete this.peers[id]
+         if(!this.peers[id].introducer) delete this.peers[id]
         debug(1, "lost peer:", peer)
         this.emit('dead', peer) //XXX change to "lost"
       }
@@ -116,7 +116,7 @@ module.exports = class Peer extends EventEmitter {
       this.timer(sec, sec, (_ts) => {
         assertTs(ts)
 
-        if(this._localAddress && this._localAddress != this.localAddress) {
+        if(this._localAddress != this.localAddress) {
           debug(1, 'address changed', this._localAddress+'->'+this.localAddress)
           this.discoverNat()
         }
@@ -167,14 +167,23 @@ module.exports = class Peer extends EventEmitter {
       return true
     }
     else {
+      let changed = false
       const peer = this.peers[id]
-      peer.address = address
-      peer.port = port
+      if(address != peer.address) {
+        changed = true
+        peer.address = address
+      }
+      if(port != peer.port) {
+        changed = true
+        peer.port = port
+      }
       peer.nat = nat || peer.nat
       peer.ts = ts
       peer.outport = outport
       var _restart = peer.restart
       peer.restart = restart
+      if(changed)
+        peer.pong = null
       if(this.introducers[peer.id])
         peer.introducer = true
       //if(this.on_peer) this.on_peer(peer)
