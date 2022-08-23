@@ -33,7 +33,8 @@ function checkNat (peer) {
       else if (_peer.pong.port != port) {
         if (_nat != 'hard') {
           peer.nat = 'hard'
-          peer.ping(peer.introducer1)
+          debug(1, 'hard nat:', port, peer.pong.port)
+          peer.ping(peer.introducer1) //ping introducer1 again, to ensure they know the nat
           peer.on_nat(peer.nat)
         }
         return
