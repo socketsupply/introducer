@@ -6,6 +6,10 @@ function isPort (p) {
   return p === p & 0xffff
 }
 
+function isAddr (a) {
+  return 'object' === typeof a && a && isIp(a.address) && isPort(a.port)
+}
+
 function isId (id) {
   return /^[0-9a-fA-F]{64}$/.exec(id)
 }
@@ -39,6 +43,7 @@ var debug = LEVEL === 0 ? ()=>{} : function debug (level, ...args) {
 module.exports = {
   isIp,
   isPort,
+  isAddr,
   isId,
   isNat,
   fromAddress,
