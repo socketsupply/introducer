@@ -1,5 +1,9 @@
-const { isId, debug } = require('./util')
+const { isId, isIp, isAddr, debug } = require('./util')
 const EventEmitter = require('events')
+
+function assertAddr (addr, message) {
+  if(!isAddr(addr)) throw new Error('must be valid addr {address, port} object:'+message)
+}
 
 function cmpRand () {
   return Math.random() - 0.5
@@ -21,8 +25,10 @@ function checkNat (peer) {
   let port, address, intros = 0
 
   for (const k in peer.introducers) {
+    assertAddr(peer.introducers[k])
     const _peer = peer.peers[k]
     if (_peer && _peer.pong) {
+      assertAddr(_peer)
       intros ++
       if (!port) {
         port = _peer.pong.port
@@ -43,8 +49,10 @@ function checkNat (peer) {
   }
   if (_nat != 'easy' && intros > 1) {
     peer.nat = 'easy'
-    for(var id in peer.introducers)
+    for(var id in peer.introducers) {
+      assertAddr(peer.peers[id])
       peer.ping(peer.peers[id])
+    }
     peer.on_nat(peer.nat)
   }
 }
@@ -67,17 +75,23 @@ module.exports = class Peer extends EventEmitter {
     if (!introducer1) throw new Error('must provide introducer1')
     if (!introducer2) throw new Error('must provide introducer2')
     this.keepalive = keepalive
+
+    assertAddr(introducer1,'introducer1 must be valid')
+    assertAddr(introducer2,'introducer2 must be valid')
+
     this.introducers = {
       [introducer1.id]: this.introducer1 = introducer1,
-      [introducer2.id]: introducer2
+      [introducer2.id]: this.introducer2 = introducer2
     }
+//    this.peers = {...this.introducers}
   }
 
   discoverNat () {
     this.publicAddress = null
     this.nat = null
     for (const k in this.introducers) {
-      this.peers[k].pong = null
+      if(this.peers[k]) //should exist, but be defensive
+        this.peers[k].pong = null
       this.ping(this.introducers[k])
     }
   }
@@ -135,7 +149,7 @@ module.exports = class Peer extends EventEmitter {
         //so trigger a ping again soon if there is no nat
         if(!this.nat) {
           for(var k in this.introducers)
-            this.ping(this.peers[k])
+            this.ping(this.introducers[k])
         }
 //          this.discoverNat()
 
@@ -248,7 +262,7 @@ module.exports = class Peer extends EventEmitter {
     // NOTIFY new peers here.
     const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart || null, ts)
     const peer = this.peers[msg.id]
-    peer.pong = { ts, address: msg.address, port: msg.port, latency: peer.ping ? ts - peer.ping : null }
+    peer.pong = { ts, address: msg.address, port: msg.port }
     checkNat(this)
     if (isNew) this.emit('peer', this.peers[msg.id])
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
@@ -265,10 +279,16 @@ module.exports = class Peer extends EventEmitter {
   }
 
   local (id) {
+    //check if we do not have the local address, this messages is relayed, it could cause a crash at other end
+    if(!isIp(this.localAddress)) //should never happen, but a peer could send anything.
+      return debug(1, 'cannot connect local because missing localAddress!', msg)
     this.send({type: 'local', target: id, id: this.id, address: this.localAddress, port}, this.introducer1, port)
   }
 
   on_local (msg) {
+    if(!isAddr(msg)) //should never happen, but a peer could send anything.
+      return debug(1, 'connect msg is invalid!', msg)
+
     this.ping3(msg)
   }
 
@@ -276,6 +296,10 @@ module.exports = class Peer extends EventEmitter {
   on_connect (msg, _addr, _port, ts) {
     assertTs(ts)
     if(!ts) throw new Error('ts must not be zero:'+tsF)
+
+    if(!isAddr(msg)) //should never happen, but a peer could send anything.
+      return debug(1, 'connect msg is invalid!', msg)
+
     let swarm
     // note: ping3 checks if we are already communicating
     const ap = msg.address+':'+msg.port
