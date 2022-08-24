@@ -1,3 +1,4 @@
+'use strict'
 const { isId, isIp, isAddr, debug } = require('./util')
 const EventEmitter = require('events')
 
@@ -281,13 +282,13 @@ module.exports = class Peer extends EventEmitter {
   local (id) {
     //check if we do not have the local address, this messages is relayed, it could cause a crash at other end
     if(!isIp(this.localAddress)) //should never happen, but a peer could send anything.
-      return debug(1, 'cannot connect local because missing localAddress!', msg)
+      return debug(1, 'cannot connect local because missing localAddress!')
     this.send({type: 'local', target: id, id: this.id, address: this.localAddress, port}, this.introducer1, port)
   }
 
   on_local (msg) {
     if(!isAddr(msg)) //should never happen, but a peer could send anything.
-      return debug(1, 'connect msg is invalid!', msg)
+      return debug(1, 'local connect msg is invalid!', msg)
 
     this.ping3(msg)
   }
