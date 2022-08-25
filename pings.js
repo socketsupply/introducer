@@ -28,15 +28,24 @@ function assertTs (ts) {
 
 const port = 3456
 
+function eachIntroducer(peer, fn) {
+  for (const k in peer.peers) {
+    var _peer = peer.peers[k]
+    if (_peer && _peer.introducer) {
+      assertAddr(_peer)
+      fn(_peer)
+    }
+  }
+}
+
 function checkNat (peer) {
   // if we have just discovered our nat, ping the introducer again to let them know
   const _nat = peer.nat
   let port, address, intros = 0
-
-  for (const k in peer.introducers) {
-    assertAddr(peer.introducers[k])
+  for (const k in peer.peers) {
+    assertAddr(peer.peers[k])
     const _peer = peer.peers[k]
-    if (_peer && _peer.pong) {
+    if (_peer && _peer.introducer && _peer.pong) {
       assertAddr(_peer)
       intros ++
       if (!port) {
@@ -49,7 +58,10 @@ function checkNat (peer) {
         if (_nat != 'hard') {
           peer.nat = 'hard'
           debug(1, 'hard nat:', port, _peer.pong.port)
-          peer.ping(peer.introducer1) //ping introducer1 again, to ensure they know the nat
+          eachIntroducer(peer, (intro) => {
+            peer.ping(intro)
+          })
+//          peer.ping(peer.introducer1) //ping introducer1 again, to ensure they know the nat
           peer.on_nat(peer.nat)
         }
         return
@@ -59,10 +71,7 @@ function checkNat (peer) {
   //if our nat has changed, ping introducers again, to make sure everyone knows our nat type
   if (_nat != 'easy' && intros > 1) {
     peer.nat = 'easy'
-    for(var id in peer.introducers) {
-      assertAddr(peer.peers[id])
-      peer.ping(peer.peers[id])
-    }
+    eachIntroducer(peer, (intro)=>{ peer.ping(intro) })
     peer.on_nat(peer.nat)
   }
 }
@@ -81,20 +90,29 @@ module.exports = class PingPeer extends EventEmitter {
     assertAddr(introducer1,'introducer1 must be valid')
     assertAddr(introducer2,'introducer2 must be valid')
 
-    this.introducers = {
-      [introducer1.id]: this.introducer1 = introducer1,
-      [introducer2.id]: this.introducer2 = introducer2
+//    this.introducers = {
+//      [introducer1.id]: this.introducer1 = introducer1,
+//      [introducer2.id]: this.introducer2 = introducer2
+//    }
+      this.introducer1 = introducer1
+      //this.introducer2 = introducer2
+
+//    this.introducers = null
+
+    function set (p) {
+      this.__set_peer(p.id, p.address, p.port, null, null, 0, 0, true)
     }
+    set.call(this, introducer1)
+    set.call(this, introducer2)
   }
 
   discoverNat () {
     this.publicAddress = null
     this.nat = null
-    for (const k in this.introducers) {
-      if(this.peers[k]) //should exist, but be defensive
-        this.peers[k].pong = null
-      this.ping(this.introducers[k])
-    }
+    eachIntroducer(this, (intro) => {
+      intro.pong = null
+      this.ping(intro)
+    })
   }
 
   checkPeers (ts) {
@@ -181,12 +199,12 @@ module.exports = class PingPeer extends EventEmitter {
     this.send({ type: 'ping', id: this.id, nat: this.nat }, addr, addr.outport || port)
   }
 
-  __set_peer (id, address, port, nat, outport, restart = null, ts) {
+  __set_peer (id, address, port, nat, outport, restart = null, ts, isIntroducer) {
     assertTs(ts)
     if(!this.peers[id]) {
       debug(1, 'new peer', id.substring(0, 8), address+':'+port, nat)
       const peer = this.peers[id] = { id, address, port, nat, ts, outport, restart }
-      if(this.introducers[peer.id])
+      if(isIntroducer)
         peer.introducer = true
       return true
     }
@@ -208,8 +226,8 @@ module.exports = class PingPeer extends EventEmitter {
       peer.restart = restart
       if(changed)
         peer.pong = null
-      if(this.introducers[peer.id])
-        peer.introducer = true
+//      if(this.introducers[peer.id])
+//      peer.introducer = true
       //if(this.on_peer) this.on_peer(peer)
       if(_restart != peer.restart) {
         if(this.on_peer_restart) {
@@ -223,7 +241,8 @@ module.exports = class PingPeer extends EventEmitter {
 
   //if the introducer server restarts, rejoin swarms
   on_peer_restart (other, restart) {
-    if(this.introducers[other.id]) {
+    var p = this.peers[other.id]
+    if(p && p.introducer) {
       for(var k in this.swarms)
         this.join(k)
     }
