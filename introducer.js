@@ -102,7 +102,8 @@ module.exports = class Introducer extends EventEmitter {
     if ((port || from.outport) === undefined) throw new Error('port cannot be undefined')
     //if(!from.nat) throw new Error('cannot connect FROM unknown nat')
     //if(!to.nat) throw new Error('cannot connect TO unknown nat')
-    this.send({ type: 'connect', id: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port }, from, port || from.outport)
+    //XXX id should ALWAYS be the id of the sender.
+    this.send({ type: 'connect', id: this.id, target: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port }, from, port || from.outport)
   }
 
   //__set_peer (id, address, port, nat, outport, restart) {
