@@ -91,7 +91,7 @@ module.exports = class Peer extends PingPeer {
       // unfortunately, the app stores are strongly against local multicast
       // however, in the future we can have a real local experience here using bluetooth.
       debug(1, 'local peer', this.localAddress+'->'+msg.address)
-      this.local(msg.target, this.peers[this.introducer1])
+      this.local(msg.target, this.peers[msg.id])
       return
     }
 
