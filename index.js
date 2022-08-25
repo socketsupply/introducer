@@ -35,12 +35,12 @@ module.exports = class Peer extends PingPeer {
   }
 
   connect (id, swarm) {
-    this.send({ type: 'connect', id: this.id, nat: this.nat, target: id, swarm}, this.introducer1, port)
+    this.send({ type: 'connect', id: this.id, nat: this.nat, target: id, swarm}, this.peers[this.introducer1], port)
   }
 
   join (swarm_id) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
-    this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat }, this.introducer1, port)
+    this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat }, this.peers[this.introducer1], port)
   }
 
   local (id) {
@@ -49,7 +49,7 @@ module.exports = class Peer extends PingPeer {
       return debug(1, 'cannot connect local because missing localAddress!')
     this.send({type: 'relay', target: id, content: {
       type:'local', id: this.id, address: this.localAddress, port
-    }}, this.introducer1, port)
+    }}, this.peers[this.introducer1], port)
   }
 
   on_local (msg) {

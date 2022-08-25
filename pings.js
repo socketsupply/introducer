@@ -61,7 +61,6 @@ function checkNat (peer) {
           eachIntroducer(peer, (intro) => {
             peer.ping(intro)
           })
-//          peer.ping(peer.introducer1) //ping introducer1 again, to ensure they know the nat
           peer.on_nat(peer.nat)
         }
         return
@@ -90,14 +89,7 @@ module.exports = class PingPeer extends EventEmitter {
     assertAddr(introducer1,'introducer1 must be valid')
     assertAddr(introducer2,'introducer2 must be valid')
 
-//    this.introducers = {
-//      [introducer1.id]: this.introducer1 = introducer1,
-//      [introducer2.id]: this.introducer2 = introducer2
-//    }
-      this.introducer1 = introducer1
-      //this.introducer2 = introducer2
-
-//    this.introducers = null
+    this.introducer1 = introducer1.id
 
     function set (p) {
       this.__set_peer(p.id, p.address, p.port, null, null, 0, 0, true)
@@ -226,9 +218,6 @@ module.exports = class PingPeer extends EventEmitter {
       peer.restart = restart
       if(changed)
         peer.pong = null
-//      if(this.introducers[peer.id])
-//      peer.introducer = true
-      //if(this.on_peer) this.on_peer(peer)
       if(_restart != peer.restart) {
         if(this.on_peer_restart) {
           debug(1, 'restart peer', id.substring(0, 8))
