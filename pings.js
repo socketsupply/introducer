@@ -250,17 +250,15 @@ module.exports = class PingPeer extends EventEmitter {
   }
 
   // method to check if we are already communicating
-  ping3 (addr, delay = 500) {
-    if (!addr.id) throw new Error('ping3 expects peer id')
+  ping3 (id, addr, delay = 500) {
+    if (!id) throw new Error('ping3 expects peer id')
     this.ping(addr)
-    this.timer(delay, 0, (ts) => {
-      if (this.peers[addr.id] && this.peers[addr.id].pong) return
+    var maybe_ping = (ts) => {
+      if (this.peers[id] && this.peers[id].pong) return
       this.ping(addr)
-    })
-    this.timer(delay * 2, 0, (ts) => {
-      if (this.peers[addr.id] && this.peers[addr.id].pong) return
-      this.ping(addr)
-    })
+    }
+    this.timer(delay, 0, maybe_ping)
+    this.timer(delay * 2, 0, maybe_ping)
   }
 
   on_pong (msg, addr, _port, ts) {
