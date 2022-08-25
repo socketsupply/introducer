@@ -1,5 +1,5 @@
 const { isId, debug } = require('./util')
-
+const PingPeer = require('./pings')
 const EventEmitter = require('events')
 function cmpRand () {
   return Math.random() - 0.5
@@ -20,9 +20,10 @@ function cmpRand () {
 
 const port = 3456
 
+//can't depend on ./pings.js because that expects an introducer
 module.exports = class Introducer extends EventEmitter {
   constructor ({ id, keepalive, port }) {
-    super()
+    super({id, keepalive, port})
 
     this.id = id
     this.peers = {}
@@ -65,7 +66,14 @@ module.exports = class Introducer extends EventEmitter {
       this.emit('local', peer)
     }
   }
-p
+
+  on_relay (msg, addr, port) {
+    var target = this.peers[msg.target]
+    if(!target)
+      return debug(1, 'cannot relay message to unkown peer:'+msg.target.substring(0, 8))
+    this.send(msg.content, target, target.outport)
+  }
+
   on_connect (msg, addr) {
     // check nat types:
     // if both peers are easy, just tell each to connect to the other
