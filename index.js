@@ -55,14 +55,15 @@ module.exports = class Peer extends PingPeer {
   on_local (msg) {
     if(!isAddr(msg)) //should never happen, but a peer could send anything.
       return debug(1, 'local connect msg is invalid!', msg)
-
-    this.ping3(msg)
+    this.ping3(msg.id, msg)
   }
 
   // we received connect request, ping the target 3 itmes
   on_connect (msg, _addr, _port, ts) {
     assertTs(ts)
     if(!ts) throw new Error('ts must not be zero:'+ts)
+
+    ///XXX TODO check if we are already connected or connecting to this peer, and if so let that continue...
 
     if(!isAddr(msg)) //should never happen, but a peer could send anything.
       return debug(1, 'connect msg is invalid!', msg)
@@ -72,13 +73,13 @@ module.exports = class Peer extends PingPeer {
     const ap = msg.address+':'+msg.port
     if (isId(msg.swarm)) {
       swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
-      swarm[msg.id] = ts
+      swarm[msg.target] = ts
     }
 
     //if we already know this peer, but the address has changed,
     //reset the connection to them...
-    if(this.peers[msg.id]) {
-      var peer = this.peers[msg.id]
+    var peer = this.peers[msg.target]
+    if(peer) {
       if(peer.address != msg.address)
         peer.pong = null
     }
@@ -90,23 +91,23 @@ module.exports = class Peer extends PingPeer {
       // unfortunately, the app stores are strongly against local multicast
       // however, in the future we can have a real local experience here using bluetooth.
       debug(1, 'local peer', this.localAddress+'->'+msg.address)
-      this.local(msg.id, this.peers[this.introducer1])
+      this.local(msg.target, this.peers[this.introducer1])
       return
     }
 
     if (msg.nat === 'static') {
-      this.ping3(msg)
+      this.ping3(msg.target, msg)
     }
     else if (this.nat === 'easy') {
       // if nat is missing, guess that it's easy nat, or a server.
       // we should generally know our own nat by now.
       if (msg.nat === 'easy' || msg.nat == null) {
          // we are both easy, just do ping3
-        this.ping3(msg)
+        this.ping3(msg.target, msg)
       }
       else if (msg.nat === 'hard') {
         // we are easy, they are hard
-        var short_id = msg.id.substring(0, 8)
+        var short_id = msg.target.substring(0, 8)
         debug(1, 'BDP easy->hard', short_id, ap)
         var i = 0, start = Date.now(), ts = start
         var ports = {}
@@ -121,7 +122,7 @@ module.exports = class Peer extends PingPeer {
           if (i++ > 2000) {
             debug(1, 'connection failed:', i, s, short_id, ap)
             return false            
-          } else if (this.peers[msg.id] && this.peers[msg.id].pong) {
+          } else if (this.peers[msg.target] && this.peers[msg.target].pong) {
             debug(1, 'connected:', i, s, short_id, ap)
             return false
           }
