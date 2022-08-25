@@ -34,22 +34,22 @@ module.exports = class Peer extends PingPeer {
     this.swarms = {}
   }
 
-  connect (id, swarm) {
-    this.send({ type: 'connect', id: this.id, nat: this.nat, target: id, swarm}, this.peers[this.introducer1], port)
+  connect (id, swarm, intro) {
+    this.send({ type: 'connect', id: this.id, nat: this.nat, target: id, swarm}, intro || this.peers[this.introducer1], port)
   }
 
-  join (swarm_id) {
+  join (swarm_id, intro) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
-    this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat }, this.peers[this.introducer1], port)
+    this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat }, intro || this.peers[this.introducer1], port)
   }
 
-  local (id) {
+  local (id, intro) {
     //check if we do not have the local address, this messages is relayed, it could cause a crash at other end
     if(!isIp(this.localAddress)) //should never happen, but a peer could send anything.
       return debug(1, 'cannot connect local because missing localAddress!')
     this.send({type: 'relay', target: id, content: {
       type:'local', id: this.id, address: this.localAddress, port
-    }}, this.peers[this.introducer1], port)
+    }}, intro || this.peers[this.introducer1], port)
   }
 
   on_local (msg) {
@@ -90,7 +90,7 @@ module.exports = class Peer extends PingPeer {
       // unfortunately, the app stores are strongly against local multicast
       // however, in the future we can have a real local experience here using bluetooth.
       debug(1, 'local peer', this.localAddress+'->'+msg.address)
-      this.local(msg.id)
+      this.local(msg.id, this.peers[this.introducer1])
       return
     }
 
