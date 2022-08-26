@@ -65,6 +65,7 @@ module.exports = class Peer extends PingPeer {
 
     ///XXX TODO check if we are already connected or connecting to this peer, and if so let that continue...
 
+
     if(!isAddr(msg)) //should never happen, but a peer could send anything.
       return debug(1, 'connect msg is invalid!', msg)
 
@@ -76,13 +77,23 @@ module.exports = class Peer extends PingPeer {
       swarm[msg.target] = ts
     }
 
+
     //if we already know this peer, but the address has changed,
     //reset the connection to them...
     var peer = this.peers[msg.target]
     if(peer) {
-      if(peer.address != msg.address)
+      if(peer.address != msg.address) {
+        peer.address = msg.address
         peer.pong = null
+      }
+      else {
+        //TODO check if A) currently connecting (short delay)
+        //TODO          B) already connected    (medium delay)
+        console.log("RECONNECT!!!", peer)
+      }
     }
+
+
     if(msg.address === this.publicAddress) {
       // if the dest has the same public ip as we do, it must be on the same nat.
       // since NAT hairpinning is usually not supported, we should request a direct connection.
@@ -96,7 +107,7 @@ module.exports = class Peer extends PingPeer {
     }
 
     if (msg.nat === 'static') {
-      this.ping3(msg.target, msg)
+      this.ping3(msg.target, msg, ts)
     }
     else if (this.nat === 'easy') {
       // if nat is missing, guess that it's easy nat, or a server.
@@ -111,11 +122,12 @@ module.exports = class Peer extends PingPeer {
         debug(1, 'BDP easy->hard', short_id, ap)
         var i = 0, start = Date.now(), ts = start
         var ports = {}
-        this.timer(0, 10, () => {
+        this.timer(0, 10, (_ts) => {
           if(Date.now() - 1000 > ts) {
             debug(1, 'packets', i, short_id)
             ts = Date.now()
           }
+          
           // send messages until we receive a message from them. giveup after sending 1000 packets.
           // 50% of the time 250 messages should be enough.
           var s = Math.round((Date.now()-start)/100)/10
