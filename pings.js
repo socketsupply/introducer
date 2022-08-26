@@ -28,6 +28,12 @@ function assertTs (ts) {
 
 const port = 3456
 
+//peer states:
+//attempting to connect - have sent ping recently, not received response yet
+//connected             - received pong recently
+//disconnected          - havn't received a pong in a while...
+//lost                  - havn't received a pong in a long time
+
 function eachIntroducer(peer, fn) {
   for (const k in peer.peers) {
     var _peer = peer.peers[k]
@@ -187,15 +193,30 @@ module.exports = class PingPeer extends EventEmitter {
     // override this to implement behaviour for when nat is detected.
   }
 
-  ping (addr) {
-    this.send({ type: 'ping', id: this.id, nat: this.nat }, addr, addr.outport || port)
+  ping (peer, ts) {
+    if(peer.id && ts)
+      this.__set_peer(peer.id, peer.address, peer.port, peer.nat, peer.outport || port, null, ts, null)
+    this.send({ type: 'ping', id: this.id, nat: this.nat }, peer, peer.outport || port)
+  }
+
+  // method to check if we are already communicating
+  ping3 (id, addr, ts, delay = 500) {
+    if (!id) throw new Error('ping3 expects peer id')
+    var _peer = {...addr, id} //id must be come after the expansion or it will default to the addr value
+    this.ping(_peer, ts)
+    var maybe_ping = (ts) => {
+      if (this.peers[id] && this.peers[id].pong) return
+      this.ping(_peer, ts)
+    }
+    this.timer(delay, 0, maybe_ping)
+    this.timer(delay * 2, 0, maybe_ping)
   }
 
   __set_peer (id, address, port, nat, outport, restart = null, ts, isIntroducer) {
     assertTs(ts)
     if(!this.peers[id]) {
       debug(1, 'new peer', id.substring(0, 8), address+':'+port, nat)
-      const peer = this.peers[id] = { id, address, port, nat, ts, outport, restart }
+      const peer = this.peers[id] = { id, address, port, nat, ts, outport, restart, introducer: isIntroducer }
       if(isIntroducer)
         peer.introducer = true
       return true
@@ -247,18 +268,6 @@ module.exports = class PingPeer extends EventEmitter {
 
     if (isNew) this.emit('peer', this.peers[msg.id])
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
-  }
-
-  // method to check if we are already communicating
-  ping3 (id, addr, delay = 500) {
-    if (!id) throw new Error('ping3 expects peer id')
-    this.ping(addr)
-    var maybe_ping = (ts) => {
-      if (this.peers[id] && this.peers[id].pong) return
-      this.ping(addr)
-    }
-    this.timer(delay, 0, maybe_ping)
-    this.timer(delay * 2, 0, maybe_ping)
   }
 
   on_pong (msg, addr, _port, ts) {
