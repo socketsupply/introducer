@@ -38,6 +38,15 @@ function main (argv) {
     return
   }
   
+  if(cmd === 'longevity') {
+    var Longevity = require('./scripts/longevity')
+    var long = new Longevity()
+    console.log('# how long does the nat keep a port mapping open?')
+    console.log('actual, requested, port')
+    Wrap(long, [1234])
+    return
+  }
+
   const peer = new Demo({ swarm, ...config, keepalive: 30_000 })
   peer.on_change = (msg) => {
     console.log(msg.id.substring(0, 8), peerType(peer.peers[msg.id]), msg.ts, msg.content)

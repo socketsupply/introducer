@@ -1,4 +1,4 @@
-var id = require('crypto').createHash('sha256').update('longevity test').digest('hex')
+var id = require('crypto').randomBytes(32).toString('hex')
 var EventEmitter = require('events')
 var introducer2 = {
   id: 'aaecb3746ecec8f9b72eef221ccdd55da8c6fdccd54ba9a9839e8927a8750861',
@@ -21,22 +21,23 @@ class Longevity extends EventEmitter {
   }
   init (ts) {
     var ports = {}
-    for(var i = 0; i < 200; i++) {
+    for(var i = 0; i < 180; i++) {
       var port = random_port(ports)
-      var delay = 5_000*i
+      var delay = 1_000*i || 1
       this.send({ type:'ping', id, ts, delay}, introducer2, port)
-      console.log('delay:',delay, port)
     }
   }
   on_pong (msg, addr, port, ts) {
-    console.log('recv', Math.round((ts - msg.ts)/100)/10, msg.delay/1000, port)
+    console.log('recv', Math.round((ts - msg.ts)/10)/100, msg.delay/1000, port)
   }
 }
 
+module.exports = Longevity
 
 if(!module.parent) {
   var Wrap = require('../wrap')(require('dgram'), require('os'), Buffer)
   var l = new Longevity()
-  console.log(l)
+  console.log('# how long does the nat keep a port mapping open?')
+  console.log('actual, requested, port')
   Wrap(l, [1234])
 }
