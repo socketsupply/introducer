@@ -60,8 +60,9 @@ module.exports = class Demo extends Peer {
   // broadcast a message, optionally skipping a particular peer (such as the peer that sent this)
   broadcast (msg, not_addr = { address: null }) {
     for (const k in this.peers) {
-      if (!equalAddr(this.peers[k], not_addr)) {
-        this.send(msg, this.peers[k], this.peers[k].outport || this.port)
+      var peer = this.peers[k]
+      if (!equalAddr(peer, not_addr)) {
+        this.send(msg, peer, peer.outport || this.port)
       }
     }
   }
