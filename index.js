@@ -1,6 +1,6 @@
 'use strict'
 const { isId, isIp, isAddr, debug } = require('./util')
-
+const constants = require('./lib/constants')()
 var PingPeer = require('./pings')
 
 function assertAddr (addr, message) {
@@ -86,11 +86,15 @@ module.exports = class Peer extends PingPeer {
         peer.address = msg.address
         peer.pong = null
       }
-      else {
-        //TODO check if A) currently connecting (short delay)
-        //TODO          B) already connected    (medium delay)
-        console.log("RECONNECT!!!", peer)
+      else if(ts - peer.send < constants.connecting) {
+        //if we are already connecting do nothing.
+        return
       }
+      else if(ts - Math.max(peer.recv, peer.send) < constants.keepalive) {
+        this.ping3(peer, ts)
+        return
+      }
+      //if we didn't hear response maybe the peer is down, so try connect again?
     }
 
 
