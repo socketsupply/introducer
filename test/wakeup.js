@@ -1,6 +1,7 @@
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
+var K = require('../lib/constants')().keepalive
 
 const { createId } = require('./util')
 
@@ -94,16 +95,18 @@ IndependentFirewallNat)
   t.ok(peer_easy.peers[peer_hard.id], 'easy peer knows hard peer')
   t.ok(peer_hard.peers[peer_easy.id], 'hard peer knows easy peer')
 
-  network.iterateUntil(30_000)
+  console.log('keepalive', K)
+
+  network.iterateUntil(K/2)
 
   console.log(node_hard.sleep)
   node_hard.sleep(true)
 
-  peer_easy.chat({content: 'missing', ts: 40_000}) //node_hard will not see this
+  peer_easy.chat({content: 'missing', ts: K*0.66}) //node_hard will not see this
   
   //TODO test emit wakeup/lost peer event
 
-  network.iterateUntil(10*60_000)
+  network.iterateUntil(11*K)
 
   //another half minute is enough to wake up
   t.notOk(peer_easy.peers[peer_hard.id], 'easy has forgotten hard, after being offline for 10 minutes')
@@ -111,7 +114,7 @@ IndependentFirewallNat)
   console.log("WAKEUP")
   node_hard.sleep(false)
 
-  network.iterateUntil(11*60_000)
+  network.iterateUntil(12*K)
 
   //TODO test emit found peer event
 
@@ -119,9 +122,9 @@ IndependentFirewallNat)
   //since we have not yet any form of implemented eventual consistency
 
   console.log(peer_easy.peers[peer_hard.id])
-  peer_easy.chat({content: 'expected', ts: 11*60_000}) //node_hard will not see this
+  peer_easy.chat({content: 'expected', ts: 11*K}) //node_hard will not see this
 
-  network.iterateUntil(12*60_000)
+  network.iterateUntil(13*K)
   t.ok(peer_easy.peers[peer_hard.id], 'easy has found hard again')
 
   t.equal(peer_easy.messages.length, 2)
