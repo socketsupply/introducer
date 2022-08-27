@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/socketsupply/introducer#readme",
   "devDependencies": {
-    "@socketsupply/netsim": "3.5",
+    "@socketsupply/netsim": "3.6",
     "tape": "^5.5.3"
   },
   "dependencies": {
