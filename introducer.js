@@ -33,7 +33,15 @@ module.exports = class Introducer extends EventEmitter {
     this.connections = {}
   }
 
-  init () {}
+  init () {
+    this.timer(this.keepalive, this.keepalive, (ts) => {
+      for(var id in this.peers) {
+        if(this.peers[id].ts + this.keepalive*5 < ts)
+          delete this.peers[id]
+      }
+    })
+  }
+
 
   on_ping (msg, addr, _port, ts) {
     if (!isId(msg.id)) return
