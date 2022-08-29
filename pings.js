@@ -88,20 +88,7 @@ module.exports = class PingPeer extends EventEmitter {
     this.peers = {}
     this.id = id
     this.restart = Date.now()
-    if (!introducer1) throw new Error('must provide introducer1')
-    if (!introducer2) throw new Error('must provide introducer2')
     this.keepalive = keepalive
-
-    assertAddr(introducer1,'introducer1 must be valid')
-    assertAddr(introducer2,'introducer2 must be valid')
-
-    this.introducer1 = introducer1.id
-
-    function set (p) {
-      this.__set_peer(p.id, p.address, p.port, null, null, 0, 0, true)
-    }
-    set.call(this, introducer1)
-    set.call(this, introducer2)
   }
 
   discoverNat () {

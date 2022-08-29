@@ -31,7 +31,21 @@ function random_port (ports) {
 module.exports = class Peer extends PingPeer {
   constructor (opts) {
     super(opts)
+    var {introducer1, introducer2} = opts
     this.swarms = {}
+    if (!introducer1) throw new Error('must provide introducer1')
+    if (!introducer2) throw new Error('must provide introducer2')
+
+    assertAddr(introducer1,'introducer1 must be valid')
+    assertAddr(introducer2,'introducer2 must be valid')
+
+    this.introducer1 = introducer1.id
+
+    function set (p) {
+      this.__set_peer(p.id, p.address, p.port, null, null, 0, 0, true)
+    }
+    set.call(this, introducer1)
+    set.call(this, introducer2)
   }
 
   connect (id, swarm, intro) {
@@ -55,14 +69,14 @@ module.exports = class Peer extends PingPeer {
   on_local (msg) {
     if(!isAddr(msg)) //should never happen, but a peer could send anything.
       return debug(1, 'local connect msg is invalid!', msg)
-    this.ping3(msg.id, msg)
-  }
+    this.ping3(msg.id, msg)  }
 
   // we received connect request, ping the target 3 itmes
   on_connect (msg, _addr, _port, ts) {
     assertTs(ts)
     if(!ts) throw new Error('ts must not be zero:'+ts)
-
+    if(!msg.target)
+      msg.target = msg.id
     ///XXX TODO check if we are already connected or connecting to this peer, and if so let that continue...
 
 
@@ -122,6 +136,7 @@ module.exports = class Peer extends PingPeer {
       }
       else if (msg.nat === 'hard') {
         // we are easy, they are hard
+        console.log(msg)
         var short_id = msg.target.substring(0, 8)
         debug(1, 'BDP easy->hard', short_id, ap)
         var i = 0, start = Date.now(), ts = start
