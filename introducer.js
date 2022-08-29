@@ -21,12 +21,11 @@ function cmpRand () {
 const port = 3456
 
 //can't depend on ./pings.js because that expects an introducer
-module.exports = class Introducer extends EventEmitter {
+module.exports = class Introducer extends PingPeer {
   constructor ({ id, keepalive, port }) {
     super({id, keepalive, port})
 
     this.id = id
-    this.peers = {}
     this.swarms = {}
     this.restart = Date.now()
     this.keepalive = keepalive
@@ -34,37 +33,6 @@ module.exports = class Introducer extends EventEmitter {
   }
 
   init () {}
-
-  on_ping (msg, addr, _port, ts) {
-    if (!isId(msg.id)) return
-    let peer
-
-    if (!this.peers[msg.id]) {
-      peer = this.peers[msg.id] = { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: _port, ts }
-    } else {
-      peer = this.peers[msg.id]
-      peer.address = addr.address
-      peer.port = addr.port
-      if(peer.nat && !msg.nat) {
-        debug(1, 'msg missing nat', msg)
-      }
-      peer.nat = peer.nat || msg.nat
-      peer.ts = ts
-      peer.outport = _port
-    }
-
-    this.emit('ping', peer)
-    if(msg.ts && msg.delay) {
-      this.timer(msg.delay|0, 0, () => {
-        this.send({
-          type: 'pong', id: this.id, ...addr, nat: peer.nat, restart: this.restart,
-          ts:msg.ts, delay: msg.delay
-        }, addr, _port)
-      })
-    }
-    else
-      this.send({ type: 'pong', id: this.id, ...addr, nat: peer.nat, restart: this.restart }, addr, _port)
-  }
 
   // sending on-local requests other peer to connect directly to our local address
   // a connect message is not sent back because we can receive an unsolicited packet locally.
