@@ -70,8 +70,8 @@ test('connect', function (t) {
 
   network.iterate(-1)
 
-  t.equal(peerD.nat, 'easy')
-  t.equal(peerE.nat, 'easy')
+  t.equal(peerD.nat, 'static')
+  t.equal(peerE.nat, 'static')
 
   peerD.connect(peerE.id)
 

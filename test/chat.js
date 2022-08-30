@@ -91,9 +91,9 @@ test('broadcast', function (t) {
 
   network.iterate(-1)
 
-  t.equal(peerD.nat, 'easy')
-  t.equal(peerE.nat, 'easy')
-  t.equal(peerF.nat, 'easy')
+  t.equal(peerD.nat, 'static')
+  t.equal(peerE.nat, 'static')
+  t.equal(peerF.nat, 'static')
   console.log(peerE.peers)
 
   peerD.on_change = peerE.on_change = peerF.on_change = () => {}
