@@ -2,7 +2,6 @@
 const { isId, isIp, isAddr, debug } = require('./util')
 const EventEmitter = require('events')
 
-
 /**
  * Peers need to be able to ping each other to know they are viable.
  * this file implements tracking peers, sending them pings, responding to pings
@@ -109,7 +108,7 @@ module.exports = class PingPeer extends EventEmitter {
       if(!first) return
       first = false
       //ping with a different port.
-      this.send({type:'ping', id: this.id, respondPort: 7654}, intro, port)      
+      this.send({type:'ping', id: this.id, spinPort: 7654}, intro, port)
     })
   }
 
@@ -265,16 +264,16 @@ module.exports = class PingPeer extends EventEmitter {
       })
     }
     else {
-      if(msg.respondPort) {
-        console.log("RESPOND PORT")
+      if(msg.spinPort) {
+        //if spinPort is set, _ALSO_ pong to that port.
+        //this is used to detect if peer has static nat.
+        //if message gets through, it's static.
+
         //spinning the ball alters it's trajectory.
-        //we do this to see if it gets through on another port.
-        //if it does, the pinger must be a static nat!
-        this.send({ type: 'spin', id: this.id, ...addr, nat: this.nat }, {...addr, port: msg.respondPort}, _port)
+        this.send({ type: 'spin', id: this.id, ...addr, nat: this.nat }, {...addr, port: msg.spinPort}, _port)
       }
       //still pong like normal though.
       this.send({ type: 'pong', id: this.id, ...addr, nat: this.nat }, addr, _port)
-      //if respondPort is set, _ALSO_ pong to that port.
     }
     const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, null, ts)
     var peer = this.peers[msg.id]
@@ -290,27 +289,21 @@ module.exports = class PingPeer extends EventEmitter {
     this.peers[msg.id].pong = this.peers[msg.id].pong || {ts, address: msg.address, port: msg.port}
     this.peers[msg.id].pong.spin = true
     checkNat(this) //sets nat to static and notifies if necessary
-//    this.nat = 'static'
   }
 
   on_pong (msg, addr, _port, ts) {
     // XXX notify if this is a new peer message.
     // (sometimes we ping a peer, and their response is first contact)
-    if(_port === recv_port) {
-      console.log("PONG:RECV_PORT!", this.id)
-      return
-    }
     if (!msg.port) throw new Error('pong: missing port')
 
-    // NOTIFY new peers here.
     const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart || null, ts)
     const peer = this.peers[msg.id]
-//    peer.pong = {...peer.pong, ts, address: msg.address, port: msg.port,  }
     var spin = peer.pong && peer.pong.spin
     peer.pong = {ts, address: msg.address, port: msg.port}
     if(spin) peer.pong.spin = true
     peer.recv = ts
     checkNat(this)
+    // NOTIFY new peers here.
     if (isNew) this.emit('peer', this.peers[msg.id])
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
     this.emit('pong', this.peers[msg.id])
