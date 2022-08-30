@@ -111,7 +111,7 @@ module.exports = (UDP, OS, Buffer) => {
       return bind(p, false)
     }
 
-    if (ports) ports.forEach(p => bind(p, true))
+    if (ports) ports.filter(Boolean).forEach(p => bind(p, true))
     if (peer.init) peer.init(Date.now())
   }
 }

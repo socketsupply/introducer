@@ -78,7 +78,7 @@ function main (argv) {
     }
   }
 
-  Wrap(peer, [config.port])
+  Wrap(peer, [config.port, config.spinPort])
 
   console.log('id:',config.id)
   process.stdin.on('data', function (data) {
