@@ -42,19 +42,24 @@ module.exports = class Peer extends PingPeer {
     this.introducer1 = introducer1.id
 
     function set (p) {
-      this.__set_peer(p.id, p.address, p.port, null, null, 0, 0, true)
+      this.__set_peer(p.id, p.address, p.port, 'static', null, 0, 0, true)
     }
     set.call(this, introducer1)
     set.call(this, introducer2)
   }
 
-  connect (id, swarm, intro) {
-    this.send({ type: 'connect', id: this.id, nat: this.nat, target: id, swarm}, intro || this.peers[this.introducer1], port)
+  intro (id, swarm, intro) {
+    this.send({ type: 'intro', id: this.id, nat: this.nat, target: id, swarm}, intro || this.peers[this.introducer1], port)
   }
 
-  join (swarm_id, intro) {
+  join (swarm_id) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
-    this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat }, intro || this.peers[this.introducer1], port)
+    //update: call join on every introducer (static nat)
+    for(var id in this.peers) {
+      var peer = this.peers[id]
+      if(peer.nat === 'static')
+        this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat }, peer, peer.outport || port)
+    }
   }
 
   local (id, intro) {

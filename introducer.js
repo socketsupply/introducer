@@ -36,13 +36,14 @@ module.exports = class Introducer extends PingPeer {
 
   // sending on-local requests other peer to connect directly to our local address
   // a connect message is not sent back because we can receive an unsolicited packet locally.
-  on_local (msg, addr) {
+/*  on_local (msg, addr) {
+    throw new Error('no local')
     const peer = this.peers[msg.target]
     if (peer) {
       this.send({ type: 'local', id: msg.id, address: msg.address, port: msg.port }, peer, port)
       this.emit('local', peer)
     }
-  }
+  }*/
 
   on_relay (msg, addr, port) {
     var target = this.peers[msg.target]
@@ -51,7 +52,9 @@ module.exports = class Introducer extends PingPeer {
     this.send(msg.content, target, target.outport)
   }
 
-  on_connect (msg, addr) {
+  //this was "connect" but that required Introducer to be different to Peer.
+  //gonna combine them, so this needs a separate message type.
+  on_intro (msg, addr) {
     // check nat types:
     // if both peers are easy, just tell each to connect to the other
     // if one is easy, one hard, birthday paradox connection
