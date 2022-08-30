@@ -183,4 +183,14 @@ module.exports = class Peer extends PingPeer {
 
     this.emit('connect', msg)
   }
+
+  //if the introducer server restarts, rejoin swarms
+  on_peer_restart (other, restart) {
+    var p = this.peers[other.id]
+    if(p && p.introducer) {
+      for(var k in this.swarms)
+        this.join(k)
+    }
+  }
+
 }
