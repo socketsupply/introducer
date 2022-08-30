@@ -55,6 +55,11 @@ module.exports = class Peer extends PingPeer {
   join (swarm_id) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
     //update: call join on every introducer (static nat)
+    //TODO include count of current connected swarm peers
+    //     (so don't create too many connections)
+    //     hmm, to join a swarm, you need a connection to anyone in that swarm.
+    //     a DHT would be good for that, because it's one lookup.
+    //     after that the swarm is a gossip flood
     for(var id in this.peers) {
       var peer = this.peers[id]
       if(peer.nat === 'static')
