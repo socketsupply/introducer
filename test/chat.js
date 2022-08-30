@@ -98,8 +98,8 @@ test('broadcast', function (t) {
 
   peerD.on_change = peerE.on_change = peerF.on_change = () => {}
 
-  peerD.connect(peerE.id, swarm)
-  peerF.connect(peerE.id, swarm)
+  peerD.intro(peerE.id, swarm)
+  peerF.intro(peerE.id, swarm)
 
   network.iterate(-1)
 
@@ -147,8 +147,8 @@ test('broadcast, easy nat', function (t) {
 
   peerD.on_change = peerE.on_change = peerF.on_change = () => {}
 
-  peerD.connect(peerE.id)
-  peerF.connect(peerE.id)
+  peerD.intro(peerE.id)
+  peerF.intro(peerE.id)
 
   network.iterate(-1)
 
@@ -185,9 +185,9 @@ test('broadcast, hard,easy,hard nat', function (t) {
 
   while(!(peerD.peers[peerE.id] && peerF.peers[peerE.id])) {
     if(!peerD.peers[peerE.id])
-      peerD.connect(peerE.id)
+      peerD.intro(peerE.id)
     if(!peerF.peers[peerE.id])
-      peerF.connect(peerE.id)
+      peerF.intro(peerE.id)
 
     network.iterate(-1)
   }
@@ -235,8 +235,8 @@ test('broadcast, easy, hard, easy nat', function (t) {
   peerD.on_change = peerE.on_change = peerF.on_change = () => {}
 
   while(!(peerD.peers[peerE.id] && peerF.peers[peerE.id])) {
-    peerD.connect(peerE.id)
-    peerF.connect(peerE.id)
+    peerD.intro(peerE.id)
+    peerF.intro(peerE.id)
 
     network.iterate(-1)
   }

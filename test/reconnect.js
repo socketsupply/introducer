@@ -116,8 +116,6 @@ test('swarm with 1 easy 1 hard', function (t) {
 
   //  console.log(peer_easy)
 
-  //  peer_easy.connect(peer_hard.id)
-
   t.end()
 })
 

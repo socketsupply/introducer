@@ -61,7 +61,7 @@ const intros = {
   introducer1: { id: ids.a, address: A, port: 3456 },
   introducer2: { id: ids.b, address: B, port: 3456 }
 }
-test('connect', function (t) {
+test('nat-check', function (t) {
   const network = new Network()
   let peerD, peerE
   network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
@@ -81,6 +81,10 @@ test('connect', function (t) {
   t.equal(peerD.nat, 'easy')
   t.equal(peerE.nat, 'hard')
   t.equal(peerF.nat, 'static')
+
+  //and the peers should know the introducer's nat.
+
+  t.equal(peerD.peers[intros.introducer1.id].nat, 'static')
 
   t.end()
 })

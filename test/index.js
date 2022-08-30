@@ -59,7 +59,7 @@ const intros = {
   introducer1: { id: ids.a, address: A, port: 3456 },
   introducer2: { id: ids.b, address: B, port: 3456 }
 }
-test('connect', function (t) {
+test('intro', function (t) {
   const network = new Network()
   let peerD, peerE
   network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
@@ -73,7 +73,7 @@ test('connect', function (t) {
   t.equal(peerD.nat, 'static')
   t.equal(peerE.nat, 'static')
 
-  peerD.connect(peerE.id)
+  peerD.intro(peerE.id)
 
   network.iterate(-1)
 
@@ -86,7 +86,7 @@ test('connect', function (t) {
   t.end()
 })
 
-test('connect, easy nat', function (t) {
+test('intro, easy nat', function (t) {
   const network = new Network()
   const natD = new IndependentNat('42.')
   const natE = new IndependentNat('52.')
@@ -100,7 +100,7 @@ test('connect, easy nat', function (t) {
   network.iterate(-1)
 
   t.equal(peerD.nat, 'easy')
-  peerD.connect(peerE.id)
+  peerD.intro(peerE.id)
   network.iterate(-1)
 
   t.ok(peerE.peers[peerD.id])
