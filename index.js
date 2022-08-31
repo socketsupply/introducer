@@ -33,19 +33,24 @@ module.exports = class Peer extends PingPeer {
     super(opts)
     var {introducer1, introducer2} = opts
     this.swarms = {}
-    if (!introducer1) throw new Error('must provide introducer1')
-    if (!introducer2) throw new Error('must provide introducer2')
+    //if (!introducer1) throw new Error('must provide introducer1')
+    //if (!introducer2) throw new Error('must provide introducer2')
 
-    assertAddr(introducer1,'introducer1 must be valid')
-    assertAddr(introducer2,'introducer2 must be valid')
+    //assertAddr(introducer1,'introducer1 must be valid')
+    //assertAddr(introducer2,'introducer2 must be valid')
 
-    this.introducer1 = introducer1.id
+  //  this.introducer1 = introducer1.id
 
     function set (p) {
       this.__set_peer(p.id, p.address, p.port, 'static', null, 0, 0, true)
     }
-    set.call(this, introducer1)
-    set.call(this, introducer2)
+    if(introducer1) {
+      this.introducer1 = introducer1.id
+      set.call(this, introducer1)
+      if(introducer2) {
+        set.call(this, introducer2)
+      }
+    }
   }
 
   intro (id, swarm, intro) {
@@ -79,7 +84,8 @@ module.exports = class Peer extends PingPeer {
   on_local (msg) {
     if(!isAddr(msg)) //should never happen, but a peer could send anything.
       return debug(1, 'local connect msg is invalid!', msg)
-    this.ping3(msg.id, msg)  }
+    this.ping3(msg.id, msg)
+  }
 
   // we received connect request, ping the target 3 itmes
   on_connect (msg, _addr, _port, ts) {
