@@ -1,5 +1,6 @@
 const { isId, debug } = require('./util')
 const PingPeer = require('./pings')
+const Peer = require('./')
 const EventEmitter = require('events')
 function cmpRand () {
   return Math.random() - 0.5
@@ -21,7 +22,7 @@ function cmpRand () {
 const port = 3456
 
 //can't depend on ./pings.js because that expects an introducer
-module.exports = class Introducer extends PingPeer {
+module.exports = class Introducer extends Peer {
   constructor ({ id, keepalive, port }) {
     super({id, keepalive, port})
 
@@ -34,16 +35,8 @@ module.exports = class Introducer extends PingPeer {
 
   init () {}
 
-  // sending on-local requests other peer to connect directly to our local address
-  // a connect message is not sent back because we can receive an unsolicited packet locally.
-/*  on_local (msg, addr) {
-    throw new Error('no local')
-    const peer = this.peers[msg.target]
-    if (peer) {
-      this.send({ type: 'local', id: msg.id, address: msg.address, port: msg.port }, peer, port)
-      this.emit('local', peer)
-    }
-  }*/
+  // rename: on_relay - relay a msg to a targeted (by id) peer.
+  // will forward anything. used for creating local (private network) connections.
 
   on_relay (msg, addr, port) {
     var target = this.peers[msg.target]
@@ -52,8 +45,9 @@ module.exports = class Introducer extends PingPeer {
     this.send(msg.content, target, target.outport)
   }
 
-  //this was "connect" but that required Introducer to be different to Peer.
-  //gonna combine them, so this needs a separate message type.
+  // rename: this was "connect" but that required Introducer to be different to Peer.
+
+  // gonna combine them, so this needs a separate message type.
   on_intro (msg, addr) {
     // check nat types:
     // if both peers are easy, just tell each to connect to the other
