@@ -138,7 +138,7 @@ module.exports = class PingPeer extends EventEmitter {
     // TODO: we really want to end the tests after this but it keeps them running
     // so we need a way to unref...
     // because in practice I'm fairly sure this should poll to keep port open (say every minute)
-    this.discoverNat()
+    if(this.nat != 'static') this.discoverNat()
     if (this.keepalive) {
       //every second, check if our address has changed.
       //that is, have we connected to another network?
