@@ -46,7 +46,7 @@ module.exports = class Demo extends Peer {
     debug(1, 'have nat:', this.nat, info)
 
     //or just request to all peers to join this swarm
-    this.join(this.swarm, this.peers[this.introducer1])
+    this.join(this.swarm)
   }
 
   on_error (msg) {
