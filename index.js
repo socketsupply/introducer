@@ -53,25 +53,6 @@ module.exports = class Peer extends PingPeer {
     }
   }
 
-  intro (id, swarm, intro) {
-    this.send({ type: 'intro', id: this.id, nat: this.nat, target: id, swarm}, intro || this.peers[this.introducer1], port)
-  }
-
-  join (swarm_id) {
-    if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
-    //update: call join on every introducer (static nat)
-    //TODO include count of current connected swarm peers
-    //     (so don't create too many connections)
-    //     hmm, to join a swarm, you need a connection to anyone in that swarm.
-    //     a DHT would be good for that, because it's one lookup.
-    //     after that the swarm is a gossip flood
-    for(var id in this.peers) {
-      var peer = this.peers[id]
-      if(peer.nat === 'static')
-        this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat }, peer, peer.outport || port)
-    }
-  }
-
   local (id, intro) {
     //check if we do not have the local address, this messages is relayed, it could cause a crash at other end
     if(!isIp(this.localAddress)) //should never happen, but a peer could send anything.
@@ -232,9 +213,12 @@ module.exports = class Peer extends PingPeer {
     this.send({ type: 'connect', id: this.id, target: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port }, from, port || from.outport)
   }
 
-  // rename: this was "connect" but that required Introducer to be different to Peer.
 
-  // gonna combine them, so this needs a separate message type.
+  // rename: this was "connect" but that required Introducer to be different to Peer.
+  intro (id, swarm, intro) {
+    this.send({ type: 'intro', id: this.id, nat: this.nat, target: id, swarm}, intro || this.peers[this.introducer1], port)
+  }
+
   on_intro (msg, addr) {
     // check nat types:
     // if both peers are easy, just tell each to connect to the other
@@ -255,6 +239,22 @@ module.exports = class Peer extends PingPeer {
       this.send({ type: 'error', target: msg.target, id: msg.id, call: 'connect' }, addr, port)
     }
   }
+
+  join (swarm_id) {
+    if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
+    //update: call join on every introducer (static nat)
+    //TODO include count of current connected swarm peers
+    //     (so don't create too many connections)
+    //     hmm, to join a swarm, you need a connection to anyone in that swarm.
+    //     a DHT would be good for that, because it's one lookup.
+    //     after that the swarm is a gossip flood
+    for(var id in this.peers) {
+      var peer = this.peers[id]
+      if(peer.nat === 'static')
+        this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat }, peer, peer.outport || port)
+    }
+  }
+
 
 
   //__set_peer (id, address, port, nat, outport, restart) {
