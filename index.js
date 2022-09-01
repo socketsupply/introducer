@@ -240,22 +240,38 @@ module.exports = class Peer extends PingPeer {
     }
   }
 
-  join (swarm_id) {
+  join (swarm_id, target_peers = 3) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
+    if('number' !== typeof target_peers) {
+      console.log(target_peers)
+      throw new Error('target_peers must be a number, was:'+target_peers)
+    }
+    var send = (id) => {
+      var peer = this.peers[id]
+      this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers:target_peers|0 }, peer, peer.outport || port)
+
+    }
+    var current_peers = Object.keys(this.swarms[swarm_id] || {}).length
+      //.filter(id => !!this.peers[id]).length
+    if(current_peers >= target_peers) return 
     //update: call join on every introducer (static nat)
     //TODO include count of current connected swarm peers
     //     (so don't create too many connections)
     //     hmm, to join a swarm, you need a connection to anyone in that swarm.
     //     a DHT would be good for that, because it's one lookup.
     //     after that the swarm is a gossip flood
+
+    if(current_peers) {
+      for(var id in this.swarms[swarm_id]) {
+        if(this.peers[id]) send(id)
+      }
+    }
+    
     for(var id in this.peers) {
       var peer = this.peers[id]
-      if(peer.nat === 'static')
-        this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat }, peer, peer.outport || port)
+      if(peer.nat === 'static') send(id)
     }
   }
-
-
 
   //__set_peer (id, address, port, nat, outport, restart) {
   on_join (msg, addr, port) {
@@ -284,7 +300,7 @@ module.exports = class Peer extends PingPeer {
       // hard nat can only connect to easy nats, but can also connect to peers on the same nat
       ids = ids.filter(id => this.peers[id].nat === 'static' || this.peers[id].nat === 'easy' || this.peers[id].address === peer.address)
     }
-    this.connections[msg.id] = {}
+    if(this.connections) this.connections[msg.id] = {}
 
     // send messages to the random peers indicating that they should connect now.
     // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
@@ -304,6 +320,5 @@ module.exports = class Peer extends PingPeer {
 
     this.emit('join', peer)
   }
-
 
 }
