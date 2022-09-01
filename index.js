@@ -182,6 +182,7 @@ module.exports = class Peer extends PingPeer {
   }
 
   //if the introducer server restarts, rejoin swarms
+  //TODO if a PEER restarts, rejoin swarms with them that they are part of.
   on_peer_restart (other, restart) {
     var p = this.peers[other.id]
     if(p && p.introducer) {
