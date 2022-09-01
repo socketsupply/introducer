@@ -56,10 +56,7 @@ function main (argv) {
   }
 
   peer.on_peer = (other) => {
-    if(!peer.introducers[other.id]) {
-    
       console.log('connected', other.id.substring(0, 8),  peerType(other), other.address+':'+other.port)
-    }
   }
 
   //detect the nat type and exit
