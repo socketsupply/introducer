@@ -2,7 +2,6 @@
 const { isId, isIp, isAddr, debug } = require('./util')
 const EventEmitter = require('events')
 
-
 /**
  * Peers need to be able to ping each other to know they are viable.
  * this file implements tracking peers, sending them pings, responding to pings
@@ -27,18 +26,36 @@ function assertTs (ts) {
 }
 
 const port = 3456
+const recv_port = 7654
+
+//peer states:
+//attempting to connect - have sent ping recently, not received response yet
+//connected             - received pong recently
+//disconnected          - havn't received a pong in a while...
+//lost                  - havn't received a pong in a long time
+
+function eachIntroducer(peer, fn) {
+  for (const k in peer.peers) {
+    var _peer = peer.peers[k]
+    if (_peer && _peer.introducer) {
+      assertAddr(_peer)
+      fn(_peer)
+    }
+  }
+}
 
 function checkNat (peer) {
   // if we have just discovered our nat, ping the introducer again to let them know
   const _nat = peer.nat
+  var spin = false
   let port, address, intros = 0
-
-  for (const k in peer.introducers) {
-    assertAddr(peer.introducers[k])
+  for (const k in peer.peers) {
+    assertAddr(peer.peers[k])
     const _peer = peer.peers[k]
-    if (_peer && _peer.pong) {
+    if (_peer && _peer.introducer && _peer.pong) {
       assertAddr(_peer)
       intros ++
+      if(_peer.pong.spin) spin = true
       if (!port) {
         port = _peer.pong.port
         address = _peer.pong.address
@@ -49,7 +66,9 @@ function checkNat (peer) {
         if (_nat != 'hard') {
           peer.nat = 'hard'
           debug(1, 'hard nat:', port, _peer.pong.port)
-          peer.ping(peer.introducer1) //ping introducer1 again, to ensure they know the nat
+          eachIntroducer(peer, (intro) => {
+            peer.ping(intro)
+          })
           peer.on_nat(peer.nat)
         }
         return
@@ -57,12 +76,14 @@ function checkNat (peer) {
     }
   }
   //if our nat has changed, ping introducers again, to make sure everyone knows our nat type
-  if (_nat != 'easy' && intros > 1) {
+  if(spin) {
+    peer.nat = 'static'
+  }
+  else if (intros > 1) {
     peer.nat = 'easy'
-    for(var id in peer.introducers) {
-      assertAddr(peer.peers[id])
-      peer.ping(peer.peers[id])
-    }
+  }
+  if(_nat != peer.nat) {
+    eachIntroducer(peer, (intro)=>{ peer.ping(intro) })
     peer.on_nat(peer.nat)
   }
 }
@@ -74,27 +95,21 @@ module.exports = class PingPeer extends EventEmitter {
     this.peers = {}
     this.id = id
     this.restart = Date.now()
-    if (!introducer1) throw new Error('must provide introducer1')
-    if (!introducer2) throw new Error('must provide introducer2')
     this.keepalive = keepalive
-
-    assertAddr(introducer1,'introducer1 must be valid')
-    assertAddr(introducer2,'introducer2 must be valid')
-
-    this.introducers = {
-      [introducer1.id]: this.introducer1 = introducer1,
-      [introducer2.id]: this.introducer2 = introducer2
-    }
   }
 
   discoverNat () {
     this.publicAddress = null
     this.nat = null
-    for (const k in this.introducers) {
-      if(this.peers[k]) //should exist, but be defensive
-        this.peers[k].pong = null
-      this.ping(this.introducers[k])
-    }
+    var first = true
+    eachIntroducer(this, (intro) => {
+      intro.pong = null
+      this.ping(intro)
+      if(!first) return
+      first = false
+      //ping with a different port.
+      this.send({type:'ping', id: this.id, spinPort: 7654}, intro, port)
+    })
   }
 
   checkPeers (ts) {
@@ -123,7 +138,7 @@ module.exports = class PingPeer extends EventEmitter {
     // TODO: we really want to end the tests after this but it keeps them running
     // so we need a way to unref...
     // because in practice I'm fairly sure this should poll to keep port open (say every minute)
-    this.discoverNat()
+    if(this.nat != 'static') this.discoverNat()
     if (this.keepalive) {
       //every second, check if our address has changed.
       //that is, have we connected to another network?
@@ -177,16 +192,33 @@ module.exports = class PingPeer extends EventEmitter {
     // override this to implement behaviour for when nat is detected.
   }
 
-  ping (addr) {
-    this.send({ type: 'ping', id: this.id, nat: this.nat }, addr, addr.outport || port)
+  ping (peer, ts) {
+    if(peer.id && ts) {
+      this.__set_peer(peer.id, peer.address, peer.port, peer.nat, peer.outport || port, null, ts, null)
+      peer.send = ts
+    }
+    this.send({ type: 'ping', id: this.id, nat: this.nat }, peer, peer.outport || port)
   }
 
-  __set_peer (id, address, port, nat, outport, restart = null, ts) {
+  // method to check if we are already communicating
+  ping3 (id, addr, ts, delay = 500) {
+    if (!id) throw new Error('ping3 expects peer id')
+    var _peer = {...addr, id} //id must be come after the expansion or it will default to the addr value
+    this.ping(_peer, ts)
+    var maybe_ping = (ts) => {
+      if (this.peers[id] && this.peers[id].pong) return
+      this.ping(_peer, ts)
+    }
+    this.timer(delay, 0, maybe_ping)
+    this.timer(delay * 2, 0, maybe_ping)
+  }
+
+  __set_peer (id, address, port, nat, outport, restart = null, ts, isIntroducer) {
     assertTs(ts)
     if(!this.peers[id]) {
       debug(1, 'new peer', id.substring(0, 8), address+':'+port, nat)
-      const peer = this.peers[id] = { id, address, port, nat, ts, outport, restart }
-      if(this.introducers[peer.id])
+      const peer = this.peers[id] = { id, address, port, nat, ts, outport, restart, introducer: isIntroducer }
+      if(isIntroducer)
         peer.introducer = true
       return true
     }
@@ -208,9 +240,6 @@ module.exports = class PingPeer extends EventEmitter {
       peer.restart = restart
       if(changed)
         peer.pong = null
-      if(this.introducers[peer.id])
-        peer.introducer = true
-      //if(this.on_peer) this.on_peer(peer)
       if(_restart != peer.restart) {
         if(this.on_peer_restart) {
           debug(1, 'restart peer', id.substring(0, 8))
@@ -221,38 +250,45 @@ module.exports = class PingPeer extends EventEmitter {
     }
   }
 
-  //if the introducer server restarts, rejoin swarms
-  on_peer_restart (other, restart) {
-    if(this.introducers[other.id]) {
-      for(var k in this.swarms)
-        this.join(k)
-    }
-  }
-
   on_ping (msg, addr, _port, ts) {
     assertTs(ts)
     // XXX notify on_peer if we havn't heard from this peer before.
     // (sometimes first contact with a peer will be ping, sometimes pong)
-    this.send({ type: 'pong', id: this.id, ...addr, nat: this.nat }, addr, _port)
+
+   	if(msg.ts && msg.delay) {
+      this.timer(msg.delay|0, 0, () => {
+        this.send({
+          type: 'pong', id: this.id, ...addr, nat: peer.nat, restart: this.restart,
+          ts:msg.ts, delay: msg.delay
+        }, addr, _port)
+      })
+    }
+    else {
+      if(msg.spinPort) {
+        //if spinPort is set, _ALSO_ pong to that port.
+        //this is used to detect if peer has static nat.
+        //if message gets through, it's static.
+
+        //spinning the ball alters it's trajectory.
+        this.send({ type: 'spin', id: this.id, ...addr, nat: this.nat }, {...addr, port: msg.spinPort}, _port)
+      }
+      //still pong like normal though.
+      this.send({ type: 'pong', id: this.id, ...addr, nat: this.nat }, addr, _port)
+    }
     const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, null, ts)
+    var peer = this.peers[msg.id]
+    peer.recv = ts
+
     this.emit('ping', msg, addr, port)
 
     if (isNew) this.emit('peer', this.peers[msg.id])
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
   }
 
-  // method to check if we are already communicating
-  ping3 (addr, delay = 500) {
-    if (!addr.id) throw new Error('ping3 expects peer id')
-    this.ping(addr)
-    this.timer(delay, 0, (ts) => {
-      if (this.peers[addr.id] && this.peers[addr.id].pong) return
-      this.ping(addr)
-    })
-    this.timer(delay * 2, 0, (ts) => {
-      if (this.peers[addr.id] && this.peers[addr.id].pong) return
-      this.ping(addr)
-    })
+  on_spin (msg, addr, _port, ts) {
+    this.peers[msg.id].pong = this.peers[msg.id].pong || {ts, address: msg.address, port: msg.port}
+    this.peers[msg.id].pong.spin = true
+    checkNat(this) //sets nat to static and notifies if necessary
   }
 
   on_pong (msg, addr, _port, ts) {
@@ -260,11 +296,14 @@ module.exports = class PingPeer extends EventEmitter {
     // (sometimes we ping a peer, and their response is first contact)
     if (!msg.port) throw new Error('pong: missing port')
 
-    // NOTIFY new peers here.
     const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart || null, ts)
     const peer = this.peers[msg.id]
-    peer.pong = { ts, address: msg.address, port: msg.port }
+    var spin = peer.pong && peer.pong.spin
+    peer.pong = {ts, address: msg.address, port: msg.port}
+    if(spin) peer.pong.spin = true
+    peer.recv = ts
     checkNat(this)
+    // NOTIFY new peers here.
     if (isNew) this.emit('peer', this.peers[msg.id])
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
     this.emit('pong', this.peers[msg.id])

@@ -76,7 +76,7 @@ module.exports = (UDP, OS, Buffer) => {
       debug(2, 'bind', p, must_bind)
       peer.emit('bind', p)
 
-      return bound[p] = UDP
+      return bound[p] = bound[p] || UDP
         .createSocket('udp4')
         .bind(p)
         .on('listening', () => {
@@ -105,13 +105,13 @@ module.exports = (UDP, OS, Buffer) => {
         })
     }
 
-    function maybe_bind (p) {
+    function maybe_bind (p, must_bind = false) {
       if (!isPort(p)) { throw new Error('expected port, got:' + p) }
       if (bound[p]) return bound[p]
-      return bind(p, false)
+      return bind(p, must_bind)
     }
 
-    if (ports) ports.forEach(p => bind(p, true))
+    if (ports) ports.filter(Boolean).forEach(p => maybe_bind(p, true))
     if (peer.init) peer.init(Date.now())
   }
 }

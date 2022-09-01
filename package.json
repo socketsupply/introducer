@@ -1,6 +1,6 @@
 {
   "name": "@socketsupply/introducer",
-  "version": "3.0.0",
+  "version": "3.0.1-longevity1.1",
   "description": "minimal useful holepunching p2p library",
   "main": "index.js",
   "directories": {
@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/socketsupply/introducer#readme",
   "devDependencies": {
-    "@socketsupply/netsim": "3.5",
+    "@socketsupply/netsim": "3.6",
     "tape": "^5.5.3"
   },
   "dependencies": {
