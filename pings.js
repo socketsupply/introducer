@@ -9,6 +9,7 @@ const EventEmitter = require('events')
  * and removing peers that do not respond to pings.
  */
 
+
 function assertAddr (addr, message) {
   if(!isAddr(addr)) throw new Error('must be valid addr {address, port} object:'+message)
 }
@@ -100,6 +101,7 @@ module.exports = class PingPeer extends EventEmitter {
 
   discoverNat () {
     this.publicAddress = null
+
     this.nat = null
     var first = true
     eachIntroducer(this, (intro) => {
@@ -122,7 +124,6 @@ module.exports = class PingPeer extends EventEmitter {
         this.emit('alive', peer) //XXX change to "found"
       }
       else {
-        console.log('disconnect', id.substring(0, 8))
         if (this.on_disconnect) this.on_disconnect(peer)
          if(!this.peers[id].introducer) delete this.peers[id]
         debug(1, "lost peer:", peer)
@@ -146,7 +147,6 @@ module.exports = class PingPeer extends EventEmitter {
       const sec = 1_000
       this.timer(sec, sec, (_ts) => {
         assertTs(ts)
-
         var _localAddress = this._localAddress
         this._localAddress = this.localAddress
         if(_localAddress != this.localAddress) {
@@ -166,9 +166,9 @@ module.exports = class PingPeer extends EventEmitter {
         //so trigger a ping again soon if there is no nat
         if(!this.nat)
           this.discoverNat()
-
         ts = _ts
       })
+
       debug(1, 'keepalive active:', this.keepalive)
       this.timer(this.keepalive, this.keepalive, (ts)=> {
         //do this every second, every minute, ping all peers
@@ -176,6 +176,7 @@ module.exports = class PingPeer extends EventEmitter {
         if(!this.nat)
           this.discoverNat()
       })
+
     }
     this.emit('init', this)
   }
