@@ -2,24 +2,30 @@
 // run this code to point of nat check
 // run to communicate with another peer
 // extend netsim to represent local multicast and bluetooth
-//
+
 const { debug } = require('./util')
-const Peer = require('./')
+const Swarm = require('./')
 var {isId} = require('./util')
  
 function equalAddr (a, b) {
   return a && b && a.address === b.address && a.port === b.port
 }
 
-module.exports = class Demo extends Peer {
+module.exports = class Demo extends Swarm {
   constructor (opts) {
     super(opts)
-    this.swarm = opts.swarm
+    this.swarms = {}
     if(!isId(opts.id))
       throw new Error('peer id *must* be provided')
+    if(isId(opts.swarm))
+      this.swarm = opts.swarm
+      /*
+    this.swarm = opts.swarm
     if(!isId(opts.swarm))
       throw new Error('swarm id *must* be provided')
+    */
     this.messages = []
+
   }
 
   chat ({ content, ts = Date.now() }) {
@@ -46,7 +52,8 @@ module.exports = class Demo extends Peer {
     debug(1, 'have nat:', this.nat, info)
 
     //or just request to all peers to join this swarm
-    this.join(this.swarm)
+    if(this.swarm)
+      this.join(this.swarm)
   }
 
   on_error (msg) {
@@ -88,4 +95,5 @@ module.exports = class Demo extends Peer {
     }
     return c
   }
+
 }
