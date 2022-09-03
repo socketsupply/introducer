@@ -13,6 +13,7 @@ const Wrap = require('./wrap')(dgram, os, Buffer)
 const util = require('./util')
 const http = require('http')
 const version = require('./package.json').version
+const constants = require('./lib/constants')()
 
 function createId(seed) {
   if(seed) return crypto.createHash('sha256').update(seed).digest('hex')
@@ -47,7 +48,7 @@ function main (argv) {
     return
   }
 
-  const peer = new Demo({ swarm, ...config, keepalive: 30_000 })
+  const peer = new Demo({ swarm, ...config, keepalive: constants.keepalive })
   peer.on_change = (msg) => {
     console.log(msg.id.substring(0, 8), peerType(peer.peers[msg.id]), msg.ts, msg.content)
   }
