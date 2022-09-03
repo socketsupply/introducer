@@ -62,7 +62,7 @@ module.exports = class Demo extends Swarm {
       if(_update !== null) {
         this.data[msg.swarm] = _update
         console.log('updated', this.data)
-        this.on_change(msg, this.messages)
+        this.on_change(msg, this.data)
         this.broadcast(msg, addr)
       }
     }
