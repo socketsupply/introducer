@@ -38,7 +38,6 @@ const f = '62.5.5.52'
 const P = ':3489'
 
 const ids = {}
-//const swarm = createId('test:swarm')
 let id_count = 0
 
 for (let i = 0; i < 1000; i++) {
@@ -85,9 +84,9 @@ test('broadcast', function (t) {
   network.add(A, new Node(createPeer(dejoin(new Introducer({ id: ids.a })))))
   network.add(B, new Node(createPeer(dejoin(new Introducer({ id: ids.b })))))
 
-  network.add(D, new Node(createPeer(peerD = new Chat({ id: ids.d, ...intros, swarm }))))
-  network.add(E, new Node(createPeer(peerE = new Chat({ id: ids.e, ...intros, swarm }))))
-  network.add(F, new Node(createPeer(peerF = new Chat({ id: ids.f, ...intros, swarm }))))
+  network.add(D, new Node(createPeer(peerD = new Chat({ id: ids.d, ...intros}).createModel(swarm))))
+  network.add(E, new Node(createPeer(peerE = new Chat({ id: ids.e, ...intros}).createModel(swarm))))
+  network.add(F, new Node(createPeer(peerF = new Chat({ id: ids.f, ...intros}).createModel(swarm))))
 
   network.iterate(-1)
 
@@ -104,8 +103,8 @@ test('broadcast', function (t) {
   network.iterate(-1)
 
   var ts = Date.now()
-  peerD.chat({content: "hello!", ts}) //message should be broadcast across network.
-  t.equal(peerD.messages.length, 1)
+  peerD.chat({content: "hello!", swarm, ts}) //message should be broadcast across network.
+  t.equal(peerD.data[swarm].length, 1)
 
   network.iterate(-1)
 
@@ -116,17 +115,17 @@ test('broadcast', function (t) {
 
   t.ok(peerE.peers[peerD.id])
   t.ok(peerF.peers[peerE.id])
-  t.deepEqual(peerE.messages, peerD.messages)
-  t.deepEqual(peerF.messages, peerD.messages)
+  t.deepEqual(peerE.data[swarm], peerD.data[swarm])
+  t.deepEqual(peerF.data[swarm], peerD.data[swarm])
 
   t.end()
 })
-
+return
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
   network.add(address_nat, nat)
-  nat.add(address, new Node(createPeer(peer = new Chat({ id, ...intros, swarm }))))
+  nat.add(address, new Node(createPeer(peer = new Chat({ id, ...intros}).createModel(swarm))))
   return [peer, nat]
 }
 
