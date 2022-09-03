@@ -23,7 +23,8 @@ function createId(seed) {
 function main (argv) {
   const config = Config({ filename: path.join(process.env.HOME, '.introducer-chat'), createId })
   const cmd = argv[0]
-  const swarm = createId('test swarm')
+//  const swarm = createId('test swarm')
+const swarm = '594085b1d40f8bf3e73fca7a5e72602fa15aca64f7685ecf914d75b21449d930'
 
   if (cmd === 'introducer') {
     var intro = new Introducer(config)
