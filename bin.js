@@ -49,7 +49,7 @@ const swarm = '594085b1d40f8bf3e73fca7a5e72602fa15aca64f7685ecf914d75b21449d930'
     return
   }
 
-  const peer = new Demo({ swarm, ...config, keepalive: constants.keepalive })
+  const peer = new Demo({ ...config, keepalive: constants.keepalive }).createModel(swarm)
   peer.on_change = (msg) => {
     console.log(msg.id.substring(0, 8), peerType(peer.peers[msg.id]), msg.ts, msg.content)
   }
@@ -96,7 +96,7 @@ const swarm = '594085b1d40f8bf3e73fca7a5e72602fa15aca64f7685ecf914d75b21449d930'
 
       return
     }
-    peer.chat({ ts: Date.now(), content: data.toString() })
+    peer.chat({ ts: Date.now(), content: data.toString(), swarm })
   })
 
 }
