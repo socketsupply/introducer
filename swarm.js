@@ -72,6 +72,7 @@ module.exports = class Demo extends Swarm {
   }
 
   chat ({ content, ts = Date.now(), swarm }) {
+    if(!isId(swarm)) throw new Error('chat needs a swarm id')
     this.update({ type: 'chat', id: this.id, swarm, content, ts })
   }
 
