@@ -33,13 +33,6 @@ module.exports = class Peer extends PingPeer {
     super(opts)
     var {introducer1, introducer2} = opts
     this.swarms = {}
-    //if (!introducer1) throw new Error('must provide introducer1')
-    //if (!introducer2) throw new Error('must provide introducer2')
-
-    //assertAddr(introducer1,'introducer1 must be valid')
-    //assertAddr(introducer2,'introducer2 must be valid')
-
-  //  this.introducer1 = introducer1.id
 
     function set (p) {
       this.__set_peer(p.id, p.address, p.port, 'static', null, 0, 0, true)
@@ -241,6 +234,8 @@ module.exports = class Peer extends PingPeer {
     }
   }
 
+
+
   join (swarm_id, target_peers = 3) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
     if('number' !== typeof target_peers) {
@@ -321,5 +316,4 @@ module.exports = class Peer extends PingPeer {
 
     this.emit('join', peer)
   }
-
 }
