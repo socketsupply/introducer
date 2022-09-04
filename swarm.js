@@ -29,13 +29,7 @@ module.exports = class Demo extends Swarm {
       throw new Error('peer id *must* be provided')
     if(isId(opts.swarm))
       this.swarm = opts.swarm
-      /*
-    this.swarm = opts.swarm
-    if(!isId(opts.swarm))
-      throw new Error('swarm id *must* be provided')
-    */
     this.messages = []
-
   }
 
   //create a data model, this takes an id, plus a function to update the datamodel
@@ -54,20 +48,18 @@ module.exports = class Demo extends Swarm {
   update(msg, addr = null) {
     var data = this.data[msg.swarm] 
     var _update
-    console.log("UPDTATATATAH", msg)
     if(this.handlers[msg.swarm]) {
       _update = this.handlers[msg.swarm](msg, data)
       console.log('update', data, msg, _update)
       //if we already have this message, do not notify or rebroadcast
       if(_update !== null) {
         this.data[msg.swarm] = _update
-        console.log('updated', this.data)
         this.on_change(msg, this.data)
         this.broadcast(msg, addr)
       }
     }
     else {
-      debug(1, "update was missing swarm field:", msg)
+      debug(1, "no handler for msg.swarm:"+msg.swarm+" only:'"+Object.keys(this.handlers).join(','))
     }
   }
 
