@@ -27,15 +27,15 @@ module.exports = (UDP, OS, Buffer) => {
 
   return function wrap (peer, ports, codec = json) {
     const bound = {}
-
+    //maybe: var main_port = ports[0]
 
     peer._localAddress = peer.localAddress = IP()
     peer.send = (msg, addr, from_port) => {
       debug(2, 'send', msg, from_port+'->'+toAddress(addr))
       peer.emit('send', msg, addr, from_port)
-      const sock = maybe_bind(from_port)
-      //if (addr === '255.255.255.255') sock.setBroadcast(true)
       if(from_port === undefined) throw new Error('source port is not defined!')
+      const sock = maybe_bind(from_port) //or maybe: from_port || addr.output || main_port
+      //if (addr === '255.255.255.255') sock.setBroadcast(true)
       sock.send(codec.encode(msg), addr.port, addr.address)
     }
 
