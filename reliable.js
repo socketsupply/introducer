@@ -5,7 +5,7 @@ var np = require('new_protocol')
 class ReliablePeer extends Swarm {
 
   //receive flooded message
-  on_chat (msg, addr, port) {
+  on_update1 (msg, addr, port) {
     var r = np.update(this.state, msg.content, msg.ts)
     if(r === false) {
       //send just back to this peer? and other peers maybe?
@@ -25,6 +25,10 @@ class ReliablePeer extends Swarm {
       this.swarmcast(msg, msg.swarm, addr)
     }
     //super.on_chat(msg, addr, port)
+  }
+
+  update1 (change) {
+    
   }
 
   on_request (msg, addr, port) {
