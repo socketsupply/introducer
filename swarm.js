@@ -55,7 +55,7 @@ module.exports = class Demo extends Swarm {
       if(_update !== null) {
         this.data[msg.swarm] = _update
         this.on_change(msg, this.data)
-        this.broadcast(msg, addr)
+        this.swarmcast(msg, msg.swarm, addr)
       }
     }
     else {
