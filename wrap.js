@@ -27,7 +27,7 @@ module.exports = (UDP, OS, Buffer) => {
 
   return function wrap (peer, ports, codec = json) {
     const bound = {}
-    //maybe: var main_port = ports[0]
+    peer.localPort = ports[0]
 
     peer._localAddress = peer.localAddress = IP()
     peer.send = (msg, addr, from_port) => {
