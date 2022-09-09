@@ -97,7 +97,7 @@ module.exports = class PingPeer extends EventEmitter {
     this.id = id
     this.restart = Date.now()
     this.keepalive = keepalive
-    this.defaultPort = 3456
+    this.localPort = 3456
     this.spinPort = 7654
   }
 
@@ -112,7 +112,7 @@ module.exports = class PingPeer extends EventEmitter {
       if(!first) return
       first = false
       //ping with a different port.
-      this.send({type:'ping', id: this.id, spinPort: this.spinPort}, intro, this.defaultPort)
+      this.send({type:'ping', id: this.id, spinPort: this.spinPort}, intro, this.localPort)
     })
   }
 
@@ -200,7 +200,7 @@ module.exports = class PingPeer extends EventEmitter {
       this.__set_peer(peer.id, peer.address, peer.port, peer.nat, peer.outport, null, ts, null)
       peer.send = ts
     }
-    this.send({ type: 'ping', id: this.id, nat: this.nat }, peer, peer.outport || this.defaultPort)
+    this.send({ type: 'ping', id: this.id, nat: this.nat }, peer, peer.outport || this.localPort)
   }
 
   // method to check if we are already communicating
@@ -216,7 +216,7 @@ module.exports = class PingPeer extends EventEmitter {
     this.timer(delay * 2, 0, maybe_ping)
   }
 
-  __set_peer (id, address, port, nat, outport=this.defaultPort, restart = null, ts, isIntroducer) {
+  __set_peer (id, address, port, nat, outport=this.localPort, restart = null, ts, isIntroducer) {
     assertTs(ts)
     if(!this.peers[id]) {
       debug(1, 'new peer', id.substring(0, 8), address+':'+port, nat)

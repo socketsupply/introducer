@@ -1,12 +1,12 @@
 var Swarm = require("./swarm")
-var np = require('new_protocol')
+var np = require('@socketsupply/new_protocol')
 
-
-class ReliablePeer extends Swarm {
+module.exports = class ReliablePeer extends Swarm {
 
   constructor (opts) {
     super(opts)
     this.waiting = []
+    this.state = np.init()
   }
   
   //receive flooded message
@@ -43,10 +43,10 @@ class ReliablePeer extends Swarm {
   }
 
   update (content, swarm, ts) {
-    var msg = create(this.state, content, ts)
-    this.state = update(this.state, msg)
+    var msg = np.create(this.state, content, ts)
+    this.state = np.update(this.state, msg)
     this.swarmcast(msg, swarm)
-    this.on_change(msg, this.state)
+    if(this.on_change) this.on_change(msg, this.state)
   }
 
   request (msg, from) {
@@ -67,8 +67,7 @@ class ReliablePeer extends Swarm {
       }
     }
     else {
-      //error that do not have the message?
-      
+      //error that do not have the message?     
     }
   }
 

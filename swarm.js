@@ -75,7 +75,7 @@ module.exports = class Demo extends Swarm {
   on_nat () {
     const info = {
       public: this.publicAddress + ':' + this.publicPort,
-      local: this.localAddress + ':' + this.port
+      local: this.localAddress + ':' + this.localPort
     }
 
     debug(1, 'have nat:', this.nat, info)
@@ -98,7 +98,7 @@ module.exports = class Demo extends Swarm {
     for (const k in this.peers) {
       var peer = this.peers[k]
       if (!equalAddr(peer, not_addr)) {
-        this.send(msg, peer, peer.outport || this.port)
+        this.send(msg, peer, peer.outport || this.localPort)
       }
     }
   }
@@ -110,7 +110,7 @@ module.exports = class Demo extends Swarm {
     let c = 0
     for (const k in this.swarms[swarm]) {
       if (!equalAddr(this.peers[k], not_addr.address)) {
-        this.send(msg, this.peers[k], this.peers[k].outport || this.defaultPort)
+        this.send(msg, this.peers[k], this.peers[k].outport || this.localPort)
         c++
       }
     }
@@ -118,11 +118,13 @@ module.exports = class Demo extends Swarm {
     //and other local peers
     for(const k in this.peers) {
       if((this.swarms[swarm] && !this.swarms[swarm][k]) && /^192.168/.test(this.peers[k].address)) {
-        this.send(msg, this.peers[k], this.port)
+        this.send(msg, this.peers[k], this.localPort)
         c++
       }
     }
     return c
   }
+
+
 
 }

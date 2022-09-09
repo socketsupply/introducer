@@ -19,7 +19,7 @@ function assertTs (ts) {
   if('number' !== typeof ts) throw new Error('ts must be provided')
 }
 
-const port = 3456
+//const port = 3456
 
 function random_port (ports) {
   let i = 0
@@ -50,9 +50,10 @@ module.exports = class Peer extends PingPeer {
     //check if we do not have the local address, this messages is relayed, it could cause a crash at other end
     if(!isIp(this.localAddress)) //should never happen, but a peer could send anything.
       return debug(1, 'cannot connect local because missing localAddress!')
+    var peer = intro || this.peers[this.introducer1]
     this.send({type: 'relay', target: id, content: {
-      type:'local', id: this.id, address: this.localAddress, port
-    }}, intro || this.peers[this.introducer1], port)
+      type:'local', id: this.id, address: this.localAddress, port: this.localPort
+    }}, peer, peer.outport)
   }
 
   on_local (msg) {
@@ -149,7 +150,7 @@ module.exports = class Peer extends PingPeer {
           }
           this.send({ type: 'ping', id: this.id, nat: this.nat }, {
             address: msg.address, port: random_port(ports)
-          }, port)
+          }, this.localPort)
         })
       }
     } else if (this.nat === 'hard') {
@@ -189,14 +190,14 @@ module.exports = class Peer extends PingPeer {
   // rename: on_relay - relay a msg to a targeted (by id) peer.
   // will forward anything. used for creating local (private network) connections.
 
-  on_relay (msg, addr, port) {
+  on_relay (msg, addr) {
     var target = this.peers[msg.target]
     if(!target)
       return debug(1, 'cannot relay message to unkown peer:'+msg.target.substring(0, 8))
-    this.send(msg.content, target, target.outport)
+    this.send(msg.content, target, target.outport || this.localPort)
   }
 
-  connect (from_id, to_id, swarm, port) {
+  connect (from_id, to_id, swarm, port) { //XXX remove port arg
 
     const from = this.peers[from_id]
     const to = this.peers[to_id]
@@ -210,7 +211,7 @@ module.exports = class Peer extends PingPeer {
 
   // rename: this was "connect" but that required Introducer to be different to Peer.
   intro (id, swarm, intro) {
-    this.send({ type: 'intro', id: this.id, nat: this.nat, target: id, swarm}, intro || this.peers[this.introducer1], port)
+    this.send({ type: 'intro', id: this.id, nat: this.nat, target: id, swarm}, intro || this.peers[this.introducer1], this.localPort)
   }
 
   on_intro (msg, addr) {
@@ -234,8 +235,6 @@ module.exports = class Peer extends PingPeer {
     }
   }
 
-
-
   join (swarm_id, target_peers = 3) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
     if('number' !== typeof target_peers) {
@@ -244,7 +243,7 @@ module.exports = class Peer extends PingPeer {
     }
     var send = (id) => {
       var peer = this.peers[id]
-      this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers:target_peers|0 }, peer, peer.outport || port)
+      this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers:target_peers|0 }, peer, peer.outport || this.localPort)
 
     }
     var current_peers = Object.keys(this.swarms[swarm_id] || {}).length
@@ -310,10 +309,12 @@ module.exports = class Peer extends PingPeer {
     
     for (let i = 0; i < max_peers; i++) {
       if(this.connections) this.connections[msg.id][ids[i]] = i
-      this.connect(ids[i], msg.id, msg.swarm, port)
-      this.connect(msg.id, ids[i], msg.swarm, port)
+      this.connect(ids[i], msg.id, msg.swarm, this.localPort)
+      this.connect(msg.id, ids[i], msg.swarm, this.localPort)
     }
 
     this.emit('join', peer)
   }
+
+
 }
