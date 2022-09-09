@@ -10,6 +10,7 @@ const Introducer = require('../introducer')
 const swarm = createId('test swarm')
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
 
+const localPort =  3456
 const A = '1.1.1.1'
 const B = '2.2.2.2'
 const C = 'cc.cc.cc.cc'
@@ -19,7 +20,7 @@ const E = '52.5.5.5'
 const d = '42.4.4.42'
 const e = '52.5.5.52'
 
-const P = ':3489'
+const P = ':'+localPort
 
 const ids = {}; let id_count = 0
 
@@ -42,6 +43,7 @@ function createPeer (p) {
       })
     }
     p.localAddress = node.address
+    p.localPort = localPort
     // console.log('timer', timer.toString())
     if (p.init) p.init(ts)
     return function (msg, addr, port, ts) {

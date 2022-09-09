@@ -37,6 +37,7 @@ function createPeer (p) {
     p.send = send
     p.timer = timer
     p.localAddress = node.address
+    p.localPort = 3456
     // console.log('timer', timer.toString())
     if (p.init) p.init(ts)
     return function (msg, addr, port, ts) {

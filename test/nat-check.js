@@ -21,7 +21,8 @@ const F = '62.6.6.6'
 const d = '42.4.4.42'
 const e = '52.5.5.52'
 
-const P = ':3489'
+const localPort = 3456
+const P = ':'+localPort
 
 const ids = {}; let id_count = 0
 
@@ -39,6 +40,7 @@ function createPeer (p) {
     p.send = send
     p.timer = timer
     p.localAddress = node.address
+    p.localPort = localPort
     // console.log('timer', timer.toString())
     if (p.init) p.init(ts)
     return function (msg, addr, port, ts) {
