@@ -26,8 +26,8 @@ function assertTs (ts) {
   if('number' !== typeof ts) throw new Error('ts must be provided')
 }
 
-const port = 3456
-const recv_port = 7654
+//const port = 3456
+//const recv_port = 7654
 
 //peer states:
 //attempting to connect - have sent ping recently, not received response yet
@@ -97,6 +97,8 @@ module.exports = class PingPeer extends EventEmitter {
     this.id = id
     this.restart = Date.now()
     this.keepalive = keepalive
+    this.defaultPort = 3456
+    this.spinPort = 7654
   }
 
   discoverNat () {
@@ -110,7 +112,7 @@ module.exports = class PingPeer extends EventEmitter {
       if(!first) return
       first = false
       //ping with a different port.
-      this.send({type:'ping', id: this.id, spinPort: 7654}, intro, port)
+      this.send({type:'ping', id: this.id, spinPort: this.spinPort}, intro, this.defaultPort)
     })
   }
 
@@ -195,10 +197,10 @@ module.exports = class PingPeer extends EventEmitter {
 
   ping (peer, ts) {
     if(peer.id && ts) {
-      this.__set_peer(peer.id, peer.address, peer.port, peer.nat, peer.outport || port, null, ts, null)
+      this.__set_peer(peer.id, peer.address, peer.port, peer.nat, peer.outport, null, ts, null)
       peer.send = ts
     }
-    this.send({ type: 'ping', id: this.id, nat: this.nat }, peer, peer.outport || port)
+    this.send({ type: 'ping', id: this.id, nat: this.nat }, peer, peer.outport || this.defaultPort)
   }
 
   // method to check if we are already communicating
@@ -214,7 +216,7 @@ module.exports = class PingPeer extends EventEmitter {
     this.timer(delay * 2, 0, maybe_ping)
   }
 
-  __set_peer (id, address, port, nat, outport, restart = null, ts, isIntroducer) {
+  __set_peer (id, address, port, nat, outport=this.defaultPort, restart = null, ts, isIntroducer) {
     assertTs(ts)
     if(!this.peers[id]) {
       debug(1, 'new peer', id.substring(0, 8), address+':'+port, nat)
@@ -280,7 +282,7 @@ module.exports = class PingPeer extends EventEmitter {
     var peer = this.peers[msg.id]
     peer.recv = ts
 
-    this.emit('ping', msg, addr, port)
+    this.emit('ping', msg, addr, _port)
 
     if (isNew) this.emit('peer', this.peers[msg.id])
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
