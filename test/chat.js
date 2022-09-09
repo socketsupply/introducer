@@ -121,7 +121,7 @@ test('broadcast', function (t) {
 
   t.end()
 })
-return
+
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
@@ -153,15 +153,15 @@ test('broadcast, easy nat', function (t) {
   network.iterate(-1)
 
   var ts = Date.now()
-  peerD.chat({content: "hello!", ts}) //message should be broadcast across network.
-  t.equal(peerD.messages.length, 1)
+  peerD.chat({content: "hello!", ts, swarm}) //message should be broadcast across network.
+  t.equal(peerD.data[swarm].length, 1)
 
   network.iterate(-1)
 
   t.ok(peerE.peers[peerD.id])
   t.ok(peerF.peers[peerE.id])
-  t.deepEqual(peerE.messages, peerD.messages)
-  t.deepEqual(peerF.messages, peerD.messages)
+  t.deepEqual(peerE.data, peerD.data)
+  t.deepEqual(peerF.data, peerD.data)
 
   t.end()
 })
@@ -194,8 +194,8 @@ test('broadcast, hard,easy,hard nat', function (t) {
 
   console.log("**************")
   var ts = Date.now()
-  peerD.chat({content: "hello!", ts}) //message should be broadcast across network.
-  t.equal(peerD.messages.length, 1)
+  peerD.chat({content: "hello!", ts, swarm}) //message should be broadcast across network.
+  t.equal(peerD.data[swarm].length, 1)
   console.log(peerE.peers)
   console.log('d->e', peerD.peers[peerE.id])
   console.log('f->e', peerF.peers[peerE.id])
@@ -204,12 +204,11 @@ test('broadcast, hard,easy,hard nat', function (t) {
   t.ok(peerD.peers[peerE.id])
   t.ok(peerF.peers[peerE.id])
   console.log(peerD.peers[peerE.id])
-  t.deepEqual(peerE.messages, peerD.messages)
-  t.deepEqual(peerF.messages, peerD.messages)
+  t.deepEqual(peerE.data, peerD.data)
+  t.deepEqual(peerF.data, peerD.data)
 
   t.end()
 })
-
 
 test('broadcast, easy, hard, easy nat', function (t) {
   const network = new Network()
@@ -243,16 +242,16 @@ test('broadcast, easy, hard, easy nat', function (t) {
   console.log(peerE.peers)
 
   var ts = Date.now()
-  peerD.chat({content: "hello!", ts}) //message should be broadcast across network.
-  t.equal(peerD.messages.length, 1)
+  peerD.chat({content: "hello!", ts, swarm}) //message should be broadcast across network.
+  t.equal(peerD.data[swarm].length, 1)
 
   network.iterate(-1)
 
   t.ok(peerD.peers[peerE.id])
   t.ok(peerF.peers[peerE.id])
   console.log(peerD.peers[peerE.id])
-  t.deepEqual(peerE.messages, peerD.messages)
-  t.deepEqual(peerF.messages, peerD.messages)
+  t.deepEqual(peerE.data, peerD.data)
+  t.deepEqual(peerF.data, peerD.data)
 
   t.end()
 })
