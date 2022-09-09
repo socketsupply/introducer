@@ -4,7 +4,7 @@ const { EventEmitter } = require('events')
 
 const { createId } = require('./util')
 
-const Swarm = require('../swarm')
+const Swarm = require('../swarms')
 const Introducer = require('../introducer')
 
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')

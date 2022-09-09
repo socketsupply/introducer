@@ -14,7 +14,7 @@
 //      encryption
 
 var test = require('tape')
-var Chat = require('../swarm')
+var Chat = require('../swarms')
 var Introducer = require('../introducer')
 
 const crypto = require('crypto')
@@ -59,6 +59,7 @@ function createPeer (p) {
     if (p.init) p.init(ts)
     return function (msg, addr, port, ts) {
       const type = msg.type
+      console.log("PP", msg.type, p['on_' + type])
       if (p['on_' + type]) p['on_' + type](msg, addr, port, ts)
       else if (p.on_msg) p.on_msg(msg, addr, port, ts)
     }
@@ -75,7 +76,8 @@ const swarm = createId('test swarm')
 //chat broadcasts across the network
 
 function dejoin (intro) {
-  intro.on_join = null
+  //disable join method, just for the tests
+  intro.on_join = ()=>{}
   return intro
 }
 
@@ -121,7 +123,7 @@ test('broadcast', function (t) {
 
   t.end()
 })
-
+return
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)

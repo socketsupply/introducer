@@ -1,6 +1,6 @@
 const { isId, debug } = require('./util')
 const PingPeer = require('./pings')
-const Swarm = require('./swarm')
+const Swarms = require('./swarms')
 const EventEmitter = require('events')
 function cmpRand () {
   return Math.random() - 0.5
@@ -22,7 +22,7 @@ function cmpRand () {
 const port = 3456
 
 //can't depend on ./pings.js because that expects an introducer
-module.exports = class Introducer extends Swarm {
+module.exports = class Introducer extends Swarms {
   constructor ({ id, keepalive, port }) {
     super({id, keepalive, port})
 

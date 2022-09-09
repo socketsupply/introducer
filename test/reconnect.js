@@ -2,7 +2,7 @@ const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
 
-const Swarm = require('../swarm')
+const Swarm = require('../swarms')
 const Introducer = require('../introducer')
 const { createId } = require('./util')
 

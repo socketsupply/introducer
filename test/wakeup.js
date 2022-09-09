@@ -5,7 +5,7 @@ var K = require('../lib/constants')().keepalive
 
 const { createId } = require('./util')
 
-const Chat = require('../swarm')
+const Chat = require('../swarms')
 const Introducer = require('../introducer')
 const swarm = createId('test swarm')
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')

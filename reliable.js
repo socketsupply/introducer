@@ -1,4 +1,4 @@
-var Swarm = require("./swarm")
+var Swarm = require("./swarms")
 var np = require('@socketsupply/new_protocol')
 
 module.exports = class ReliablePeer extends Swarm {
