@@ -45,17 +45,16 @@ module.exports = class Demo extends Swarm {
     return this.data[swarm]
   }
 
-  update(msg, addr = null) {
+  update(msg, addr) {
     var data = this.data[msg.swarm] 
     var _update
     if(this.handlers[msg.swarm]) {
       _update = this.handlers[msg.swarm](msg, data)
-      console.log('update', data, msg, _update)
       //if we already have this message, do not notify or rebroadcast
       if(_update !== null) {
         this.data[msg.swarm] = _update
         this.on_change(msg, this.data)
-        this.swarmcast(msg, msg.swarm, addr)
+        this.broadcast(msg, msg.swarm, addr)
       }
     }
     else {
@@ -110,8 +109,8 @@ module.exports = class Demo extends Swarm {
     // debug('swarmcast:', msg, swarm)
     let c = 0
     for (const k in this.swarms[swarm]) {
-      if (!Demo.equalAddr(this.peers[k], not_addr.address)) {
-        this.send(msg, this.peers[k], this.port)
+      if (!equalAddr(this.peers[k], not_addr.address)) {
+        this.send(msg, this.peers[k], this.peers[k].outport || this.defaultPort)
         c++
       }
     }
