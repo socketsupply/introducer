@@ -1,6 +1,6 @@
 const { isId, debug } = require('./util')
 const PingPeer = require('./pings')
-const Swarm = require('./')
+const Swarm = require('./swarm')
 const EventEmitter = require('events')
 function cmpRand () {
   return Math.random() - 0.5

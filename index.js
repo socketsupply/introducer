@@ -7,10 +7,6 @@ function assertAddr (addr, message) {
   if(!isAddr(addr)) throw new Error('must be valid addr {address, port} object:'+message)
 }
 
-function cmpRand () {
-  return Math.random() - 0.5
-}
-
 function isFunction (f) {
   return typeof f === 'function'
 }
@@ -234,87 +230,4 @@ module.exports = class Peer extends PingPeer {
       this.send({ type: 'error', target: msg.target, id: msg.id, call: 'connect' }, addr, port)
     }
   }
-
-  join (swarm_id, target_peers = 3) {
-    if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
-    if('number' !== typeof target_peers) {
-      console.log(target_peers)
-      throw new Error('target_peers must be a number, was:'+target_peers)
-    }
-    var send = (id) => {
-      var peer = this.peers[id]
-      this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers:target_peers|0 }, peer, peer.outport || this.localPort)
-
-    }
-    var current_peers = Object.keys(this.swarms[swarm_id] || {}).length
-      //.filter(id => !!this.peers[id]).length
-    if(current_peers >= target_peers) return 
-    //update: call join on every introducer (static nat)
-    //TODO include count of current connected swarm peers
-    //     (so don't create too many connections)
-    //     hmm, to join a swarm, you need a connection to anyone in that swarm.
-    //     a DHT would be good for that, because it's one lookup.
-    //     after that the swarm is a gossip flood
-
-    if(current_peers) {
-      for(var id in this.swarms[swarm_id]) {
-        if(this.peers[id]) send(id)
-      }
-    }
-    
-    for(var id in this.peers) {
-      var peer = this.peers[id]
-      if(peer.nat === 'static') send(id)
-    }
-  }
-
-  //__set_peer (id, address, port, nat, outport, restart) {
-  on_join (msg, addr, port) {
-    if (port === undefined) throw new Error('undefined port')
-
-    if(!isId(msg.swarm)) return debug(1, 'join, no swarm:', msg)
-    const ts = Date.now()
-    const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
-    swarm[msg.id] = Date.now()
-    const peer = this.peers[msg.id] = 
-      this.peers[msg.id] || { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: port }
-
-    if (peer && msg.nat) peer.nat = msg.nat
-    // trigger random connections
-    // if there are no other peers in the swarm, do nothing
-    // peers that have pinged in last 2 minutes
-    let ids = Object.keys(swarm)
-    // remove ourself, then randomly shuffle list
-    ids.splice(ids.indexOf(msg.id), 1)
-      .filter(id => this.peers[id] && this.peers[id].ts > (ts - 120_000))
-      .sort(cmpRand)
-
-    //a better strategy could be for hard nats to connect to easy or fellow network
-    //but easy nats to connect to other easy nats first, to ensure a strong network.
-    if (peer.nat === 'hard') {
-      // hard nat can only connect to easy nats, but can also connect to peers on the same nat
-      ids = ids.filter(id => this.peers[id].nat === 'static' || this.peers[id].nat === 'easy' || this.peers[id].address === peer.address)
-    }
-    if(this.connections) this.connections[msg.id] = {}
-
-    // send messages to the random peers indicating that they should connect now.
-    // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
-    const max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
-    debug(1, 'join', max_peers, msg.id+'->'+ids.join(','))
-    // if there are no other connectable peers, at least respond to the join msg
-    if (!max_peers || !ids.length) {
-      debug(1,'join error: no peers')
-      return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length, call:'join' }, addr, port)
-    }
-    
-    for (let i = 0; i < max_peers; i++) {
-      if(this.connections) this.connections[msg.id][ids[i]] = i
-      this.connect(ids[i], msg.id, msg.swarm, this.localPort)
-      this.connect(msg.id, ids[i], msg.swarm, this.localPort)
-    }
-
-    this.emit('join', peer)
-  }
-
-
 }
