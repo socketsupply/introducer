@@ -14,8 +14,13 @@ class Swarm {
   //send to particular peer
   send (msg, peer_id) {
     if(!msg.swarm) msg.swarm = this.id
+    if(peer_id.id) peer_id = peer_id.id
     var peer = this.peer.peers[peer_id]
-    this.peer.send(msg, peer, peer.outport)
+    if(peer)
+      this.peer.send(msg, peer, peer.outport)
+    else {
+      throw new Error("unknown peer:"+JSON.stringify(peer_id))
+    }
   }
 
   on_nat (nat) {
