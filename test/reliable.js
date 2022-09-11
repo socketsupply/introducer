@@ -1,4 +1,4 @@
-
+'use strict'
 
 const test = require('tape')
 const crypto = require('crypto')
@@ -6,7 +6,8 @@ const { EventEmitter } = require('events')
 
 const { createId } = require('./util')
 
-const Reliable = require('../reliable')
+const Reliable = require('../swarm/reliable')
+const Swarms = require('../swarms')
 const Introducer = require('../introducer')
 
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
@@ -17,9 +18,11 @@ const B = '2.2.2.2'
 const C = 'cc.cc.cc.cc'
 const D = '42.4.4.4'
 const E = '52.5.5.5'
+const F = '62.6.6.6'
 
 const d = '42.4.4.42'
 const e = '52.5.5.52'
+const f = '62.6.6.62'
 
 const P = ':3489'
 
@@ -40,6 +43,7 @@ function createPeer (p) {
     p.timer = timer
     p.localAddress = node.address
     // console.log('timer', timer.toString())
+    console.log("INIT?", p.init, ts)
     if (p.init) p.init(ts)
     return function (msg, addr, port, ts) {
       const type = msg.type
@@ -62,22 +66,28 @@ const intros = {
   introducer2: { id: ids.b, address: B, port: 3456 }
 }
 
-test('swarm', function (t) {
+test('swarm, connect then update', function (t) {
   const swarm = createId('test swarm')
   const network = new Network()
   const natD = new IndependentNat('42.')
   const natE = new IndependentNat('52.')
-  let client
+  const natF = new IndependentNat('62.')
+  var peerD, peerE, peerF, swarmD, swarmE, swarmF
+
   network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
   network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
   network.add(D, natD)
   network.add(E, natE)
-  natD.add(d, new Node(createPeer(peerD = new Reliable({ id: ids.d, ...intros }))))
-  natE.add(e, new Node(createPeer(peerE = new Reliable({ id: ids.e, ...intros }))))
+  network.add(F, natF)
+  natD.add(d, new Node(createPeer(peerD = new Swarms({ id: ids.d, ...intros }))))
+  var swarmD = peerD.createModel(swarm, new Reliable(swarm))
+
+  natE.add(e, new Node(createPeer(peerE = new Swarms({ id: ids.e, ...intros }))))
+  var swarmE = peerE.createModel(swarm, new Reliable(swarm))
   network.iterate(-1)
 
   t.equal(peerD.nat, 'easy')
-  peerD.update('HELLO', swarm, network.queue.ts)
+  swarmD.update('HELLO', swarm, network.queue.ts)
   network.iterateUntil(1000)
 
   peerD.join(swarm)
@@ -87,10 +97,37 @@ test('swarm', function (t) {
   console.log(peerE.state)
   t.ok(peerE.peers[peerD.id])
   t.ok(peerD.peers[peerE.id])
-  peerD.update('HELLO', swarm, network.queue.ts)
+  swarmD.update('HELLO', swarm, network.queue.ts)
   network.iterateUntil(3000)
   console.log(peerE.state)
 
+  t.deepEqual(swarmE.data, swarmD.data)
+  console.log('additional')
+
+//  network.add(F, natF)
+  console.log("CREAT NEW PEER")
+  natF.add(f, new Node(createPeer(peerF = new Swarms({ id: ids.f, ...intros }))))
+  //this will trigger a join
+  network.iterateUntil(4000)
+  console.log("nat?", peerF.nat)
+  t.equal(peerF.nat, 'easy')
+
+  console.log("swarm")
+  peerF.join(swarm)
+  var swarmF = peerF.createModel(swarm, new Reliable(swarm))
+  network.iterateUntil(5000)
+  swarmD.update('welcome', swarm, network.queue.ts)
+  network.iterateUntil(6000)
+  t.deepEqual(swarmD.data, swarmF.data)
+  
+
   t.end()
 })
+
+
+//XXX tests
+//
+//    send message, receive message
+//    send message, while offline, but receive messages after reconnecting
+
 
