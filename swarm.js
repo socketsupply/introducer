@@ -33,6 +33,7 @@ class Swarm {
     var msg = {type:'chat', id: this.peer.id, content, ts, swarm: this.id}
     this.data = append(msg, this.data)
     this.swarmcast(msg)
+    if(this.on_change) this.on_change (msg, this.data)
   }
 
   on_chat (msg, peer) {
@@ -40,6 +41,7 @@ class Swarm {
     if(d) {
       this.data = d
       this.swarmcast(msg, peer)
+      if(this.on_change) this.on_change (msg, this.data)
     }
   }
   //send to all peers in swarm
