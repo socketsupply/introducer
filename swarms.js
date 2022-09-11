@@ -31,7 +31,7 @@ module.exports = class Swarms extends Peer {
   constructor (opts) {
     super(opts)
     this.swarms = {}
-    this.data = {}
+  //  this.data = {}
     this.handlers = {}
     if(!isId(opts.id))
       throw new Error('peer id *must* be provided')
@@ -41,55 +41,29 @@ module.exports = class Swarms extends Peer {
   }
 
   //create a data model, this takes an id, plus a function to update the datamodel
-
-  createModel(swarm) {
-    var s = new Swarm(swarm, this)
-    this.handlers[swarm] = s
+///*
+  get data () {
+    var o = {}
+    for(var k in this.handlers)
+      o[k] = this.handlers[k].data
+    return o
+  }
+//*/
+  createModel(swarm, swarm_handler) {
+    this.handlers[swarm] = /*swarm_handler || */new Swarm(swarm, this)
     //s.on_chat = (msg) => {
     //  this.update(msg)
     //}
     //defer, incase that this instance hasn't been wrapped yet
     if(this.nat)
       this.join(swarm)
-    return this
+
+    return this.handlers[swarm]
   }
 
   getModel(swarm) {
-    return this.data[swarm]
+    return this.handlers[swarm] && this.handlers[swarm].data
   }
-
-  /*
-  update(msg, addr) {
-    throw new Error('no update() cal')
-    var data = this.data[msg.swarm] 
-    var _update
-    if(this.handlers[msg.swarm]) {
-      _update = this.handlers[msg.swarm](msg, data)
-      //if we already have this message, do not notify or rebroadcast
-      if(_update !== null) {
-        this.data[msg.swarm] = _update
-        this.on_change(msg, this.data)
-        this.broadcast(msg, msg.swarm, addr)
-      }
-    }
-    else {
-      debug(1, "no handler for msg.swarm:"+msg.swarm+" only:'"+Object.keys(this.handlers).join(','))
-    }
-  }
-  */
-
-  chat ({ content, ts = Date.now(), swarm }) {
-    if(!isId(swarm)) throw new Error('chat needs a swarm id')
-    this.handlers[swarm].chat({content, ts })
-  }
-  
-
-  // when a message is received, if it is new, broadcast it to our other peers.
-  /*
-  on_chat (msg, addr, port) {
-    this.update(msg, addr)
-  }
-  */
 
   on_nat () {
     const info = {

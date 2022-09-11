@@ -31,15 +31,14 @@ class Swarm {
 
   chat ({content, ts}) {
     var msg = {type:'chat', id: this.peer.id, content, ts, swarm: this.id}
-    this.peer.data[this.id] = append(msg, this.peer.data[this.id]) || this.peer.data[this.id] 
+    this.data = append(msg, this.data)
     this.swarmcast(msg)
-    //throw new Error('CHAT')
   }
+
   on_chat (msg, peer) {
-    var d = append(msg, this.peer.data[this.id])
-    console.log("ON_CHAT", msg, peer.id)
+    var d = append(msg, this.data)
     if(d) {
-      this.peer.data[this.id] = d
+      this.data = d
       this.swarmcast(msg, peer)
     }
   }
