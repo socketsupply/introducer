@@ -1,3 +1,4 @@
+var Swarm = require('./')
 
 //an object that represents membership in a swarm.
 //can iterate over peers in that swarm,
@@ -13,22 +14,9 @@ function append(item, ary=[]) {
   return ary
 }
 
-class Swarm {
-  constructor (id, peer) {
-    this.peer = peer
-    this.id = id
-  }
-  //send to particular peer
-  send (msg, peer_id) {
-    if(!msg.swarm) msg.swarm = this.id
-    var peer = this.peer.peers[peer_id]
-    this.peer.send(msg, peer, peer.outport)
-  }
+module.exports = class AppendSwarm extends Swarm {
 
-  on_nat (nat) {
-    this.peer.join(this.id)
-  }
-
+  //change this to append???
   chat ({content, ts}) {
     var msg = {type:'chat', id: this.peer.id, content, ts, swarm: this.id}
     this.data = append(msg, this.data)
@@ -44,13 +32,6 @@ class Swarm {
       if(this.on_change) this.on_change (msg, this.data)
     }
   }
-  //send to all peers in swarm
-  swarmcast (msg, not_peer=null) {
-    var swarm = this.peer.swarms[this.id]
-    for(var k in swarm)
-      if(k != not_peer)
-        this.send(msg, k)
-  }
+
 }
 
-module.exports = Swarm

@@ -5,7 +5,7 @@
 
 const { debug } = require('./util')
 const Peer = require('./')
-const Swarm = require('./swarm')
+const Swarm = require('./swarm/append')
 var {isId} = require('./util')
  
 function equalAddr (a, b) {
