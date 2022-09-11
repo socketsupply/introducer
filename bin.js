@@ -29,7 +29,6 @@ const swarm = '594085b1d40f8bf3e73fca7a5e72602fa15aca64f7685ecf914d75b21449d930'
   if (cmd === 'introducer') {
     var intro = new Introducer(config)
     Wrap(intro, [config.port])
-    console.log(config.id)
     http.createServer(function (req, res) {
       res.end(JSON.stringify({
         restart: new Date(intro.restart).toString(),
@@ -49,8 +48,9 @@ const swarm = '594085b1d40f8bf3e73fca7a5e72602fa15aca64f7685ecf914d75b21449d930'
     return
   }
 
-  const peer = new Demo({ ...config, keepalive: constants.keepalive }).createModel(swarm)
-  peer.on_change = (msg) => {
+  const peer = new Demo({ ...config, keepalive: constants.keepalive })
+  var chat_swarm = peer.createModel(swarm)
+  chat_swarm.on_change = (msg) => {
     console.log(msg.id.substring(0, 8), peerType(peer.peers[msg.id]), msg.ts, msg.content)
   }
   function peerType (peer) {
@@ -96,7 +96,7 @@ const swarm = '594085b1d40f8bf3e73fca7a5e72602fa15aca64f7685ecf914d75b21449d930'
 
       return
     }
-    peer.chat({ ts: Date.now(), content: data.toString(), swarm })
+    chat_swarm.chat({ ts: Date.now(), content: data.toString(), swarm })
   })
 
 }
