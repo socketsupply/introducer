@@ -56,7 +56,8 @@ function createPeer (p) {
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
-  let peer = new Chat({ id, ...intros, keepalive: 29_000}).createModel(swarm)
+  let peer = new Chat({ id, ...intros, keepalive: 29_000})
+  peer.createModel(swarm)
   peer.on_change = ()=>{}
   let node = new Node(createPeer(peer))
   network.add(address_nat, nat)
@@ -103,7 +104,7 @@ IndependentFirewallNat)
 
   node_hard.sleep(true)
 
-  peer_easy.chat({content: 'missing', ts: K*0.66, swarm}) //node_hard will not see this
+  peer_easy.handlers[swarm].chat({content: 'missing', ts: K*0.66, swarm}) //node_hard will not see this
   
   //TODO test emit wakeup/lost peer event
 
@@ -123,7 +124,7 @@ IndependentFirewallNat)
   //since we have not yet any form of implemented eventual consistency
 
   console.log(peer_easy.peers[peer_hard.id])
-  peer_easy.chat({content: 'expected', ts: 11*K, swarm}) //node_hard will not see this
+  peer_easy.handlers[swarm].chat({content: 'expected', ts: 11*K, swarm}) //node_hard will not see this
 
   network.iterateUntil(13*K)
   t.ok(peer_easy.peers[peer_hard.id], 'easy has found hard again')

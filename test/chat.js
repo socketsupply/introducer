@@ -87,9 +87,13 @@ test('broadcast', function (t) {
   network.add(A, new Node(createPeer(dejoin(new Introducer({ id: ids.a })))))
   network.add(B, new Node(createPeer(dejoin(new Introducer({ id: ids.b })))))
 
-  network.add(D, new Node(createPeer(peerD = new Chat({ id: ids.d, ...intros}).createModel(swarm))))
-  network.add(E, new Node(createPeer(peerE = new Chat({ id: ids.e, ...intros}).createModel(swarm))))
-  network.add(F, new Node(createPeer(peerF = new Chat({ id: ids.f, ...intros}).createModel(swarm))))
+  network.add(D, new Node(createPeer(peerD = new Chat({ id: ids.d, ...intros}))))
+  network.add(E, new Node(createPeer(peerE = new Chat({ id: ids.e, ...intros}))))
+  network.add(F, new Node(createPeer(peerF = new Chat({ id: ids.f, ...intros}))))
+
+  peerD.createModel(swarm)
+  peerE.createModel(swarm)
+  peerF.createModel(swarm)
 
   network.iterate(-1)
 
@@ -106,7 +110,7 @@ test('broadcast', function (t) {
   network.iterate(-1)
 
   var ts = Date.now()
-  peerD.chat({content: "hello!", swarm, ts}) //message should be broadcast across network.
+  peerD.handlers[swarm].chat({content: "hello!", swarm, ts}) //message should be broadcast across network.
   t.equal(peerD.data[swarm].length, 1)
 
   network.iterate(-1)
@@ -123,12 +127,14 @@ test('broadcast', function (t) {
 
   t.end()
 })
-return
+
+//return
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
   network.add(address_nat, nat)
-  nat.add(address, new Node(createPeer(peer = new Chat({ id, ...intros}).createModel(swarm))))
+  nat.add(address, new Node(createPeer(peer = new Chat({ id, ...intros}))))
+  peer.createModel(swarm)
   return [peer, nat]
 }
 
@@ -155,7 +161,7 @@ test('broadcast, easy nat', function (t) {
   network.iterate(-1)
 
   var ts = Date.now()
-  peerD.chat({content: "hello!", ts, swarm}) //message should be broadcast across network.
+  peerD.handlers[swarm].chat({content: "hello!", ts, swarm}) //message should be broadcast across network.
   t.equal(peerD.data[swarm].length, 1)
 
   network.iterate(-1)
@@ -196,7 +202,7 @@ test('broadcast, hard,easy,hard nat', function (t) {
 
   console.log("**************")
   var ts = Date.now()
-  peerD.chat({content: "hello!", ts, swarm}) //message should be broadcast across network.
+  peerD.handlers[swarm].chat({content: "hello!", ts, swarm}) //message should be broadcast across network.
   t.equal(peerD.data[swarm].length, 1)
   console.log(peerE.peers)
   console.log('d->e', peerD.peers[peerE.id])
@@ -244,7 +250,7 @@ test('broadcast, easy, hard, easy nat', function (t) {
   console.log(peerE.peers)
 
   var ts = Date.now()
-  peerD.chat({content: "hello!", ts, swarm}) //message should be broadcast across network.
+  peerD.handlers[swarm].chat({content: "hello!", ts, swarm}) //message should be broadcast across network.
   t.equal(peerD.data[swarm].length, 1)
 
   network.iterate(-1)

@@ -56,7 +56,8 @@ function createPeer (p) {
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
-  let peer = new Swarm({ id, ...intros, keepalive: 29_000}).createModel(swarm)
+  let peer = new Swarm({ id, ...intros, keepalive: 29_000})
+  peer.createModel(swarm)
   let node = new Node(createPeer(peer))
   network.add(address_nat, nat)
   nat.add(address, node)
