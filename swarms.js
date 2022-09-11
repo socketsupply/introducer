@@ -35,9 +35,9 @@ module.exports = class Swarms extends Peer {
     this.handlers = {}
     if(!isId(opts.id))
       throw new Error('peer id *must* be provided')
-    if(isId(opts.swarm))
-      this.swarm = opts.swarm
-    this.messages = []
+    if(isId(opts.swarm)) throw new Error('swarm optino no longer supported')
+    //  this.swarm = opts.swarm
+    //this.messages = []
   }
 
   //create a data model, this takes an id, plus a function to update the datamodel
@@ -50,7 +50,8 @@ module.exports = class Swarms extends Peer {
   }
 //*/
   createModel(swarm, swarm_handler) {
-    this.handlers[swarm] = /*swarm_handler || */new Swarm(swarm, this)
+    this.handlers[swarm] = swarm_handler || new Swarm(swarm)
+    this.handlers[swarm].peer = this
     //s.on_chat = (msg) => {
     //  this.update(msg)
     //}
@@ -122,7 +123,7 @@ module.exports = class Swarms extends Peer {
 
 
   join (swarm_id, target_peers = 3) {
-    if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id')
+    if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id, was:'+swarm_id)
     if('number' !== typeof target_peers) {
       console.log(target_peers)
       throw new Error('target_peers must be a number, was:'+target_peers)
