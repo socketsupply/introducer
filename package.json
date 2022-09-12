@@ -26,7 +26,8 @@
   "homepage": "https://github.com/socketsupply/introducer#readme",
   "devDependencies": {
     "@socketsupply/netsim": "3.6",
-    "tape": "^5.5.3"
+    "tape": "^5.5.3",
+    "@socketsupply/new_protocol":"../new_protocol"
   },
   "dependencies": {
     "events": "^3.3.0"
