@@ -42,8 +42,6 @@ function createPeer (p) {
     p.send = send
     p.timer = timer
     p.localAddress = node.address
-    // console.log('timer', timer.toString())
-    console.log("INIT?", p.init, ts)
     if (p.init) p.init(ts)
     return function (msg, addr, port, ts) {
       const type = msg.type
@@ -102,25 +100,22 @@ test('swarm, connect then update', function (t) {
   console.log(peerE.state)
 
   t.deepEqual(swarmE.data, swarmD.data)
-  console.log('additional')
 
 //  network.add(F, natF)
-  console.log("CREAT NEW PEER")
   natF.add(f, new Node(createPeer(peerF = new Swarms({ id: ids.f, ...intros }))))
   //this will trigger a join
   network.iterateUntil(4000)
-  console.log("nat?", peerF.nat)
   t.equal(peerF.nat, 'easy')
 
-  console.log("swarm")
   peerF.join(swarm)
   var swarmF = peerF.createModel(swarm, new Reliable(swarm))
   network.iterateUntil(5000)
+  //a new peer has joined, but it doesn't know there is any messages yet.
+  //sending a new message shows it that soemthing is missing so it requests the old messages.
   swarmD.update('welcome', swarm, network.queue.ts)
   network.iterateUntil(6000)
-  t.deepEqual(swarmD.data, swarmF.data)
-  
-
+  t.deepEqual(swarmF.data, swarmD.data)
+  console.log(swarmF.waiting)
   t.end()
 })
 
@@ -129,5 +124,4 @@ test('swarm, connect then update', function (t) {
 //
 //    send message, receive message
 //    send message, while offline, but receive messages after reconnecting
-
 
