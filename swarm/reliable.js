@@ -8,13 +8,14 @@ module.exports = class ReliableSwarm extends Swarm {
     this.waiting = []
     this.data = np.init()
   }
-  
+
   //receive flooded message
   on_update (msg, addr, port) {
     var r = np.update(this.data, msg, msg.ts)
     if(r === false) {
       //request missing messages
-      this.request(msg, addr)
+      this.waiting.push(msg)
+      this.request(msg.prev, addr)
     } else if (r === true) {
       //already have this message, so do nothing
       //OR, ebt prune this peer?
@@ -24,46 +25,76 @@ module.exports = class ReliableSwarm extends Swarm {
       //    don't broadcast it. (probably everyone got it directly already?) 
       this.swarmcast(msg, msg.swarm, addr)
       if(this.on_change) this.on_change(msg, this.data)
+
       if(this.waiting.length) {
         //check to see if any waiting messages can now be applied
         var i = 0
-        while(i < this.waiting.length) {
-          var msg = this.waiting[i]
-          r = np.update(this.data, msg, msg.ts) //is msg.ts correct?
-          if(r == false) {
-            i ++
-            continue
+        var changed = true
+        while(this.waiting.length && changed) {
+          changed = false
+          for(var i = 0; i < this.waiting.length; i++) {
+            var msg = this.waiting[i]
+            r = np.update(this.data, msg, msg.ts)
+            if(r != false) {
+              this.waiting[i] = null
+              changed = true
+            }
+            //else if it is false,
+            //we can't apply the message yes so keep it in the waiting list
           }
-          this.waiting.splice(i, 1)
-          if('object' === typeof r) {
-            this.data = r  
-          }
+          this.waiting = this.waiting.filter(Boolean)
         }
+        //when there are no longer waiting messages,
+        //broadcast a note about our new state (but not the message)
+        //if someone learns of a new message that way, they can ask for it.
+        //(this would be a good point to introduce EBT like behaviour)
+        if(!this.waiting.length)
+          this.head()
       }
+    }
+  }
+
+  head (peer) {
+    var msg = {
+      type: 'head', swarm: this.id, id: this.peer.id, 
+      head: np.leaves(this.data)
+    }
+    if(peer)
+      this.send(msg, peer)
+    else
+      this.swarmcast(msg, this.id)
+  }
+
+  on_head (msg, peer) {
+    //if we receive a head message, and we are not up to date with it, then request an update.
+    if(!np.has(this.data, msg.head)) {
+      this.request(msg.prev, peer)
+    }
+    //if we know about stuff that the head _doesn't_, then send a head back to them
+    var head = np.leaves(this.data)
+    var diff = head.filter(id => ~~msg.head.indexOf(id))
+    if(diff.length) {
+      this.head(peer)
     }
   }
 
   update (content, swarm, ts) {
     var msg = np.create(this.data, {type:'update', content}, ts)
-    console.log("UPDATE", msg)
     this.data = np.update(this.data, msg)
     this.swarmcast(msg, swarm)
     if(this.on_change) this.on_change(msg, this.data)
   }
 
-  request (msg, from) {
-//    console.log("REQUEST", msg, from)
-    this.waiting.push(msg)
+  request (prev, from) {
     this.send({
-        type: 'request', swarm: this.id,
-        ...np.request(this.data, msg.prev)
+        type: 'request', swarm: this.id, id: this.peer.id,
+        ...np.request(this.data, prev)
       },
       from.id,
     )
   }
 
   on_request (msg, addr, port) {
-    console.log("on_request", msg)
     var a = np.missing(this.data, msg.have, msg.need)
     if(a.length) {
       for(var i = 0; i < a.length; i++) {
@@ -74,5 +105,4 @@ module.exports = class ReliableSwarm extends Swarm {
       //error that do not have the message?     
     }
   }
-
 }
