@@ -9,6 +9,11 @@ module.exports = class ReliableSwarm extends Swarm {
     this.data = np.init()
   }
 
+  on_nat () {
+    this.peer.join(this.id)
+    this.peer.timer(1000, 0, ()=>this.head())
+  }
+
   //receive flooded message
   on_update (msg, addr, port) {
     var r = np.update(this.data, msg, msg.ts)
@@ -68,7 +73,7 @@ module.exports = class ReliableSwarm extends Swarm {
   on_head (msg, peer) {
     //if we receive a head message, and we are not up to date with it, then request an update.
     if(!np.has(this.data, msg.head)) {
-      this.request(msg.prev, peer)
+      this.request(msg.head, peer)
     }
     //if we know about stuff that the head _doesn't_, then send a head back to them
     var head = np.leaves(this.data)
