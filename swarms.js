@@ -57,7 +57,7 @@ module.exports = class Swarms extends Peer {
     //}
     //defer, incase that this instance hasn't been wrapped yet
     if(this.nat)
-      this.join(swarm)
+      this.handlers[swarm].on_nat()
 
     return this.handlers[swarm]
   }
