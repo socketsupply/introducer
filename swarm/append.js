@@ -33,4 +33,8 @@ module.exports = class AppendSwarm extends Swarm {
     }
   }
 
+  on_nat () {
+    this.peer.join(this.id)
+  }
+
 }
