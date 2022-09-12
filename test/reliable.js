@@ -119,9 +119,58 @@ test('swarm, connect then update', function (t) {
   t.end()
 })
 
-
 //XXX tests
 //
 //    send message, receive message
 //    send message, while offline, but receive messages after reconnecting
 
+test('swarm, connect then expect to receive updates', function (t) {
+  const swarm = createId('test swarm')
+  const network = new Network()
+  const natD = new IndependentNat('42.')
+  const natE = new IndependentNat('52.')
+  const natF = new IndependentNat('62.')
+  var peerD, peerE, peerF, swarmD, swarmE, swarmF
+
+  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
+  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(D, natD)
+  network.add(E, natE)
+  network.add(F, natF)
+  natD.add(d, new Node(createPeer(peerD = new Swarms({ id: ids.d, ...intros }))))
+  var swarmD = peerD.createModel(swarm, new Reliable(swarm))
+
+  natE.add(e, new Node(createPeer(peerE = new Swarms({ id: ids.e, ...intros }))))
+  var swarmE = peerE.createModel(swarm, new Reliable(swarm))
+  network.iterate(-1)
+
+  t.equal(peerD.nat, 'easy')
+  swarmD.update('HELLO', swarm, network.queue.ts)
+  network.iterateUntil(1000)
+
+  peerD.join(swarm)
+  peerE.join(swarm)
+  network.iterateUntil(2000)
+  t.ok(peerE.peers[peerD.id])
+  t.ok(peerD.peers[peerE.id])
+  swarmD.update('HELLO', swarm, network.queue.ts)
+  network.iterateUntil(3000)
+
+  t.deepEqual(swarmE.data, swarmD.data)
+
+//  network.add(F, natF)
+  natF.add(f, new Node(createPeer(peerF = new Swarms({ id: ids.f, ...intros }))))
+  //this will trigger a join
+  network.iterateUntil(4000)
+  t.equal(peerF.nat, 'easy')
+
+//  peerF.join(swarm)
+  var swarmF = peerF.createModel(swarm, new Reliable(swarm))
+  network.iterateUntil(5000)
+  //a new peer has joined, but it doesn't know there is any messages yet.
+  //sending a new message shows it that soemthing is missing so it requests the old messages.
+//  swarmD.update('welcome', swarm, network.queue.ts)
+  //network.iterateUntil(6000)
+  t.deepEqual(swarmF.data, swarmD.data)
+  t.end()
+})
