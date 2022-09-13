@@ -85,7 +85,7 @@ test('swarm, connect then update', function (t) {
   network.iterate(-1)
 
   t.equal(peerD.nat, 'easy')
-  swarmD.update('HELLO', swarm, network.queue.ts)
+  swarmD.update('HELLO1', swarm, network.queue.ts)
   network.iterateUntil(1000)
 
   peerD.join(swarm)
@@ -95,7 +95,7 @@ test('swarm, connect then update', function (t) {
   console.log(peerE.state)
   t.ok(peerE.peers[peerD.id])
   t.ok(peerD.peers[peerE.id])
-  swarmD.update('HELLO', swarm, network.queue.ts)
+  swarmD.update('HELLO2', swarm, network.queue.ts)
   network.iterateUntil(3000)
   console.log(peerE.state)
 
@@ -109,13 +109,16 @@ test('swarm, connect then update', function (t) {
 
   peerF.join(swarm)
   var swarmF = peerF.createModel(swarm, new Reliable(swarm))
+  var received = []
+  swarmF.on_change = (msg) => received.push(msg)
   network.iterateUntil(5000)
   //a new peer has joined, but it doesn't know there is any messages yet.
   //sending a new message shows it that soemthing is missing so it requests the old messages.
   swarmD.update('welcome', swarm, network.queue.ts)
   network.iterateUntil(6000)
   t.deepEqual(swarmF.data, swarmD.data)
-  console.log(swarmF.waiting)
+//  console.log(swarmF.waiting)
+  t.equal(received.length, 3)
   t.end()
 })
 
@@ -145,7 +148,7 @@ test('swarm, connect then expect to receive updates', function (t) {
   network.iterate(-1)
 
   t.equal(peerD.nat, 'easy')
-  swarmD.update('HELLO', swarm, network.queue.ts)
+  swarmD.update('HELLO1', swarm, network.queue.ts)
   network.iterateUntil(1000)
 
   peerD.join(swarm)
@@ -153,7 +156,7 @@ test('swarm, connect then expect to receive updates', function (t) {
   network.iterateUntil(2000)
   t.ok(peerE.peers[peerD.id])
   t.ok(peerD.peers[peerE.id])
-  swarmD.update('HELLO', swarm, network.queue.ts)
+  swarmD.update('HELLO2', swarm, network.queue.ts)
   network.iterateUntil(3000)
 
   t.deepEqual(swarmE.data, swarmD.data)
@@ -166,11 +169,14 @@ test('swarm, connect then expect to receive updates', function (t) {
 
 //  peerF.join(swarm)
   var swarmF = peerF.createModel(swarm, new Reliable(swarm))
+  var received = []
+  swarmF.on_change = (msg) => received.push(msg)
   network.iterateUntil(5000)
   //a new peer has joined, but it doesn't know there is any messages yet.
   //sending a new message shows it that soemthing is missing so it requests the old messages.
 //  swarmD.update('welcome', swarm, network.queue.ts)
   //network.iterateUntil(6000)
   t.deepEqual(swarmF.data, swarmD.data)
+  t.equal(received.length, 2)
   t.end()
 })
