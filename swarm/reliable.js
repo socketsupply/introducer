@@ -25,11 +25,11 @@ module.exports = class ReliableSwarm extends Swarm {
       //already have this message, so do nothing
       //OR, ebt prune this peer?
     } else {
+      if(this.on_change) this.on_change(msg, this.data)
       //new message, broadcast to everyone in swarm (that hasn't pruned us)
       //XXX maybe repeats should be handled differently, if I had to request this message again,
       //    don't broadcast it. (probably everyone got it directly already?) 
       this.swarmcast(msg, msg.swarm, addr)
-      if(this.on_change) this.on_change(msg, this.data)
 
       if(this.waiting.length) {
         //check to see if any waiting messages can now be applied
@@ -38,11 +38,14 @@ module.exports = class ReliableSwarm extends Swarm {
         while(this.waiting.length && changed) {
           changed = false
           for(var i = 0; i < this.waiting.length; i++) {
-            var msg = this.waiting[i]
+            msg = this.waiting[i]
             r = np.update(this.data, msg, msg.ts)
-            if(r != false) {
+            if(r !== false) {
               this.waiting[i] = null
               changed = true
+              if('object' === typeof r && this.on_change) {
+                this.on_change(msg, this.data)
+              }
             }
             //else if it is false,
             //we can't apply the message yes so keep it in the waiting list
@@ -87,7 +90,9 @@ module.exports = class ReliableSwarm extends Swarm {
     var msg = np.create(this.data, {type:'update', content}, ts)
     this.data = np.update(this.data, msg)
     this.swarmcast(msg, swarm)
-    if(this.on_change) this.on_change(msg, this.data)
+    if(this.on_change) {
+      this.on_change(msg, this.data)
+    }
   }
 
   request (prev, from) {
