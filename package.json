@@ -26,10 +26,10 @@
   "homepage": "https://github.com/socketsupply/introducer#readme",
   "devDependencies": {
     "@socketsupply/netsim": "3.6",
-    "tape": "^5.5.3",
-    "@socketsupply/new_protocol": "1.1"
+    "tape": "^5.5.3"
   },
   "dependencies": {
-    "events": "^3.3.0"
+    "events": "^3.3.0",
+    "@socketsupply/new_protocol": "1.1"
   }
 }
