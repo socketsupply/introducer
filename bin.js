@@ -14,6 +14,7 @@ const util = require('./util')
 const http = require('http')
 const version = require('./package.json').version
 const constants = require('./lib/constants')()
+const Reliable = require('./swarm/reliable')
 
 function createId(seed) {
   if(seed) return crypto.createHash('sha256').update(seed).digest('hex')
@@ -49,7 +50,7 @@ const swarm = '594085b1d40f8bf3e73fca7a5e72602fa15aca64f7685ecf914d75b21449d930'
   }
 
   const peer = new Demo({ ...config, keepalive: constants.keepalive })
-  var chat_swarm = peer.createModel(swarm)
+  var chat_swarm = peer.createModel(swarm, new Reliable())
   chat_swarm.on_change = (msg) => {
     console.log(msg.id.substring(0, 8), peerType(peer.peers[msg.id]), msg.ts, msg.content)
   }
@@ -96,7 +97,7 @@ const swarm = '594085b1d40f8bf3e73fca7a5e72602fa15aca64f7685ecf914d75b21449d930'
 
       return
     }
-    chat_swarm.chat({ ts: Date.now(), content: data.toString(), swarm })
+    chat_swarm.update(data.toString(), Date.now())
   })
 
 }

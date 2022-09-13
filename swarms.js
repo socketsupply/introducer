@@ -52,6 +52,7 @@ module.exports = class Swarms extends Peer {
   createModel(swarm, swarm_handler) {
     this.handlers[swarm] = swarm_handler || new Swarm(swarm)
     this.handlers[swarm].peer = this
+    this.handlers[swarm].id = swarm
     //s.on_chat = (msg) => {
     //  this.update(msg)
     //}
@@ -104,8 +105,10 @@ module.exports = class Swarms extends Peer {
     // send to peers in the same swarm
     // debug('swarmcast:', msg, swarm)
     let c = 0
+    console.log('swarmcast', msg)
     for (const k in this.swarms[swarm]) {
       if (!equalAddr(this.peers[k], not_addr.address)) {
+        console.log('swarmcast', this.peers[k].id)
         this.send(msg, this.peers[k], this.peers[k].outport || this.localPort)
         c++
       }
@@ -125,7 +128,6 @@ module.exports = class Swarms extends Peer {
   join (swarm_id, target_peers = 3) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id, was:'+swarm_id)
     if('number' !== typeof target_peers) {
-      console.log(target_peers)
       throw new Error('target_peers must be a number, was:'+target_peers)
     }
     var send = (id) => {
@@ -160,6 +162,7 @@ module.exports = class Swarms extends Peer {
     if (port === undefined) throw new Error('undefined port')
 
     if(!isId(msg.swarm)) return debug(1, 'join, no swarm:', msg)
+    if(!isId(msg.id)) return debug(1, 'join, no id:', msg)
     const ts = Date.now()
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = Date.now()
@@ -206,6 +209,7 @@ module.exports = class Swarms extends Peer {
   ///*
   on_msg (msg, addr, port) {
     var peer = peerFromAddress(this.peers, addr)
+    console.log("ON_MSG",msg, peer)
     if(!peer) return
     var swarm_id = msg.swarm
     var swarm = this.handlers[swarm_id]
