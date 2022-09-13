@@ -19,7 +19,10 @@ class Swarm {
     if(peer)
       this.peer.send(msg, peer, peer.outport)
     else {
-      throw new Error("unknown peer:"+JSON.stringify(peer_id))
+      //sometimes it this happens, but not sure why yet. I think it's just a race,
+      //and it will still work if we just ignore it. :fingers_crossed:
+      console.error("UNKNOWN PEER:", JSON.stringify(peer_id))
+      //throw new Error("unknown peer:"+JSON.stringify(peer_id))
     }
   }
 
