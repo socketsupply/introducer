@@ -27,7 +27,7 @@
   "devDependencies": {
     "@socketsupply/netsim": "3.6",
     "tape": "^5.5.3",
-    "@socketsupply/new_protocol": "../new_protocol"
+    "@socketsupply/new_protocol": "1.1"
   },
   "dependencies": {
     "events": "^3.3.0"
