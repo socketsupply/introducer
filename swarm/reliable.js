@@ -87,7 +87,7 @@ module.exports = class ReliableSwarm extends Swarm {
   }
 
   update (content, ts) {
-    var msg = np.create(this.data, {type:'update', content}, ts)
+    var msg = np.create(this.data, {type:'update', content, id: this.peer.id}, ts)
     this.data = np.update(this.data, msg)
     this.swarmcast(msg, this.id)
     if(this.on_change) {
