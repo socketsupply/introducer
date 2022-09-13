@@ -86,10 +86,10 @@ module.exports = class ReliableSwarm extends Swarm {
     }
   }
 
-  update (content, swarm, ts) {
+  update (content, ts) {
     var msg = np.create(this.data, {type:'update', content}, ts)
     this.data = np.update(this.data, msg)
-    this.swarmcast(msg, swarm)
+    this.swarmcast(msg, this.id)
     if(this.on_change) {
       this.on_change(msg, this.data)
     }
