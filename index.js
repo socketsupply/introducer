@@ -123,7 +123,6 @@ module.exports = class Peer extends PingPeer {
       }
       else if (msg.nat === 'hard') {
         // we are easy, they are hard
-        console.log(msg)
         var short_id = msg.target.substring(0, 8)
         debug(1, 'BDP easy->hard', short_id, ap)
         var i = 0, start = Date.now(), ts = start

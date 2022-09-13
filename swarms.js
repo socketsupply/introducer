@@ -105,10 +105,8 @@ module.exports = class Swarms extends Peer {
     // send to peers in the same swarm
     // debug('swarmcast:', msg, swarm)
     let c = 0
-    console.log('swarmcast', msg)
     for (const k in this.swarms[swarm]) {
       if (!equalAddr(this.peers[k], not_addr.address)) {
-        console.log('swarmcast', this.peers[k].id)
         this.send(msg, this.peers[k], this.peers[k].outport || this.localPort)
         c++
       }
@@ -209,7 +207,6 @@ module.exports = class Swarms extends Peer {
   ///*
   on_msg (msg, addr, port) {
     var peer = peerFromAddress(this.peers, addr)
-    console.log("ON_MSG",msg, peer)
     if(!peer) return
     var swarm_id = msg.swarm
     var swarm = this.handlers[swarm_id]
