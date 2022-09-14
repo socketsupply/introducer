@@ -29,7 +29,7 @@
     "tape": "^5.5.3"
   },
   "dependencies": {
-    "@socketsupply/new_protocol": "^1.1.3",
+    "@socketsupply/new_protocol": "^1.1.4",
     "events": "^3.3.0"
   }
 }
