@@ -21,25 +21,25 @@ function cmpRand () {
 
 const port = 3456
 
-//can't depend on ./pings.js because that expects an introducer
+// can't depend on ./pings.js because that expects an introducer
 module.exports = class Introducer extends Swarms {
   constructor ({ id, keepalive, port }) {
-    super({id, keepalive, port})
+    super({ id, keepalive, port })
 
     this.nat = 'static'
-//    this.swarms = {}
-//    this.restart = Date.now()
-//    this.keepalive = keepalive
+    //    this.swarms = {}
+    //    this.restart = Date.now()
+    //    this.keepalive = keepalive
     this.connections = {}
   }
 
   init () {
-    if(this.keepalive)
+    if (this.keepalive) {
       this.timer(this.keepalive, this.keepalive, (ts) => {
-        for(var id in this.peers) {
-          if(this.peers[id].ts + this.keepalive*5 < ts)
-            delete this.peers[id]
+        for (const id in this.peers) {
+          if (this.peers[id].ts + this.keepalive * 5 < ts) { delete this.peers[id] }
         }
       })
+    }
   }
 }

@@ -1,5 +1,5 @@
 const createIP = require('./lib/ip')
-const {debug} = require('./util')
+const { debug } = require('./util')
 
 function isPort (p) {
   return p == p & 0xffff
@@ -14,7 +14,7 @@ function isFunction (f) {
 }
 
 function toAddress (a) {
-  return a.address+':'+a.port
+  return a.address + ':' + a.port
 }
 
 module.exports = (UDP, OS, Buffer) => {
@@ -31,11 +31,11 @@ module.exports = (UDP, OS, Buffer) => {
 
     peer._localAddress = peer.localAddress = IP()
     peer.send = (msg, addr, from_port) => {
-      debug(2, 'send', msg, from_port+'->'+toAddress(addr))
+      debug(2, 'send', msg, from_port + '->' + toAddress(addr))
       peer.emit('send', msg, addr, from_port)
-      if(from_port === undefined) throw new Error('source port is not defined!')
-      const sock = maybe_bind(from_port) //or maybe: from_port || addr.output || main_port
-      //if (addr === '255.255.255.255') sock.setBroadcast(true)
+      if (from_port === undefined) throw new Error('source port is not defined!')
+      const sock = maybe_bind(from_port) // or maybe: from_port || addr.output || main_port
+      // if (addr === '255.255.255.255') sock.setBroadcast(true)
       sock.send(codec.encode(msg), addr.port, addr.address)
     }
 
@@ -48,8 +48,7 @@ module.exports = (UDP, OS, Buffer) => {
 
       if (!delay && fn(Date.now()) !== false && repeat) {
         int = setInterval(interval, repeat)
-      }
-      else {
+      } else {
         setTimeout(function () {
           if (fn(Date.now()) !== false && repeat) {
             int = setInterval(interval, repeat)
@@ -58,19 +57,17 @@ module.exports = (UDP, OS, Buffer) => {
       }
     }
 
-    //TODO make way to trigger this check
+    // TODO make way to trigger this check
     peer.timer(1000, 1000, function () {
       peer.localAddress = IP()
     })
 
     function onMessage (msg, addr, port, ts) {
-      debug(2, 'recv', msg, toAddress(addr)+'->'+port, ts)
+      debug(2, 'recv', msg, toAddress(addr) + '->' + port, ts)
       peer.emit('recv', msg, addr, port, ts)
       if (isString(msg.type) && isFunction(peer['on_' + msg.type])) {
         peer['on_' + msg.type](msg, addr, port, ts)
-      }
-      else if(isFunction(peer.on_msg))
-        peer.on_msg(msg, addr, port, ts)
+      } else if (isFunction(peer.on_msg)) { peer.on_msg(msg, addr, port, ts) }
     }
 
     // support binding anynumber of ports on demand (necessary for birthday paradox connection)
@@ -98,12 +95,9 @@ module.exports = (UDP, OS, Buffer) => {
         })
         .on('error', (err) => {
           if ((err.code === 'EACCES' || err.code === 'EADDRINUSE')) {
-            if(must_bind) throw err
-            if(process.env.DEBUG)
-              console.error('could not bind port:' + err.port)
-          }
-          else
-            peer.emit('error', err)
+            if (must_bind) throw err
+            if (process.env.DEBUG) { console.error('could not bind port:' + err.port) }
+          } else { peer.emit('error', err) }
         })
     }
 
