@@ -17,6 +17,8 @@ function cmpRand () {
 }
 
 function peerFromAddress (peers, addr) {
+  let peer
+
   for (const k in peers) {
     if (peers[k].address === addr.address) {
       if (peers[k].port === addr.port) {
