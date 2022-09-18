@@ -12,7 +12,8 @@
   },
   "scripts": {
     "test": "set -e; for t in test/*.js; do node $t; done; ./bin.js nat",
-    "pub": "npm pub && npm publish --registry https://npm.pkg.github.com"
+    "pub": "npm pub && npm publish --registry https://npm.pkg.github.com",
+    "coverage": "nyc -a --exclude scripts --exclude coverage --reporter html npm test"
   },
   "author": "",
   "license": "ISC",
