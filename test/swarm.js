@@ -32,15 +32,11 @@ for (let i = 0; i < 1000; i++) {
   if (id_count == 16) break
 }
 
-function createPeer (p) {
-  return p
-}
-
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
   network.add(address_nat, nat)
-  nat.add(address, new Node(createPeer(peer = new Swarm({ id, ...intros }))))
+  nat.add(address, new Node(peer = new Swarm({ id, ...intros })))
   return [peer, nat]
 }
 
@@ -55,12 +51,12 @@ test('swarm', function (t) {
   const natD = new IndependentNat('42.')
   const natE = new IndependentNat('52.')
   let client
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
   network.add(D, natD)
   network.add(E, natE)
-  natD.add(d, new Node(createPeer(peerD = new Swarm({ id: ids.d, ...intros }))))
-  natE.add(e, new Node(createPeer(peerE = new Swarm({ id: ids.e, ...intros }))))
+  natD.add(d, new Node(peerD = new Swarm({ id: ids.d, ...intros })))
+  natE.add(e, new Node(peerE = new Swarm({ id: ids.e, ...intros })))
   network.iterate(-1)
 
   t.equal(peerD.nat, 'easy')
@@ -80,12 +76,12 @@ test('swarm2', function (t) {
   const natD = new IndependentNat('42.')
   const natE = new IndependentNat('52.')
   let client
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
   network.add(D, natD)
   network.add(E, natE)
-  natD.add(d, new Node(createPeer(peerD = new Swarm({ id: ids.d, ...intros }))))
-  natE.add(e, new Node(createPeer(peerE = new Swarm({ id: ids.e, ...intros }))))
+  natD.add(d, new Node(peerD = new Swarm({ id: ids.d, ...intros })))
+  natE.add(e, new Node(peerE = new Swarm({ id: ids.e, ...intros })))
   network.iterate(-1)
 
   t.equal(peerD.nat, 'easy')
@@ -118,8 +114,8 @@ test('swarmN', function (t) {
   const network = new Network()
   //  var natD = new IndependentNat('42.')
   let client
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
 
   const peers = []
   const N = 100
@@ -131,7 +127,7 @@ test('swarmN', function (t) {
 
     network.add(address, natN)
 
-    natN.add(address, new Node(createPeer(peers[i] = new Swarm({ id: id, ...intros }))))
+    natN.add(address, new Node(peers[i] = new Swarm({ id: id, ...intros })))
   }
   network.iterate(-1)
   // the network simulator doesn't set send/timer until it calls init,
@@ -157,8 +153,8 @@ test('swarm with 1 easy 1 hard', function (t) {
   const network = new Network()
   let client
   let intro
-  network.add(A, new Node(createPeer(intro = new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(intro = new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
 
   const [peer_easy, nat_easy] = createNatPeer(network, createId('id:easy'), '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
   const [peer_hard, nat_hard] = createNatPeer(network, createId('id:hard'), '5.6.7.8', '5.6.7.82', DependentNat)
@@ -194,8 +190,8 @@ test('swarm with hard nats included', function (t) {
   const network = new Network()
   let client
   let intro
-  network.add(A, new Node(createPeer(intro = new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(intro = new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
 
   const peers = []
   const Easy = 10; const Hard = 10
@@ -207,7 +203,7 @@ test('swarm with hard nats included', function (t) {
 
     network.add(address, natN)
 
-    natN.add(address, new Node(createPeer(peers[i] = new Swarm({ id: id, ...intros }))))
+    natN.add(address, new Node(peers[i] = new Swarm({ id: id, ...intros })))
   }
 
   network.iterate(-1)
@@ -232,8 +228,8 @@ test('empty swarm', function (t) {
   const network = new Network()
   let client
   let intro
-  network.add(A, new Node(createPeer(intro = new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(intro = new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
 
   const [peer_easy, nat_easy] = createNatPeer(network, createId('id:easy'), '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
   // var [peer_hard, nat_hard] = createNatPeer(network, createId('id:hard'), '5.6.7.8', '5.6.7.82', DependentNat)
@@ -267,8 +263,8 @@ test('notify on_peer, swarm', function (t) {
   const network = new Network()
   let client
   let intro
-  network.add(A, new Node(createPeer(intro = new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(intro = new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
 
   const [peer1, nat1] = createNatPeer(network, createId('id:1'), '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
   const [peer2, nat2] = createNatPeer(network, createId('id:2'), '5.6.7.8', '5.6.7.82', IndependentFirewallNat)
@@ -302,8 +298,8 @@ test('local connection established without hairpinning support', function (t) {
   const network = new Network()
   let client
   let intro
-  network.add(A, new Node(createPeer(intro = new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(intro = new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
 
 //  const id = createId('id:nat')
   const nat = new IndependentFirewallNat('2.4.')
@@ -315,8 +311,8 @@ test('local connection established without hairpinning support', function (t) {
   var id_b = createId('id:b')
 
   var address_a = '2.4.0.1', address_b = '2.4.0.2'
-  nat.add(address_a, new Node(createPeer(peer_a = new Swarm({ id: id_a, ...intros }))))
-nat.add(address_b, new Node(createPeer(peer_b = new Swarm({ id: id_b, ...intros }))))
+  nat.add(address_a, new Node(peer_a = new Swarm({ id: id_a, ...intros })))
+  nat.add(address_b, new Node(peer_b = new Swarm({ id: id_b, ...intros })))
 
   network.iterate(-1)
 

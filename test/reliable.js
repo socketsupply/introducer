@@ -37,15 +37,11 @@ for (let i = 0; i < 1000; i++) {
   if (id_count == 16) break
 }
 
-function createPeer (p) {
-  return p
-}
-
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
   network.add(address_nat, nat)
-  nat.add(address, new Node(createPeer(peer = new Swarm({ id, ...intros }))))
+  nat.add(address, new Node(peer = new Swarm({ id, ...intros })))
   return [peer, nat]
 }
 
@@ -62,15 +58,15 @@ test('swarm, connect then update', function (t) {
   const natF = new IndependentNat('62.')
   var peerD, peerE, peerF, swarmD, swarmE, swarmF
 
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
   network.add(D, natD)
   network.add(E, natE)
   network.add(F, natF)
-  natD.add(d, new Node(createPeer(peerD = new Swarms({ id: ids.d, ...intros }))))
+  natD.add(d, new Node(peerD = new Swarms({ id: ids.d, ...intros })))
   var swarmD = peerD.createModel(swarm, new Reliable(swarm))
 
-  natE.add(e, new Node(createPeer(peerE = new Swarms({ id: ids.e, ...intros }))))
+  natE.add(e, new Node(peerE = new Swarms({ id: ids.e, ...intros })))
   var swarmE = peerE.createModel(swarm, new Reliable(swarm))
   network.iterate(-1)
 
@@ -92,7 +88,7 @@ test('swarm, connect then update', function (t) {
   t.deepEqual(swarmE.data, swarmD.data)
 
 //  network.add(F, natF)
-  natF.add(f, new Node(createPeer(peerF = new Swarms({ id: ids.f, ...intros }))))
+  natF.add(f, new Node(peerF = new Swarms({ id: ids.f, ...intros })))
   //this will trigger a join
   network.iterateUntil(4000)
   t.equal(peerF.nat, 'easy')
@@ -125,15 +121,15 @@ test('swarm, connect then expect to receive updates', function (t) {
   const natF = new IndependentNat('62.')
   var peerD, peerE, peerF, swarmD, swarmE, swarmF
 
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
   network.add(D, natD)
   network.add(E, natE)
   network.add(F, natF)
-  natD.add(d, new Node(createPeer(peerD = new Swarms({ id: ids.d, ...intros }))))
+  natD.add(d, new Node(peerD = new Swarms({ id: ids.d, ...intros })))
   var swarmD = peerD.createModel(swarm, new Reliable(swarm))
 
-  natE.add(e, new Node(createPeer(peerE = new Swarms({ id: ids.e, ...intros }))))
+  natE.add(e, new Node(peerE = new Swarms({ id: ids.e, ...intros })))
   var swarmE = peerE.createModel(swarm, new Reliable(swarm))
   network.iterate(-1)
 
@@ -152,7 +148,7 @@ test('swarm, connect then expect to receive updates', function (t) {
   t.deepEqual(swarmE.data, swarmD.data)
 
 //  network.add(F, natF)
-  natF.add(f, new Node(createPeer(peerF = new Swarms({ id: ids.f, ...intros }))))
+  natF.add(f, new Node(peerF = new Swarms({ id: ids.f, ...intros })))
   //this will trigger a join
   network.iterateUntil(4000)
   t.equal(peerF.nat, 'easy')

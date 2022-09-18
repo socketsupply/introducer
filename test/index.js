@@ -33,15 +33,11 @@ for (let i = 0; i < 1000; i++) {
   if (id_count == 16) break
 }
 
-function createPeer (p) {
-  return p
-}
-
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
   network.add(address_nat, nat)
-  nat.add(address, new Node(createPeer(peer = new Swarm({ id, ...intros }))))
+  nat.add(address, new Node(peer = new Swarm({ id, ...intros })))
   return [peer, nat]
 }
 
@@ -52,11 +48,11 @@ const intros = {
 test('intro', function (t) {
   const network = new Network()
   let peerD, peerE
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
 
-  network.add(D, new Node(createPeer(peerD = new Swarm({ id: ids.d, ...intros }))))
-  network.add(E, new Node(createPeer(peerE = new Swarm({ id: ids.e, ...intros }))))
+  network.add(D, new Node(peerD = new Swarm({ id: ids.d, ...intros })))
+  network.add(E, new Node(peerE = new Swarm({ id: ids.e, ...intros })))
 
   network.iterate(-1)
 
@@ -81,12 +77,12 @@ test('intro, easy nat', function (t) {
   const natD = new IndependentNat('42.')
   const natE = new IndependentNat('52.')
   let client
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
   network.add(D, natD)
   network.add(E, natE)
-  natD.add(d, new Node(createPeer(peerD = new Swarm({ id: ids.d, ...intros }))))
-  natE.add(e, new Node(createPeer(peerE = new Swarm({ id: ids.e, ...intros }))))
+  natD.add(d, new Node(peerD = new Swarm({ id: ids.d, ...intros })))
+  natE.add(e, new Node(peerE = new Swarm({ id: ids.e, ...intros })))
   network.iterate(-1)
 
   t.equal(peerD.nat, 'easy')
@@ -114,8 +110,8 @@ test('detect hard nat', function (t) {
   const swarm = createId('test swarm')
   const network = new Network()
   let client
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
 
   const i = 0
   let peer
@@ -126,7 +122,7 @@ test('detect hard nat', function (t) {
 
   network.add(address, natN)
 
-  natN.add(address, new Node(createPeer(peer = new Swarm({ id: id, ...intros }))))
+  natN.add(address, new Node(peer = new Swarm({ id: id, ...intros })))
 
   network.iterate(-1)
   t.equal(peer.nat, 'hard')

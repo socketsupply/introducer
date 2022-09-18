@@ -33,16 +33,13 @@ for (let i = 0; i < 1000; i++) {
   if (id_count == 16) break
 }
 
-function createPeer (p) {
-  return p
-}
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
   let peer = new Chat({ id, ...intros, keepalive: 29_000})
   peer.createModel(swarm)
   peer.on_change = ()=>{}
-  let node = new Node(createPeer(peer))
+  let node = new Node(peer)
   network.add(address_nat, nat)
   nat.add(address, node)
   console.log("NODE", node.sleep)
@@ -60,8 +57,8 @@ test('swarm with 1 easy 1 hard', function (t) {
   const network = new Network()
   let client
   let intro
-  network.add(A, new Node(createPeer(intro = new Introducer({ id: ids.a, keepalive: 5_000 }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b, keepalive: 5_000 }))))
+  network.add(A, new Node(intro = new Introducer({ id: ids.a, keepalive: 5_000 })))
+  network.add(B, new Node(new Introducer({ id: ids.b, keepalive: 5_000 })))
 
   const [peer_easy, nat_easy] = createNatPeer(network, createId('id:easy'), '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
   const [peer_hard, nat_hard, node_hard] = createNatPeer(network, createId('id:hard'), '5.6.7.8', '5.6.7.82',

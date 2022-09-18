@@ -49,9 +49,6 @@ for (let i = 0; i < 1000; i++) {
   if (id_count == 16) break
 }
 
-function createPeer (p) {
-  return p
-}
 
 const intros = {
   introducer1: { id: ids.a, address: A, port: 3456 },
@@ -71,12 +68,12 @@ function dejoin (intro) {
 test('broadcast', function (t) {
   const network = new Network()
   let peerD, peerE
-  network.add(A, new Node(createPeer(dejoin(new Introducer({ id: ids.a })))))
-  network.add(B, new Node(createPeer(dejoin(new Introducer({ id: ids.b })))))
+  network.add(A, new Node(dejoin(new Introducer({ id: ids.a }))))
+  network.add(B, new Node(dejoin(new Introducer({ id: ids.b }))))
 
-  network.add(D, new Node(createPeer(peerD = new Chat({ id: ids.d, ...intros}))))
-  network.add(E, new Node(createPeer(peerE = new Chat({ id: ids.e, ...intros}))))
-  network.add(F, new Node(createPeer(peerF = new Chat({ id: ids.f, ...intros}))))
+  network.add(D, new Node(peerD = new Chat({ id: ids.d, ...intros})))
+  network.add(E, new Node(peerE = new Chat({ id: ids.e, ...intros})))
+  network.add(F, new Node(peerF = new Chat({ id: ids.f, ...intros})))
 
   peerD.createModel(swarm)
   peerE.createModel(swarm)
@@ -120,15 +117,15 @@ function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
   const nat = new Nat(prefix)
   network.add(address_nat, nat)
-  nat.add(address, new Node(createPeer(peer = new Chat({ id, ...intros}))))
+  nat.add(address, new Node(peer = new Chat({ id, ...intros})))
   peer.createModel(swarm)
   return [peer, nat]
 }
 
 test('broadcast, easy nat', function (t) {
   const network = new Network()
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
 
   let [peerD] = createNatPeer(network, ids.d, D, d, IndependentFirewallNat)
   let [peerE] = createNatPeer(network, ids.e, E, e, IndependentFirewallNat)
@@ -163,8 +160,8 @@ test('broadcast, easy nat', function (t) {
 
 test('broadcast, hard,easy,hard nat', function (t) {
   const network = new Network()
-  network.add(A, new Node(createPeer(new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
 
   let [peerD] = createNatPeer(network, ids.d, D, d, DependentNat)
   let [peerE] = createNatPeer(network, ids.e, E, e, IndependentFirewallNat)
@@ -208,8 +205,8 @@ test('broadcast, hard,easy,hard nat', function (t) {
 test('broadcast, easy, hard, easy nat', function (t) {
   const network = new Network()
   var intro1
-  network.add(A, new Node(createPeer(intro1 = new Introducer({ id: ids.a }))))
-  network.add(B, new Node(createPeer(new Introducer({ id: ids.b }))))
+  network.add(A, new Node(intro1 = new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
 
   let [peerD] = createNatPeer(network, ids.d, D, d, IndependentFirewallNat)
   let [peerE] = createNatPeer(network, ids.e, E, e, DependentNat)
