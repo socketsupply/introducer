@@ -22,10 +22,12 @@ function fromAddress (s) {
   return s.address + ':' + s.port
 }
 
-function toAddress (s) {
-  const [address, port] = s.split(':')
-  return { address, port: +port }
-}
+
+// function toAddress (s) {
+//   const [address, port] = s.split(':')
+//   return { address, port: +port }
+// }
+
 
 // check that object
 function isPeer (p) {
@@ -41,6 +43,35 @@ const debug = LEVEL === 0
     if (level <= LEVEL) console.log(...args)
   }
 
+function isNull(n) {
+  return null == n
+}
+
+function isPing (p) {
+  return (
+    p.type === 'ping' &&
+    isId(p.id)        &&
+    (isNull(p.spinPort) || isPort(p.spinPort)) &&
+    (isNull(p.nat) || isNat(p.nat))
+  )
+}
+
+function isPong (p) {
+  return (
+    p.type === 'pong' &&
+    isId(p.id)        &&
+    (isNull(p.nat) || isNat(p.nat)) &&
+    isAddr(p)
+  )
+}
+
+function isConnect (p) {
+  return (
+    p.type === 'connect' &&
+    isPeer(p)
+  )
+}
+
 module.exports = {
   isIp,
   isPort,
@@ -48,7 +79,11 @@ module.exports = {
   isId,
   isNat,
   fromAddress,
-  toAddress,
+//  toAddress,
   isPeer,
-  debug
+  debug,
+
+  isPing,
+  isPong,
+  isConnect
 }

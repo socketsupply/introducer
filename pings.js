@@ -1,5 +1,5 @@
 'use strict'
-const { isId, isIp, isAddr, debug } = require('./util')
+const { isId, isIp, isAddr, debug, isPing, isPong, fromAddress } = require('./util')
 const EventEmitter = require('events')
 
 /**
@@ -8,7 +8,6 @@ const EventEmitter = require('events')
  * resending pings on intervals to ensure they are still alive.
  * and removing peers that do not respond to pings.
  */
-
 
 function assertAddr (addr, message) {
   if(!isAddr(addr)) throw new Error('must be valid addr {address, port} object:'+message)
@@ -25,9 +24,6 @@ function isFunction (f) {
 function assertTs (ts) {
   if('number' !== typeof ts) throw new Error('ts must be provided')
 }
-
-//const port = 3456
-//const recv_port = 7654
 
 //peer states:
 //attempting to connect - have sent ping recently, not received response yet
@@ -219,7 +215,7 @@ module.exports = class PingPeer extends EventEmitter {
   __set_peer (id, address, port, nat, outport=this.localPort, restart = null, ts, isIntroducer) {
     assertTs(ts)
     if(!this.peers[id]) {
-      debug(1, 'new peer', id.substring(0, 8), address+':'+port, nat)
+      debug(1, 'new peer', id.substring(0, 8), fromAddress({address, port}), nat)
       const peer = this.peers[id] = { id, address, port, nat, ts, outport, restart, introducer: isIntroducer }
       if(isIntroducer)
         peer.introducer = true
@@ -254,6 +250,7 @@ module.exports = class PingPeer extends EventEmitter {
   }
 
   on_ping (msg, addr, _port, ts) {
+    if(!isPing(msg)) return debug(1, 'ignored invalid ping:'+JSON.stringify(msg))
     assertTs(ts)
     // XXX notify on_peer if we havn't heard from this peer before.
     // (sometimes first contact with a peer will be ping, sometimes pong)
@@ -295,6 +292,7 @@ module.exports = class PingPeer extends EventEmitter {
   }
 
   on_pong (msg, addr, _port, ts) {
+    if(!isPong(msg)) return debug(1, 'ignored invalid ping:'+JSON.stringify(msg))
     // XXX notify if this is a new peer message.
     // (sometimes we ping a peer, and their response is first contact)
     if (!msg.port) throw new Error('pong: missing port')
@@ -311,5 +309,4 @@ module.exports = class PingPeer extends EventEmitter {
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
     this.emit('pong', this.peers[msg.id])
   }
-
 }

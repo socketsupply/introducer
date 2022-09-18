@@ -1,15 +1,15 @@
 'use strict'
-const { isId, isIp, isAddr, debug } = require('./util')
+const { isId, isIp, isAddr, debug, isConnect } = require('./util')
 const constants = require('./lib/constants')()
 const PingPeer = require('./pings')
 
-function assertAddr (addr, message) {
-  if (!isAddr(addr)) throw new Error('must be valid addr {address, port} object:' + message)
-}
+//function assertAddr (addr, message) {
+//  if (!isAddr(addr)) throw new Error('must be valid addr {address, port} object:' + message)
+//}
 
-function isFunction (f) {
-  return typeof f === 'function'
-}
+//function isFunction (f) {
+//  return typeof f === 'function'
+//}
 
 function assertTs (ts) {
   if (typeof ts !== 'number') throw new Error('ts must be provided')
@@ -64,6 +64,7 @@ module.exports = class Peer extends PingPeer {
 
   // we received connect request, ping the target 3 itmes
   on_connect (msg, _addr, _port, ts) {
+    if(!isConnect(msg)) return debug(1, 'invalid connect message:'+JSON.stringify(msg))
     assertTs(ts)
     if (!ts) throw new Error('ts must not be zero:' + ts)
     if (!msg.target) { msg.target = msg.id }

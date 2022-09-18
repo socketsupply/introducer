@@ -88,7 +88,7 @@ module.exports = class Swarms extends Peer {
   on_peer (peer) {
     debug(1, 'connected peer:', peer)
   }
-
+/*
   // broadcast a message, optionally skipping a particular peer (such as the peer that sent this)
   broadcast (msg, not_addr = { address: null }) {
     for (const k in this.peers) {
@@ -120,7 +120,7 @@ module.exports = class Swarms extends Peer {
     }
     return c
   }
-
+*/
   join (swarm_id, target_peers = 3) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id, was:' + swarm_id)
     if (typeof target_peers !== 'number') {
