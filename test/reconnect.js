@@ -34,24 +34,7 @@ for (let i = 0; i < 1000; i++) {
 }
 
 function createPeer (p) {
-  return function (send, timer, node, ts) {
-    p.send = send
-    p.timer = function (delay, repeat, fn) {
-      timer(delay, repeat, (ts) => {
-        p.localAddress = node.address
-        return fn(ts)
-      })
-    }
-    p.localAddress = node.address
-    p.localPort = localPort
-    // console.log('timer', timer.toString())
-    if (p.init) p.init(ts)
-    return function (msg, addr, port, ts) {
-      const type = msg.type
-      if (p['on_' + type]) p['on_' + type](msg, addr, port, ts)
-      else if (p.on_msg) p.on_msg(msg, addr, port, ts)
-    }
-  }
+  return p
 }
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
