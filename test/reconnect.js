@@ -22,16 +22,7 @@ const e = '52.5.5.52'
 const P = ':'+localPort
 const swarm = createId('test swarm')
 
-const ids = {}; let id_count = 0
-
-for (let i = 0; i < 1000; i++) {
-  const id = createId('_' + i)
-  if (!ids[id[0]]) {
-    ids[id[0]] = id
-    id_count++
-  }
-  if (id_count == 16) break
-}
+const ids = require('./util').genIds()
 
 function createNatPeer (network, id, address_nat, address, Nat) {
   const prefix = /^\d+\./.exec(address_nat)[1]
