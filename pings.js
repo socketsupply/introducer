@@ -98,7 +98,7 @@ module.exports = class PingPeer extends EventEmitter {
     this.restart = Date.now()
     this.keepalive = keepalive
     this.localPort = port || 3456
-    this.spinPort = spinPort
+    this.spinPort = spinPort || 3457
   }
 
   discoverNat () {
