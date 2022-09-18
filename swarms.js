@@ -17,6 +17,7 @@ function cmpRand () {
 }
 
 function peerFromAddress (peers, addr) {
+  var peer
   for (const k in peers) {
     if (peers[k].address === addr.address) {
       if (peers[k].port === addr.port) {
@@ -121,6 +122,7 @@ module.exports = class Swarms extends Peer {
     return c
   }
 */
+
   join (swarm_id, target_peers = 3) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id, was:' + swarm_id)
     if (typeof target_peers !== 'number') {
@@ -202,16 +204,20 @@ module.exports = class Swarms extends Peer {
   }
 
   /// *
-  on_msg (msg, addr, port) {
-    const peer = peerFromAddress(this.peers, addr)
-    if (!peer) return
-    const swarm_id = msg.swarm
-    const swarm = this.handlers[swarm_id]
-    if (!swarm) return
-    const fn_name = 'on_' + msg.type
-    if (typeof (swarm[fn_name]) === 'function') {
-      swarm[fn_name](msg, peer)
-    }
+  on_msg (msg, addr, port, ts) {
+    if(super.on_msg(msg, addr, port, ts) === false) {
+      if(msg.swarm) {
+        const peer = peerFromAddress(this.peers, addr)
+        if (!peer) return
+        const swarm_id = msg.swarm
+        const swarm = this.handlers[swarm_id]
+        if (!swarm) return
+        const fn_name = 'on_' + msg.type
+        if (typeof (swarm[fn_name]) === 'function') {
+          swarm[fn_name](msg, peer, port, ts)
+        }
+      }
+    }    
   }
   //* /
 }

@@ -21,6 +21,10 @@ function isFunction (f) {
   return typeof f === 'function'
 }
 
+function isString (s) {
+  return 'string' === typeof s
+}
+
 function assertTs (ts) {
   if('number' !== typeof ts) throw new Error('ts must be provided')
 }
@@ -308,5 +312,18 @@ module.exports = class PingPeer extends EventEmitter {
     if (isNew) this.emit('peer', this.peers[msg.id])
     if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
     this.emit('pong', this.peers[msg.id])
+  }
+
+  on_msg (msg, addr, port, ts) {
+    console.log('on_msg', msg, addr, port, ts)
+    if (isString(msg.type) && isFunction(this['on_' + msg.type])) {
+      this['on_' + msg.type](msg, addr, port, ts)
+    }
+    else 
+      return false
+//    else if (isFunction(peer.on_msg)) {
+//      peer.on_msg(msg, addr, port, ts)
+//    }
+//    else return false
   }
 }
