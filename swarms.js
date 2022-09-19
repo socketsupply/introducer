@@ -87,6 +87,11 @@ module.exports = class Swarms extends Peer {
   }
 
   on_peer (peer) {
+    for(var swarm in this.swarms)
+      if(this.swarms[swarm][peer.id]) {
+        if(this.handlers[swarm] && this.handlers[swarm].on_peer)
+          this.handlers[swarm].on_peer(peer)
+      }
     debug(1, 'connected peer:', peer)
   }
 /*
