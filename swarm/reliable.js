@@ -8,6 +8,10 @@ module.exports = class ReliableSwarm extends Swarm {
     this.data = np.init()
   }
 
+  on_peer (peer) {
+    this.head(peer)
+  }
+
   on_nat () {
     this.peer.join(this.id)
     this.peer.timer(1000, 0, () => this.head())
@@ -77,13 +81,14 @@ module.exports = class ReliableSwarm extends Swarm {
     }
     // if we know about stuff that the head _doesn't_, then send a head back to them
     const head = np.leaves(this.data)
-    const diff = head.filter(id => ~~msg.head.indexOf(id))
+    const diff = head.filter(id => !~msg.head.indexOf(id))
     if (diff.length) {
       this.head(peer)
     }
   }
 
   update (content, ts) {
+    if('number' !== typeof ts) throw new Error('expected timestamp, got:'+ts)
     const msg = np.create(this.data, { type: 'update', content, id: this.peer.id }, ts)
     this.data = np.update(this.data, msg)
     this.swarmcast(msg, this.id)
