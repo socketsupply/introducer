@@ -95,7 +95,7 @@ module.exports = class PingPeer extends EventEmitter {
     super()
     this.peers = {}
     this.id = id
-    this.restart = Date.now()
+    this.restart = 0
     this.keepalive = keepalive
     this.localPort = port || 3456
     this.spinPort = spinPort || 3457
@@ -142,6 +142,7 @@ module.exports = class PingPeer extends EventEmitter {
     assertTs(ts)
     if(this._once) return
     this._once = true
+    this.restart = ts
     // TODO: we really want to end the tests after this but it keeps them running
     // so we need a way to unref...
     // because in practice I'm fairly sure this should poll to keep port open (say every minute)
