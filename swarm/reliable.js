@@ -19,48 +19,21 @@ module.exports = class ReliableSwarm extends Swarm {
 
   // receive flooded message
   on_update (msg, addr, port) {
-    let r = np.update(this.data, msg, msg.ts)
-    if (r === false) {
+    let info = np.update(this.data, msg, msg.ts)
+    this.data = info.state
+    if (info.queued) {
       // request missing messages
-      this.waiting.push(msg)
       this.request(msg.prev, addr)
-    } else if (r === true) {
+    } else if (!info.applied.length) {
       // already have this message, so do nothing
       // OR, ebt prune this peer?
     } else {
-      if (this.on_change) this.on_change(msg, this.data)
+      if (this.on_change)
+        info.applied.forEach(msg => this.on_change(msg, this.data))
       // new message, broadcast to everyone in swarm (that hasn't pruned us)
       // XXX maybe repeats should be handled differently, if I had to request this message again,
       //    don't broadcast it. (probably everyone got it directly already?)
       this.swarmcast(msg, msg.swarm, addr)
-
-      if (this.waiting.length) {
-        // check to see if any waiting messages can now be applied
-        var i = 0
-        let changed = true
-        while (this.waiting.length && changed) {
-          changed = false
-          for (var i = 0; i < this.waiting.length; i++) {
-            msg = this.waiting[i]
-            r = np.update(this.data, msg, msg.ts)
-            if (r !== false) {
-              this.waiting[i] = null
-              changed = true
-              if (typeof r === 'object' && this.on_change) {
-                this.on_change(msg, this.data)
-              }
-            }
-            // else if it is false,
-            // we can't apply the message yes so keep it in the waiting list
-          }
-          this.waiting = this.waiting.filter(Boolean)
-        }
-        // when there are no longer waiting messages,
-        // broadcast a note about our new state (but not the message)
-        // if someone learns of a new message that way, they can ask for it.
-        // (this would be a good point to introduce EBT like behaviour)
-        if (!this.waiting.length) { this.head() }
-      }
     }
   }
 
@@ -90,7 +63,7 @@ module.exports = class ReliableSwarm extends Swarm {
   update (content, ts) {
     if('number' !== typeof ts) throw new Error('expected timestamp, got:'+ts)
     const msg = np.create(this.data, { type: 'update', content, id: this.peer.id }, ts)
-    this.data = np.update(this.data, msg)
+    this.data = np.update(this.data, msg).state
     this.swarmcast(msg, this.id)
     if (this.on_change) {
       this.on_change(msg, this.data)
