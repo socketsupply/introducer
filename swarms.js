@@ -185,7 +185,7 @@ module.exports = class Swarms extends Peer {
     // but easy nats to connect to other easy nats first, to ensure a strong network.
     if (peer.nat === 'hard') {
       // hard nat can only connect to easy nats, but can also connect to peers on the same nat
-      ids = ids.filter(id => this.peers[id].nat === 'static' || this.peers[id].nat === 'easy' || this.peers[id].address === peer.address)
+      ids = ids.filter(id => this.peers[id] && (this.peers[id].nat === 'static' || this.peers[id].nat === 'easy' || this.peers[id].address === peer.address))
     }
     if (this.connections) this.connections[msg.id] = {}
 
