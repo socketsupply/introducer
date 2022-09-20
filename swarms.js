@@ -159,6 +159,20 @@ module.exports = class Swarms extends Peer {
     }
   }
 
+
+  // if the introducer server restarts, rejoin swarms
+  // TODO if a PEER restarts, rejoin swarms with them that they are part of.
+  on_peer_restart (other, restart) {
+    const p = this.peers[other.id]
+    //XXX count the active peers already in this swarm
+    //    and send how many more peers we need
+    //    also consider sending join messages to other peers in this swarm
+    if (p && p.introducer) {
+      for (const k in this.swarms) { this.join(k) }
+    }
+  }
+
+
   // __set_peer (id, address, port, nat, outport, restart) {
   on_join (msg, addr, port, ts) {
     if (port === undefined) throw new Error('undefined port')
@@ -167,7 +181,7 @@ module.exports = class Swarms extends Peer {
     if (!isId(msg.id)) return debug(1, 'join, no id:', msg)
 //    const ts = Date.now()
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
-    swarm[msg.id] = Date.now()
+    swarm[msg.id] = ts
     this.__set_peer(msg.id, addr.address, addr.port, msg.nat, port, null, ts)
     const peer = this.peers[msg.id]
 //      this.peers[msg.id] || { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: port }

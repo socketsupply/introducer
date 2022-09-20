@@ -167,15 +167,6 @@ module.exports = class Peer extends PingPeer {
     this.emit('connect', msg)
   }
 
-  // if the introducer server restarts, rejoin swarms
-  // TODO if a PEER restarts, rejoin swarms with them that they are part of.
-  on_peer_restart (other, restart) {
-    const p = this.peers[other.id]
-    if (p && p.introducer) {
-      for (const k in this.swarms) { this.join(k) }
-    }
-  }
-
   // stuff needed as an introducer
 
   // rename: on_relay - relay a msg to a targeted (by id) peer.

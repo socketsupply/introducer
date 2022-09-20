@@ -284,7 +284,7 @@ module.exports = class PingPeer extends EventEmitter {
       //still pong like normal though.
       this.send({ type: 'pong', id: this.id, ...addr, nat: this.nat }, addr, _port)
     }
-    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, null, ts)
+    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart || null, ts)
     var peer = this.peers[msg.id]
     peer.recv = ts
 
@@ -320,15 +320,10 @@ module.exports = class PingPeer extends EventEmitter {
   }
 
   on_msg (msg, addr, port, ts) {
-    console.log('on_msg', msg, addr, port, ts)
     if (isString(msg.type) && isFunction(this['on_' + msg.type])) {
       this['on_' + msg.type](msg, addr, port, ts)
     }
     else 
       return false
-//    else if (isFunction(peer.on_msg)) {
-//      peer.on_msg(msg, addr, port, ts)
-//    }
-//    else return false
   }
 }
