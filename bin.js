@@ -54,10 +54,8 @@ function main (argv) {
     return
   }
 
-  if (cmd) {
-    console.log('unknown command:'+cmd)
-    process.exit(1)
-  }
+  //this setup is shared by nat command, and running the chat protocol also
+
   const peer = new Demo({ ...config, keepalive: constants.keepalive })
   const chat_swarm = peer.createModel(swarm, new Reliable())
   chat_swarm.on_change = (msg) => {
@@ -85,6 +83,11 @@ function main (argv) {
       }
       process.exit(0)
     }
+  }
+
+  else if (cmd) {
+    console.log('unknown command:'+cmd)
+    process.exit(1)
   }
 
   Wrap(peer, [config.port, config.spinPort])
