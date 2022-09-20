@@ -36,6 +36,7 @@ function main (argv) {
     http.createServer(function (req, res) {
       res.end(JSON.stringify({
         restart: new Date(intro.restart).toString(),
+        last_crash: (Date.now() - intro.restart)/1000,
         version,
         peers: intro.peers,
         swarms: intro.swarms,
