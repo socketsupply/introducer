@@ -27,6 +27,9 @@ function main (argv) {
   //  const swarm = createId('test swarm')
   const swarm = '594085b1d40f8bf3e73fca7a5e72602fa15aca64f7685ecf914d75b21449d930'
 
+  if(cmd === 'version')
+    return console.log(version)
+
   if (cmd === 'introducer') {
     const intro = new Introducer(config)
     Wrap(intro, [config.port])
@@ -51,6 +54,10 @@ function main (argv) {
     return
   }
 
+  if (cmd) {
+    console.log('unknown command:'+cmd)
+    process.exit(1)
+  }
   const peer = new Demo({ ...config, keepalive: constants.keepalive })
   const chat_swarm = peer.createModel(swarm, new Reliable())
   chat_swarm.on_change = (msg) => {
@@ -82,7 +89,7 @@ function main (argv) {
 
   Wrap(peer, [config.port, config.spinPort])
 
-  console.log('id:', config.id)
+  console.log('id:', config.id, 'introducer@'+version)
   process.stdin.on('data', function (data) {
     data = data.toString()
     const m = /^\s*\/(\w+)/.exec(data)
