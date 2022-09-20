@@ -99,6 +99,10 @@ module.exports = class PingPeer extends EventEmitter {
     this.keepalive = keepalive
     this.localPort = port || 3456
     this.spinPort = spinPort || 3457
+    if(this.spinPort == this.localPort) {
+      console.error('spin port cannot be the same as the local port!, static nat ignored')
+      this.spinPort = null
+    }
   }
 
   discoverNat () {
