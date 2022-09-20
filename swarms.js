@@ -6,7 +6,7 @@
 const { debug } = require('./util')
 const Peer = require('./')
 const Swarm = require('./swarm/append')
-const { isId } = require('./util')
+const { isId, isPeer } = require('./util')
 
 function equalAddr (a, b) {
   return a && b && a.address === b.address && a.port === b.port
@@ -160,18 +160,19 @@ module.exports = class Swarms extends Peer {
   }
 
   // __set_peer (id, address, port, nat, outport, restart) {
-  on_join (msg, addr, port) {
+  on_join (msg, addr, port, ts) {
     if (port === undefined) throw new Error('undefined port')
 
     if (!isId(msg.swarm)) return debug(1, 'join, no swarm:', msg)
     if (!isId(msg.id)) return debug(1, 'join, no id:', msg)
-    const ts = Date.now()
+//    const ts = Date.now()
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = Date.now()
-    const peer = this.peers[msg.id] =
-      this.peers[msg.id] || { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: port }
+    this.__set_peer(msg.id, addr.address, addr.port, msg.nat, port, null, ts)
+    const peer = this.peers[msg.id]
+//      this.peers[msg.id] || { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: port }
 
-    if (peer && msg.nat) peer.nat = msg.nat
+//    if (peer && msg.nat) peer.nat = msg.nat
     // trigger random connections
     // if there are no other peers in the swarm, do nothing
     // peers that have pinged in last 2 minutes
@@ -201,8 +202,8 @@ module.exports = class Swarms extends Peer {
 
     for (let i = 0; i < max_peers; i++) {
       if (this.connections) this.connections[msg.id][ids[i]] = i
-      this.connect(ids[i], msg.id, msg.swarm, this.localPort)
-      this.connect(msg.id, ids[i], msg.swarm, this.localPort)
+      this.connect(ids[i], peer.id, msg.swarm, this.localPort)
+      this.connect(peer.id, ids[i], msg.swarm, this.localPort)
     }
 
     this.emit('join', peer)
