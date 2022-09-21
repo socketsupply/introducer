@@ -33,7 +33,9 @@ module.exports = class Introducer extends Swarms {
     this.connections = {}
   }
 
-  init () {
+  init (ts) {
+    this.restart = ts
+    //super.init(ts)
     if (this.keepalive) {
       this.timer(this.keepalive, this.keepalive, (ts) => {
         for (const id in this.peers) {
