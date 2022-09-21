@@ -16,7 +16,10 @@ class Swarm {
     if (!msg.swarm) msg.swarm = this.id
     if (peer_id.id) peer_id = peer_id.id
     const peer = this.peer.peers[peer_id]
-    if (peer) { this.peer.send(msg, peer, peer.outport) } else {
+    if (peer) {
+      this.peer.send(msg, peer, peer.outport)
+    }
+    else {
       // sometimes it this happens, but not sure why yet. I think it's just a race,
       // and it will still work if we just ignore it. :fingers_crossed:
       console.error('UNKNOWN PEER:', JSON.stringify(peer_id))
