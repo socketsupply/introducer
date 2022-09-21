@@ -124,11 +124,13 @@ module.exports = class PingPeer extends EventEmitter {
     assertTs(ts)
     for (var id in this.peers) {
       var peer = this.peers[id]
-      if(!peer.pong && peer.send > ts - this.keepalive/2) {
+      //if the peer hasn't ponged and we havn't pinged for a little while
+      if(!peer.pong && peer.send < ts - this.keepalive/2) {
         debug(2, 'check peer:', peer.id.substring(0, 8))
         this.ping(peer)
       }
-      else if (peer.pong && peer.pong.ts > ts - this.keepalive) {
+      //if we have already received a pong, within the last 5 tries
+      else if (peer.pong && peer.pong.ts > ts - (this.keepalive*5)) {
         debug(2, 'found peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
         this.ping(peer)
         this.emit('alive', peer) //XXX change to "found"
@@ -183,6 +185,7 @@ module.exports = class PingPeer extends EventEmitter {
       debug(1, 'keepalive active:', this.keepalive)
       this.timer(this.keepalive, this.keepalive, (ts)=> {
         //do this every second, every minute, ping all peers
+        debug(1, 'check peers')
         this.checkPeers(ts)
         if(!this.nat)
           this.discoverNat()
@@ -195,8 +198,9 @@ module.exports = class PingPeer extends EventEmitter {
   on_wakeup (ts) {
     debug(1, 'wakeup')
     for(var k in this.peers) {
-      if(this.peers[k].send < ts - this.keepalive/2)
-        this.ping(this.peers[k], ts)
+      var peer = this.peers[k]
+      if(peer.send < ts - this.keepalive/2)
+        this.ping(peer, ts)
     }
     for(var k in this.swarms)
       this.join(k)
