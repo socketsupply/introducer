@@ -124,12 +124,16 @@ module.exports = class PingPeer extends EventEmitter {
     assertTs(ts)
     for (var id in this.peers) {
       var peer = this.peers[id]
-      if (peer.pong && peer.pong.ts > ts - (this.keepalive*2)) {
+      if(!peer.pong && peer.send > ts - this.keepalive/2) {
+        debug(2, 'check peer:', peer.id.substring(0, 8))
+        this.ping(peer)
+      }
+      else if (peer.pong && peer.pong.ts > ts - this.keepalive) {
         debug(2, 'found peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
         this.ping(peer)
         this.emit('alive', peer) //XXX change to "found"
       }
-      else {
+      else { //if(!peer.pong) {
         if (this.on_disconnect) this.on_disconnect(peer)
          if(!this.peers[id].introducer) delete this.peers[id]
         debug(1, "lost peer:", peer)
