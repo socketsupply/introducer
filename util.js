@@ -31,7 +31,7 @@ function fromAddress (s) {
 
 // check that object
 function isPeer (p) {
-  return (p.address && p.id && p.nat) && (
+  return p && (p.address && p.id && p.nat) && (
     isIp(p.address) && isPort(p.port) && isNat(p.nat) && isId(p.id)
   )
 }
