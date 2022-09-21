@@ -43,6 +43,11 @@ function main (argv) {
         connections: intro.connections
       }, null, 2))
     }).listen(8080)
+    process.on('error', (err) => {
+      console.error(err.stack)
+      fs.appendFileSync(new Date().toISOString() + '\n' + err.stack, 'errors.log')
+      throw err
+    })
     return
   }
 
