@@ -181,8 +181,8 @@ module.exports = class Peer extends PingPeer {
   connect (from_id, to_id, swarm, port) { // XXX remove port arg
     const from = this.peers[from_id]
     const to = this.peers[to_id]
-    if(!isPeer(from)) throw new Error('cannot connect from peer')
-    if(!isPeer(to)) throw new Error('cannot connect from peer')
+    if(!isPeer(from)) throw new Error('cannot connect from undefined peer')
+    if(!isPeer(to)) throw new Error('cannot connect to undefined peer')
     if ((port || from.outport) === undefined) throw new Error('port cannot be undefined')
     // if(!from.nat) throw new Error('cannot connect FROM unknown nat')
     // if(!to.nat) throw new Error('cannot connect TO unknown nat')
