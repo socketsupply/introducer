@@ -165,7 +165,7 @@ module.exports = class PingPeer extends EventEmitter {
           //we have woken up
           debug(1, 'detected wakeup', (_ts - ts)/sec)
           if (this.on_wakeup) {
-            this.on_wakeup()
+            this.on_wakeup(_ts)
             this.emit('awoke')
           }
         }
@@ -188,8 +188,12 @@ module.exports = class PingPeer extends EventEmitter {
     this.emit('init', this)
   }
 
-  on_wakeup () {
+  on_wakeup (ts) {
     debug(1, 'wakeup')
+    for(var k in this.peers) {
+      if(this.peers[k].send < ts - this.keepalive/2)
+        this.ping(this.peers[k], ts)
+    }
     for(var k in this.swarms)
       this.join(k)
   }
