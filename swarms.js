@@ -196,6 +196,7 @@ module.exports = class Swarms extends Peer {
       .filter(id => this.peers[id] && this.peers[id].ts > (ts - 120_000))
       .sort(cmpRand)
 
+
     // a better strategy could be for hard nats to connect to easy or fellow network
     // but easy nats to connect to other easy nats first, to ensure a strong network.
     if (peer.nat === 'hard') {
@@ -214,6 +215,7 @@ module.exports = class Swarms extends Peer {
       return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length, call: 'join' }, addr, port)
     }
 
+    console.log('on_join', ids)
     for (let i = 0; i < max_peers; i++) {
       if (this.connections) this.connections[msg.id][ids[i]] = i
       this.connect(ids[i], peer.id, msg.swarm, this.localPort)
