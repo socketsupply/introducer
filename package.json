@@ -1,6 +1,6 @@
 {
   "name": "@socketsupply/introducer",
-  "version": "6.2.14",
+  "version": "6.2.16",
   "description": "minimal useful holepunching p2p library",
   "main": "index.js",
   "directories": {
@@ -31,7 +31,7 @@
     "tape": "^5.5.3"
   },
   "dependencies": {
-    "@socketsupply/new_protocol": "^2.0",
+    "@socketsupply/new_protocol": "^2.0.2",
     "events": "^3.3.0"
   }
 }
