@@ -275,7 +275,9 @@ module.exports = class PingPeer extends EventEmitter {
       peer.restart = restart
       if(changed)
         peer.pong = null
+      console.log("set_peer", {id, address, port, nat, outport, restart, ts})
       if(_restart != peer.restart) {
+        console.log("PEER RESTARTED")
         if(this.on_peer_restart) {
           debug(1, 'restart peer', id.substring(0, 8))
           this.on_peer_restart(peer, _restart)
@@ -290,7 +292,10 @@ module.exports = class PingPeer extends EventEmitter {
     assertTs(ts)
     // XXX notify on_peer if we havn't heard from this peer before.
     // (sometimes first contact with a peer will be ping, sometimes pong)
-
+    if(isNaN(this.restart)) {
+      console.log(this)
+      throw new Error('this.restart is missing')
+    }
    	if(msg.ts && msg.delay) {
       this.timer(msg.delay|0, 0, () => {
         this.send({
