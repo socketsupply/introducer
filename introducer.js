@@ -35,6 +35,7 @@ module.exports = class Introducer extends Swarms {
 
   init (ts) {
     this.restart = ts
+    console.log("introducer restart:", ts)
     //super.init(ts)
     if (this.keepalive) {
       this.timer(this.keepalive, this.keepalive, (ts) => {

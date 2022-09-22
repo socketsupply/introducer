@@ -164,6 +164,7 @@ module.exports = class PingPeer extends EventEmitter {
     if(this._once) return
     this._once = true
     this.restart = ts
+    console.log("restart:", ts)
     // TODO: we really want to end the tests after this but it keeps them running
     // so we need a way to unref...
     // because in practice I'm fairly sure this should poll to keep port open (say every minute)
