@@ -1,5 +1,5 @@
 'use strict'
-const { isId, isIp, isAddr, debug, isPing, isPong, fromAddress } = require('./util')
+const { isId, isIp, isAddr, debug, isPing, isPong, fromAddress, calcPeerState } = require('./util')
 const EventEmitter = require('events')
 
 /**
@@ -125,6 +125,20 @@ module.exports = class PingPeer extends EventEmitter {
     for (var id in this.peers) {
       var peer = this.peers[id]
       //if the peer hasn't ponged and we havn't pinged for a little while
+      var state = calcPeerState(peer, ts, this.keepalive)
+      if(peer.state != state)
+        debug(1, 'state changed:', state, peer.id)
+      peer.state = state
+      if(state !== 'forget') {
+        this.ping(peer)
+      }
+      else if(!peer.introducer) {
+        delete this.peers[peer.id]
+        this.emit('dead', peer)
+      }
+    }
+/*
+
       if(!peer.pong && peer.send < ts - this.keepalive/2) {
         debug(2, 'check peer:', peer.id.substring(0, 8))
         this.ping(peer)
@@ -142,6 +156,7 @@ module.exports = class PingPeer extends EventEmitter {
         this.emit('dead', peer) //XXX change to "lost"
       }
     }
+    */
   }
 
   init (ts) {

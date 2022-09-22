@@ -72,6 +72,17 @@ function isConnect (p) {
   )
 }
 
+const INACTIVE=1.5
+const MISSING=3
+const FORGET=5
+function calcPeerState (peer, ts, keepalive) {
+//  console.log((ts - peer.recv)/1000, keepalive/1000)
+  if((ts - peer.recv) > keepalive*FORGET) return 'forget'
+  if((ts - peer.recv) > keepalive*MISSING) return 'missing'
+  if((ts - peer.recv) > keepalive*INACTIVE) return 'inactive'
+  return 'active'
+}
+
 module.exports = {
   isIp,
   isPort,
@@ -85,5 +96,7 @@ module.exports = {
 
   isPing,
   isPong,
-  isConnect
+  isConnect,
+
+  calcPeerState
 }
