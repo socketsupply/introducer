@@ -165,6 +165,7 @@ module.exports = class PingPeer extends EventEmitter {
     this._once = true
     this.restart = ts
     console.log("restart:", ts)
+    if(this.restart == null) throw new Error('cannot have null restart time')
     // TODO: we really want to end the tests after this but it keeps them running
     // so we need a way to unref...
     // because in practice I'm fairly sure this should poll to keep port open (say every minute)
@@ -291,18 +292,20 @@ module.exports = class PingPeer extends EventEmitter {
   on_ping (msg, addr, _port, ts) {
     if(!isPing(msg)) return debug(1, 'ignored invalid ping:'+JSON.stringify(msg))
     assertTs(ts)
+    if(this.restart == null) throw new Error('cannot have null restart time')
     // XXX notify on_peer if we havn't heard from this peer before.
     // (sometimes first contact with a peer will be ping, sometimes pong)
     if(isNaN(this.restart)) {
       console.log(this)
       throw new Error('this.restart is missing')
     }
+    var _msg = {
+          type: 'pong', id: this.id, ...addr, nat: peer.nat, restart: this.restart,
+          ts:msg.ts}
+
    	if(msg.ts && msg.delay) {
       this.timer(msg.delay|0, 0, () => {
-        this.send({
-          type: 'pong', id: this.id, ...addr, nat: peer.nat, restart: this.restart,
-          ts:msg.ts, delay: msg.delay
-        }, addr, _port)
+        this.send({..._msg, delay: msg.delay}, addr, _port)
       })
     }
     else {
@@ -315,7 +318,7 @@ module.exports = class PingPeer extends EventEmitter {
         this.send({ type: 'spin', id: this.id, ...addr, nat: this.nat }, {...addr, port: msg.spinPort}, _port)
       }
       //still pong like normal though.
-      this.send({ type: 'pong', id: this.id, ...addr, nat: this.nat }, addr, _port)
+      this.send(_msg, addr, _port)
     }
     const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart || null, ts)
     var peer = this.peers[msg.id]
