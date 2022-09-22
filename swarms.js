@@ -184,6 +184,7 @@ module.exports = class Swarms extends Peer {
     swarm[msg.id] = ts
     this.__set_peer(msg.id, addr.address, addr.port, msg.nat, port, null, ts)
     const peer = this.peers[msg.id]
+    console.log("JOIN_PEER", peer, msg.swarm)
 //      this.peers[msg.id] || { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: port }
 
 //    if (peer && msg.nat) peer.nat = msg.nat
