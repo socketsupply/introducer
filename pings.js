@@ -300,7 +300,7 @@ module.exports = class PingPeer extends EventEmitter {
       throw new Error('this.restart is missing')
     }
     var _msg = {
-          type: 'pong', id: this.id, ...addr, nat: peer.nat, restart: this.restart,
+          type: 'pong', id: this.id, ...addr, nat: this.nat, restart: this.restart,
           ts:msg.ts}
 
    	if(msg.ts && msg.delay) {
