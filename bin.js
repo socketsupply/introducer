@@ -31,6 +31,12 @@ function main (argv) {
     return console.log(version)
 
   if (cmd === 'introducer') {
+    if(process.env.DEBUG_CRASH) {
+      console.log('debug_crash', process.env.DEBUG_CRASH)
+      setTimeout(()=>{
+        throw new Error('crash test')
+      }, +process.env.DEBUG_CRASH)
+    }
     const intro = new Introducer(config)
     Wrap(intro, [config.port])
     http.createServer(function (req, res) {
@@ -43,10 +49,17 @@ function main (argv) {
         connections: intro.connections
       }, null, 2))
     }).listen(8080)
-    process.on('error', (err) => {
-      console.error(err.stack)
-      fs.appendFileSync(new Date().toISOString() + '\n' + err.stack, 'errors.log')
-      throw err
+    process.on('uncaughtException', (err) => {
+      console.log(err.stack)
+      fs.appendFileSync('./errors.log',
+        new Date().toISOString() + '\n' +
+        err.stack+'\n' +
+        JSON.stringify({
+          peers: intro.peers,
+          swarms: intro.swarms
+        }, null, 2) + '\n\n',
+        {flag: 'a'})
+      process.exit(1)
     })
     return
   }
