@@ -140,7 +140,7 @@ module.exports = class Peer extends PingPeer {
             debug(1, 'connected:', i, s, short_id, ap)
             return false
           }
-          this.send({ type: 'ping', id: this.id, nat: this.nat }, {
+          this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, {
             address: msg.address, port: random_port(ports)
           }, this.localPort)
         })
@@ -152,7 +152,7 @@ module.exports = class Peer extends PingPeer {
         var ports = {}
         for (var i = 0; i < 256; i++) {
           const p = random_port(ports)
-          this.send({ type: 'ping', id: this.id, nat: this.nat }, msg, p)
+          this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, msg, p)
         }
       } else if (msg.nat === 'hard') {
         // if we are both hard nats, we must implement tunneling
