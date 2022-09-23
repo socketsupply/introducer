@@ -133,10 +133,12 @@ module.exports = class Swarms extends Peer {
     if (typeof target_peers !== 'number') {
       throw new Error('target_peers must be a number, was:' + target_peers)
     }
+    this.swarms[swarm_id] = this.swarms[swarm_id] || {} 
     const send = (id) => {
       const peer = this.peers[id]
       this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers: target_peers | 0 }, peer, peer.outport || this.localPort)
     }
+    //check if these peers are currently active
     const current_peers = Object.keys(this.swarms[swarm_id] || {}).length
     // .filter(id => !!this.peers[id]).length
     if (current_peers >= target_peers) return
