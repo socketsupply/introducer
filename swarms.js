@@ -169,9 +169,17 @@ module.exports = class Swarms extends Peer {
     //XXX count the active peers already in this swarm
     //    and send how many more peers we need
     //    also consider sending join messages to other peers in this swarm
-    if (p && p.introducer) {
+    if (!p) return
+     if(p.introducer) {
       for (const k in this.swarms) { this.join(k) }
     }
+    else
+      for (const k in this.swarms) {
+        if(this.swarms[k][other.id])
+          this.join(k)
+        
+      }
+      
   }
 
 
