@@ -194,7 +194,6 @@ module.exports = class Swarms extends Peer {
     swarm[msg.id] = ts
     this.__set_peer(msg.id, addr.address, addr.port, msg.nat, port, null, ts)
     const peer = this.peers[msg.id]
-    console.log("JOIN_PEER", peer, msg.swarm)
 //      this.peers[msg.id] || { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: port }
 
 //    if (peer && msg.nat) peer.nat = msg.nat
@@ -226,7 +225,6 @@ module.exports = class Swarms extends Peer {
       return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length, call: 'join' }, addr, port)
     }
 
-    console.log('on_join', ids)
     for (let i = 0; i < max_peers; i++) {
       if (this.connections) this.connections[msg.id][ids[i]] = i
       this.connect(ids[i], peer.id, msg.swarm, this.localPort)

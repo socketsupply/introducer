@@ -31,12 +31,6 @@ function main (argv) {
     return console.log(version)
 
   if (cmd === 'introducer') {
-    if(process.env.DEBUG_CRASH) {
-      console.log('debug_crash', process.env.DEBUG_CRASH)
-      setTimeout(()=>{
-        throw new Error('crash test')
-      }, +process.env.DEBUG_CRASH)
-    }
     const intro = new Introducer(config)
     Wrap(intro, [config.port])
     http.createServer(function (req, res) {
@@ -94,8 +88,8 @@ function main (argv) {
       console.log('failed to detect nat, offline?')
       process.exit(1)
     }, 3_000)
-    peer.on_nat = (n) => {
-      console.log(n)
+    peer.on_nat = (nat) => {
+      console.log(nat, peer.publicAddress+':'+peer.publicPort)
       if (Object.keys(peer.peers).length < 2) {
         console.error('found only ' + Object.keys(peer.peers).length + ' peers')
         process.exit(1)

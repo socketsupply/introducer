@@ -164,7 +164,6 @@ module.exports = class PingPeer extends EventEmitter {
     if(this._once) return
     this._once = true
     this.restart = ts
-    console.log("restart:", ts)
     if(this.restart == null) throw new Error('cannot have null restart time')
     // TODO: we really want to end the tests after this but it keeps them running
     // so we need a way to unref...
@@ -254,13 +253,14 @@ module.exports = class PingPeer extends EventEmitter {
     //if(restart === null) throw new Error('null restart time')
     assertTs(ts)
     if(!this.peers[id]) {
-      debug(1, 'new peer', id.substring(0, 8), fromAddress({address, port}), nat)
+      debug(2, 'new peer', id.substring(0, 8), fromAddress({address, port}), nat)
       const peer = this.peers[id] = { id, address, port, nat, ts, outport, restart, introducer: isIntroducer }
       if(isIntroducer)
         peer.introducer = true
       return true
     }
     else {
+      debug(2, 'set peer', id.substring(0, 8), fromAddress({address, port}), nat)
       let changed = false
       const peer = this.peers[id]
       if(address != peer.address) {
@@ -278,9 +278,7 @@ module.exports = class PingPeer extends EventEmitter {
       peer.restart = restart || _restart
       if(changed)
         peer.pong = null
-      console.log("set_peer", {id, address, port, nat, outport, restart, ts})
       if(_restart != peer.restart) {
-        console.log("PEER RESTARTED")
         if(this.on_peer_restart) {
           debug(1, 'restart peer', id.substring(0, 8))
           this.on_peer_restart(peer, _restart)
@@ -297,7 +295,6 @@ module.exports = class PingPeer extends EventEmitter {
     // XXX notify on_peer if we havn't heard from this peer before.
     // (sometimes first contact with a peer will be ping, sometimes pong)
     if(isNaN(this.restart)) {
-      console.log(this)
       throw new Error('this.restart is missing')
     }
     var _msg = {
