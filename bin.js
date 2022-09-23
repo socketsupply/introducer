@@ -51,7 +51,7 @@ function main (argv) {
     }).listen(8080)
     process.on('uncaughtException', (err) => {
       console.log(err.stack)
-      fs.appendFileSync('./errors.log',
+      fs.appendFileSync('./introducer-crash.log',
         new Date().toISOString() + '\n' +
         err.stack+'\n' +
         JSON.stringify({
