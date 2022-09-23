@@ -234,7 +234,7 @@ module.exports = class PingPeer extends EventEmitter {
       this.__set_peer(peer.id, peer.address, peer.port, peer.nat, peer.outport, null, ts, null)
       peer.send = ts
     }
-    this.send({ type: 'ping', id: this.id, nat: this.nat }, peer, peer.outport || this.localPort)
+    this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, peer, peer.outport || this.localPort)
   }
 
   // method to check if we are already communicating
@@ -251,6 +251,7 @@ module.exports = class PingPeer extends EventEmitter {
   }
 
   __set_peer (id, address, port, nat, outport=this.localPort, restart = null, ts, isIntroducer) {
+    //if(restart === null) throw new Error('null restart time')
     assertTs(ts)
     if(!this.peers[id]) {
       debug(1, 'new peer', id.substring(0, 8), fromAddress({address, port}), nat)
@@ -274,7 +275,7 @@ module.exports = class PingPeer extends EventEmitter {
       peer.ts = ts
       peer.outport = outport
       var _restart = peer.restart
-      peer.restart = restart
+      peer.restart = restart || _restart
       if(changed)
         peer.pong = null
       console.log("set_peer", {id, address, port, nat, outport, restart, ts})
@@ -300,8 +301,8 @@ module.exports = class PingPeer extends EventEmitter {
       throw new Error('this.restart is missing')
     }
     var _msg = {
-          type: 'pong', id: this.id, ...addr, nat: this.nat, restart: this.restart,
-          ts:msg.ts}
+      type: 'pong', id: this.id, ...addr, nat: this.nat, restart: this.restart, ts:msg.ts
+    }
 
    	if(msg.ts && msg.delay) {
       this.timer(msg.delay|0, 0, () => {
@@ -320,7 +321,7 @@ module.exports = class PingPeer extends EventEmitter {
       //still pong like normal though.
       this.send(_msg, addr, _port)
     }
-    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart || null, ts)
+    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart, ts)
     var peer = this.peers[msg.id]
     peer.recv = ts
 
@@ -342,7 +343,7 @@ module.exports = class PingPeer extends EventEmitter {
     // (sometimes we ping a peer, and their response is first contact)
     if (!msg.port) throw new Error('pong: missing port')
 
-    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart || null, ts)
+    const isNew = this.__set_peer(msg.id, addr.address, addr.port, msg.nat, _port, msg.restart, ts)
     const peer = this.peers[msg.id]
     var spin = peer.pong && peer.pong.spin
     peer.pong = {ts, address: msg.address, port: msg.port}
