@@ -18,8 +18,7 @@ class Swarm {
     const peer = this.peer.peers[peer_id]
     if (peer) {
       this.peer.send(msg, peer, peer.outport)
-    }
-    else {
+    } else {
       // sometimes it this happens, but not sure why yet. I think it's just a race,
       // and it will still work if we just ignore it. :fingers_crossed:
       console.error('UNKNOWN PEER:', JSON.stringify(peer_id))
@@ -35,7 +34,7 @@ class Swarm {
   swarmcast (msg, not_peer = null) {
     const swarm = this.peer.swarms[this.id]
     for (const k in swarm) {
-      if (k != not_peer) { this.send(msg, k) }
+      if (k !== not_peer) { this.send(msg, k) }
     }
   }
 }

@@ -1,3 +1,4 @@
+const Debug = require('debug')
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
@@ -9,6 +10,8 @@ const Chat = require('../swarms')
 const Introducer = require('../introducer')
 const swarm = createId('test swarm')
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
+
+const debug = Debug('wakeup')
 
 const localPort =  3456
 const A = '1.1.1.1'
@@ -33,7 +36,7 @@ function createNatPeer (network, id, address_nat, address, Nat) {
   let node = new Node(peer)
   network.add(address_nat, nat)
   nat.add(address, node)
-  console.log("NODE", node.sleep)
+  debug("NODE", node.sleep)
   return [peer, nat, node]
 }
 
@@ -69,14 +72,14 @@ IndependentFirewallNat)
   t.ok(peer_easy.peers[peer_hard.id], 'easy peer knows hard peer')
   t.ok(peer_hard.peers[peer_easy.id], 'hard peer knows easy peer')
 
-  console.log('keepalive', K)
+  debug('keepalive', K)
 
   network.iterateUntil(K/2)
 
   node_hard.sleep(true)
 
   peer_easy.handlers[swarm].chat({content: 'missing', ts: K*0.66, swarm}) //node_hard will not see this
-  
+
   //TODO test emit wakeup/lost peer event
 
   network.iterateUntil(11*K)
@@ -84,7 +87,7 @@ IndependentFirewallNat)
   //another half minute is enough to wake up
   t.notOk(peer_easy.peers[peer_hard.id], 'easy has forgotten hard, after being offline for 10 minutes')
 
-  console.log("WAKEUP")
+  debug("WAKEUP")
   node_hard.sleep(false)
 
   network.iterateUntil(12*K)
@@ -94,7 +97,7 @@ IndependentFirewallNat)
   //give the peer a chance to reconnect,
   //since we have not yet any form of implemented eventual consistency
 
-  console.log(peer_easy.peers[peer_hard.id])
+  debug(peer_easy.peers[peer_hard.id])
   peer_easy.handlers[swarm].chat({content: 'expected', ts: 11*K, swarm}) //node_hard will not see this
 
   network.iterateUntil(13*K)
@@ -102,8 +105,8 @@ IndependentFirewallNat)
 
   t.equal(peer_easy.data[swarm].length, 2)
   t.equal(peer_hard.data[swarm].length, 1)
-  console.log(peer_easy.data[swarm])
-  console.log(peer_hard.data[swarm])
+  debug(peer_easy.data[swarm])
+  debug(peer_hard.data[swarm])
 
   //TODO: peer timers need to corectly integrate with netsim, and nat simulators need timeouts
 

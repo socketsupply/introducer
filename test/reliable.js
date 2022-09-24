@@ -1,5 +1,6 @@
 'use strict'
 
+const Debug = require('debug')
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
@@ -12,6 +13,8 @@ const Introducer = require('../introducer')
 
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
 // var nc = require('../')
+
+const debug = Debug('reliable')
 
 const A = '1.1.1.1'
 const B = '2.2.2.2'
@@ -68,13 +71,13 @@ test('swarm, connect then update', function (t) {
   peerD.join(swarm)
   peerE.join(swarm)
   network.iterateUntil(2000)
-  console.log(peerD.state)
-  console.log(peerE.state)
+  debug(peerD.state)
+  debug(peerE.state)
   t.ok(peerE.peers[peerD.id])
   t.ok(peerD.peers[peerE.id])
   swarmD.update('HELLO2', swarm, network.queue.ts)
   network.iterateUntil(3000)
-  console.log(peerE.state)
+  debug(peerE.state)
 
   t.deepEqual(swarmE.data, swarmD.data)
 
@@ -94,7 +97,7 @@ test('swarm, connect then update', function (t) {
   swarmD.update('welcome', swarm, network.queue.ts)
   network.iterateUntil(6000)
   t.deepEqual(swarmF.data, swarmD.data)
-//  console.log(swarmF.waiting)
+//  debug(swarmF.waiting)
   t.equal(received.length, 3)
   t.end()
 })
@@ -197,8 +200,8 @@ test.only('swarm, make updates while offline, before connection', function (t) {
 
   t.deepEqual(swarmE.data, swarmD.data)
 //  t.deepEqual(swarmE.data, swarmD.data)
-  console.log(swarmD.data)
-  //console.log(swarmE.data)
+  debug(swarmD.data)
+  //debug(swarmE.data)
 //  network.add(F, natF)
   /*
   natF.add(f, new Node(peerF = new Swarms({ id: ids.f, ...intros })))

@@ -6,11 +6,7 @@
 const { debug } = require('./util')
 const Peer = require('./')
 const Swarm = require('./swarm/append')
-const { isId, isPeer } = require('./util')
-
-function equalAddr (a, b) {
-  return a && b && a.address === b.address && a.port === b.port
-}
+const { isId } = require('./util')
 
 function cmpRand () {
   return Math.random() - 0.5
@@ -42,16 +38,14 @@ module.exports = class Swarms extends Peer {
   }
 
   // create a data model, this takes an id, plus a function to update the datamodel
-  /// *
   get data () {
     const o = {}
     for (const k in this.handlers) { o[k] = this.handlers[k].data }
     return o
   }
 
-  //* /
-  createModel (swarm, swarm_handler) {
-    this.handlers[swarm] = swarm_handler || new Swarm(swarm)
+  createModel (swarm, swarmHandler) {
+    this.handlers[swarm] = swarmHandler || new Swarm(swarm)
     this.handlers[swarm].peer = this
     this.handlers[swarm].id = swarm
     // s.on_chat = (msg) => {
@@ -87,14 +81,14 @@ module.exports = class Swarms extends Peer {
   }
 
   on_peer (peer) {
-    for(var swarm in this.swarms)
-      if(this.swarms[swarm][peer.id]) {
-        if(this.handlers[swarm] && this.handlers[swarm].on_peer)
-          this.handlers[swarm].on_peer(peer)
+    for (const swarm in this.swarms) {
+      if (this.swarms[swarm][peer.id]) {
+        if (this.handlers[swarm] && this.handlers[swarm].on_peer) { this.handlers[swarm].on_peer(peer) }
       }
+    }
     debug(1, 'connected peer:', peer)
   }
-/*
+  /*
   // broadcast a message, optionally skipping a particular peer (such as the peer that sent this)
   broadcast (msg, not_addr = { address: null }) {
     for (const k in this.peers) {
@@ -133,55 +127,52 @@ module.exports = class Swarms extends Peer {
     if (typeof target_peers !== 'number') {
       throw new Error('target_peers must be a number, was:' + target_peers)
     }
-    this.swarms[swarm_id] = this.swarms[swarm_id] || {} 
+    this.swarms[swarm_id] = this.swarms[swarm_id] || {}
     const send = (id) => {
       const peer = this.peers[id]
       this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers: target_peers | 0 }, peer, peer.outport || this.localPort)
     }
-    //check if these peers are currently active
+
+    // check if these peers are currently active
     const current_peers = Object.keys(this.swarms[swarm_id] || {}).length
     // .filter(id => !!this.peers[id]).length
+
     if (current_peers >= target_peers) return
     // update: call join on every introducer (static nat)
     // TODO include count of current connected swarm peers
-    //     (so don't create too many connections)
-    //     hmm, to join a swarm, you need a connection to anyone in that swarm.
-    //     a DHT would be good for that, because it's one lookup.
-    //     after that the swarm is a gossip flood
+    // (so don't create too many connections)
+    // hmm, to join a swarm, you need a connection to anyone in that swarm.
+    // a DHT would be good for that, because it's one lookup.
+    // after that the swarm is a gossip flood
 
     if (current_peers) {
-      for (var id in this.swarms[swarm_id]) {
+      for (const id in this.swarms[swarm_id]) {
         if (this.peers[id]) send(id)
       }
     }
 
-    for (var id in this.peers) {
+    for (const id in this.peers) {
       const peer = this.peers[id]
       if (peer.nat === 'static') send(id)
     }
   }
 
-
   // if the introducer server restarts, rejoin swarms
   // TODO if a PEER restarts, rejoin swarms with them that they are part of.
   on_peer_restart (other, restart) {
     const p = this.peers[other.id]
-    //XXX count the active peers already in this swarm
-    //    and send how many more peers we need
-    //    also consider sending join messages to other peers in this swarm
+    // XXX count the active peers already in this swarm
+    // and send how many more peers we need
+    // also consider sending join messages to other peers in this swarm
     if (!p) return
-     if(p.introducer) {
+    if (p.introducer) {
       for (const k in this.swarms) { this.join(k) }
-    }
-    else
+    } else {
       for (const k in this.swarms) {
-        if(this.swarms[k][other.id])
-          this.join(k)
-        
+        if (this.swarms[k][other.id]) { this.join(k) }
       }
-      
+    }
   }
-
 
   // __set_peer (id, address, port, nat, outport, restart) {
   on_join (msg, addr, port, ts) {
@@ -189,22 +180,35 @@ module.exports = class Swarms extends Peer {
 
     if (!isId(msg.swarm)) return debug(1, 'join, no swarm:', msg)
     if (!isId(msg.id)) return debug(1, 'join, no id:', msg)
+<<<<<<< HEAD
+=======
+    // const ts = Date.now()
+>>>>>>> 2052777 (makes code consistent with itself, fixes some variable over-writes, unused variable, and other issues that could cause bugs)
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = ts
     this.__set_peer(msg.id, addr.address, addr.port, msg.nat, port, null, ts)
     const peer = this.peers[msg.id]
+<<<<<<< HEAD
+=======
+    // this.peers[msg.id] || { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: port }
+    // if (peer && msg.nat) peer.nat = msg.nat
+>>>>>>> 2052777 (makes code consistent with itself, fixes some variable over-writes, unused variable, and other issues that could cause bugs)
 
     // trigger random connections
     // if there are no other peers in the swarm, do nothing
     // peers that have pinged in last 2 minutes
     let ids = Object.keys(swarm)
+
     // remove ourself, then randomly shuffle list
     ids.splice(ids.indexOf(msg.id), 1)
     ids = ids
       .filter(id => this.peers[id]) //defensive: ignore peers which might be in swarm table but not peers tabel
       .sort(cmpRand)
+<<<<<<< HEAD
       //this is a filter to only connect recently active peers, but this was wrong...
       //.filter(id => this.peers[id].recv > (ts - this.keepalive*4))
+=======
+>>>>>>> 2052777 (makes code consistent with itself, fixes some variable over-writes, unused variable, and other issues that could cause bugs)
 
     // a better strategy could be for hard nats to connect to easy or fellow network
     // but easy nats to connect to other easy nats first, to ensure a strong network.
@@ -212,13 +216,19 @@ module.exports = class Swarms extends Peer {
       // hard nat can only connect to easy nats, but can also connect to peers on the same nat
       ids = ids.filter(id => this.peers[id] && (this.peers[id].nat === 'static' || this.peers[id].nat === 'easy' || this.peers[id].address === peer.address))
     }
+
     if (this.connections) this.connections[msg.id] = {}
 
 
     // send messages to the random peers indicating that they should connect now.
     // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
     const max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
+<<<<<<< HEAD
     debug(1, 'join', max_peers, msg.id.substring(0,8) + '->' + ids.map(id=>id.substring(0, 8)).join(','))
+=======
+    debug(1, 'join', max_peers, msg.id + '->' + ids.join(','))
+
+>>>>>>> 2052777 (makes code consistent with itself, fixes some variable over-writes, unused variable, and other issues that could cause bugs)
     // if there are no other connectable peers, at least respond to the join msg
     if (!max_peers || !ids.length) {
       debug(1, 'join error: no peers')
@@ -227,6 +237,8 @@ module.exports = class Swarms extends Peer {
 
     for (let i = 0; i < max_peers; i++) {
       if (this.connections) this.connections[msg.id][ids[i]] = i
+      if (!ids[i]) console.log('BAD PEER', `${i} is not in ${ids}`)
+      if (!peer.id) console.log('BAD PEER', peer)
       this.connect(ids[i], peer.id, msg.swarm, this.localPort)
       this.connect(peer.id, ids[i], msg.swarm, this.localPort)
     }
@@ -234,10 +246,9 @@ module.exports = class Swarms extends Peer {
     this.emit('join', peer)
   }
 
-  /// *
   on_msg (msg, addr, port, ts) {
-    if(super.on_msg(msg, addr, port, ts) === false) {
-      if(msg.swarm) {
+    if (super.on_msg(msg, addr, port, ts) === false) {
+      if (msg.swarm) {
         const peer = peerFromAddress(this.peers, addr)
         if (!peer) return
         const swarm_id = msg.swarm
@@ -248,7 +259,6 @@ module.exports = class Swarms extends Peer {
           swarm[fn_name](msg, peer, port, ts)
         }
       }
-    }    
+    }
   }
-  //* /
 }

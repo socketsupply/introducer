@@ -1,10 +1,4 @@
-const { isId, debug } = require('./util')
-const PingPeer = require('./pings')
 const Swarms = require('./swarms')
-const EventEmitter = require('events')
-function cmpRand () {
-  return Math.random() - 0.5
-}
 
 /**
   * this file runs on a publically addressable peer. AKA a server.
@@ -18,8 +12,6 @@ function cmpRand () {
   * (either by connecting them directly to particular peers,
   *  or to random peers in a particular swarm)
   */
-
-const port = 3456
 
 // can't depend on ./pings.js because that expects an introducer
 module.exports = class Introducer extends Swarms {
@@ -35,8 +27,8 @@ module.exports = class Introducer extends Swarms {
 
   init (ts) {
     this.restart = ts
-    if(ts === 0) throw new Error('introducer.restart should not be zero')
-    //super.init(ts)
+    if (ts === 0) throw new Error('introducer.restart should not be zero')
+    // super.init(ts)
     if (this.keepalive) {
       this.timer(this.keepalive, this.keepalive, (ts) => {
         for (const id in this.peers) {

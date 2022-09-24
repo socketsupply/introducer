@@ -1,4 +1,5 @@
 
+const Debug = require('debug')
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
@@ -10,6 +11,8 @@ const Introducer = require('../introducer')
 
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
 // var nc = require('../')
+//
+const debug = Debug('nat-check')
 
 const A = '1.1.1.1'
 const B = '2.2.2.2'

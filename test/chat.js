@@ -13,9 +13,10 @@
 //      DHT
 //      encryption
 
-var test = require('tape')
-var Chat = require('../swarms')
-var Introducer = require('../introducer')
+const Debug = require('debug')
+const test = require('tape')
+const Chat = require('../swarms')
+const Introducer = require('../introducer')
 
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
@@ -23,6 +24,8 @@ const { EventEmitter } = require('events')
 const { createId } = require('./util')
 
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
+
+const debug = Debug('chat')
 
 const A = '1.1.1.1'
 const B = '2.2.2.2'
@@ -60,9 +63,9 @@ test('broadcast', function (t) {
   network.add(A, new Node(dejoin(new Introducer({ id: ids.a }))))
   network.add(B, new Node(dejoin(new Introducer({ id: ids.b }))))
 
-  network.add(D, new Node(peerD = new Chat({ id: ids.d, ...intros})))
-  network.add(E, new Node(peerE = new Chat({ id: ids.e, ...intros})))
-  network.add(F, new Node(peerF = new Chat({ id: ids.f, ...intros})))
+  network.add(D, new Node(peerD = new Chat({ id: ids.d, ...intros })))
+  network.add(E, new Node(peerE = new Chat({ id: ids.e, ...intros })))
+  network.add(F, new Node(peerF = new Chat({ id: ids.f, ...intros })))
 
   peerD.createModel(swarm)
   peerE.createModel(swarm)
@@ -73,7 +76,7 @@ test('broadcast', function (t) {
   t.equal(peerD.nat, 'static')
   t.equal(peerE.nat, 'static')
   t.equal(peerF.nat, 'static')
-  console.log(peerE.peers)
+  debug(peerE.peers)
 
   peerD.on_change = peerE.on_change = peerF.on_change = () => {}
 
@@ -173,18 +176,18 @@ test('broadcast, hard,easy,hard nat', function (t) {
     network.iterate(-1)
   }
 
-  console.log("**************")
+  debug("**************")
   var ts = Date.now()
   peerD.handlers[swarm].chat({content: "hello!", ts, swarm}) //message should be broadcast across network.
   t.equal(peerD.data[swarm].length, 1)
-  console.log(peerE.peers)
-  console.log('d->e', peerD.peers[peerE.id])
-  console.log('f->e', peerF.peers[peerE.id])
+  debug(peerE.peers)
+  debug('d->e', peerD.peers[peerE.id])
+  debug('f->e', peerF.peers[peerE.id])
   network.iterate(-1)
 
   t.ok(peerD.peers[peerE.id])
   t.ok(peerF.peers[peerE.id])
-  console.log(peerD.peers[peerE.id])
+  debug(peerD.peers[peerE.id])
   t.deepEqual(peerE.data, peerD.data)
   t.deepEqual(peerF.data, peerD.data)
 
@@ -203,7 +206,7 @@ test('broadcast, easy, hard, easy nat', function (t) {
 
   network.iterate(-1)
 
-  console.log("INTRO", intro1)
+  debug("INTRO", intro1)
   t.equal(peerD.nat, 'easy')
   t.equal(peerE.nat, 'hard')
   t.equal(peerF.nat, 'easy')
@@ -220,7 +223,7 @@ test('broadcast, easy, hard, easy nat', function (t) {
 
     network.iterate(-1)
   }
-  console.log(peerE.peers)
+  debug(peerE.peers)
 
   var ts = Date.now()
   peerD.handlers[swarm].chat({content: "hello!", ts, swarm}) //message should be broadcast across network.
@@ -230,7 +233,7 @@ test('broadcast, easy, hard, easy nat', function (t) {
 
   t.ok(peerD.peers[peerE.id])
   t.ok(peerF.peers[peerE.id])
-  console.log(peerD.peers[peerE.id])
+  debug(peerD.peers[peerE.id])
   t.deepEqual(peerE.data, peerD.data)
   t.deepEqual(peerF.data, peerD.data)
 

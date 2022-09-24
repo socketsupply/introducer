@@ -1,16 +1,13 @@
 #! /usr/bin/env node
 const crypto = require('crypto')
-const debug = process.env.DEBUG ? function (...args) { console.log(...args) } : function () {}
 const fs = require('fs')
 const os = require('os')
 const dgram = require('dgram')
 const path = require('path')
-const { EventEmitter } = require('events')
 const Demo = require('./swarms')
 const Introducer = require('./introducer')
 const Config = require('./lib/config')(fs)
 const Wrap = require('./wrap')(dgram, os, Buffer)
-const util = require('./util')
 const http = require('http')
 const version = require('./package.json').version
 const constants = require('./lib/constants')()
@@ -27,8 +24,7 @@ function main (argv) {
   //  const swarm = createId('test swarm')
   const swarm = '594085b1d40f8bf3e73fca7a5e72602fa15aca64f7685ecf914d75b21449d930'
 
-  if(cmd === 'version')
-    return console.log(version)
+  if (cmd === 'version') { return console.log(version) }
 
   if (cmd === 'introducer') {
     const intro = new Introducer(config)
@@ -36,7 +32,7 @@ function main (argv) {
     http.createServer(function (req, res) {
       res.end(JSON.stringify({
         restart: new Date(intro.restart).toString(),
-        last_crash: (Date.now() - intro.restart)/1000,
+        last_crash: (Date.now() - intro.restart) / 1000,
         version,
         peers: intro.peers,
         swarms: intro.swarms,
@@ -47,12 +43,12 @@ function main (argv) {
       console.log(err.stack)
       fs.appendFileSync('./introducer-crash.log',
         new Date().toISOString() + '\n' +
-        err.stack+'\n' +
+        err.stack + '\n' +
         JSON.stringify({
           peers: intro.peers,
           swarms: intro.swarms
         }, null, 2) + '\n\n',
-        {flag: 'a'})
+        { flag: 'a' })
       process.exit(1)
     })
     return
@@ -67,13 +63,14 @@ function main (argv) {
     return
   }
 
-  //this setup is shared by nat command, and running the chat protocol also
+  // this setup is shared by nat command, and running the chat protocol also
 
   const peer = new Demo({ ...config, keepalive: constants.keepalive })
   const chat_swarm = peer.createModel(swarm, new Reliable())
   chat_swarm.on_change = (msg) => {
     console.log(msg.id.substring(0, 8), peerType(peer.peers[msg.id]), msg.ts, msg.content)
   }
+
   function peerType (peer) {
     return peer ? (/192\.168\.\d+\.\d+/.test(peer.address) ? 'local' : peer.nat) || '???' : '!!!'
   }
@@ -89,23 +86,21 @@ function main (argv) {
       process.exit(1)
     }, 3_000)
     peer.on_nat = (nat) => {
-      console.log(nat, peer.publicAddress+':'+peer.publicPort)
+      console.log(nat, peer.publicAddress + ':' + peer.publicPort)
       if (Object.keys(peer.peers).length < 2) {
         console.error('found only ' + Object.keys(peer.peers).length + ' peers')
         process.exit(1)
       }
       process.exit(0)
     }
-  }
-
-  else if (cmd) {
-    console.log('unknown command:'+cmd)
+  } else if (cmd) {
+    console.log('unknown command:' + cmd)
     process.exit(1)
   }
 
   Wrap(peer, [config.port, config.spinPort])
 
-  console.log('id:', config.id, 'introducer@'+version)
+  console.log('id:', config.id, 'introducer@' + version)
   process.stdin.on('data', function (data) {
     data = data.toString()
     const m = /^\s*\/(\w+)/.exec(data)

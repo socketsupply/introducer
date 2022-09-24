@@ -2,7 +2,7 @@ const createIP = require('./lib/ip')
 const { debug } = require('./util')
 
 function isPort (p) {
-  return p == p & 0xffff
+  return p === (p & 0xffff)
 }
 
 function isString (s) {
@@ -75,7 +75,7 @@ module.exports = (UDP, OS, Buffer) => {
       debug(2, 'bind', p, must_bind)
       peer.emit('bind', p)
 
-      return bound[p] = bound[p] || UDP
+      const socket = bound[p] = bound[p] || UDP
         .createSocket('udp4')
         .bind(p)
         .on('listening', () => {
@@ -99,6 +99,8 @@ module.exports = (UDP, OS, Buffer) => {
             if (process.env.DEBUG) { console.error('could not bind port:' + err.port) }
           } else { peer.emit('error', err) }
         })
+
+      return socket
     }
 
     function maybe_bind (p, must_bind = false) {

@@ -19,7 +19,7 @@ module.exports = class ReliableSwarm extends Swarm {
 
   // receive flooded message
   on_update (msg, addr, port) {
-    let info = np.update(this.data, msg, msg.ts)
+    const info = np.update(this.data, msg, msg.ts)
     this.data = info.state
     if (info.queued) {
       // request missing messages
@@ -28,8 +28,7 @@ module.exports = class ReliableSwarm extends Swarm {
       // already have this message, so do nothing
       // OR, ebt prune this peer?
     } else {
-      if (this.on_change)
-        info.applied.forEach(msg => this.on_change(msg, this.data))
+      if (this.on_change) { info.applied.forEach(msg => this.on_change(msg, this.data)) }
       // new message, broadcast to everyone in swarm (that hasn't pruned us)
       // XXX maybe repeats should be handled differently, if I had to request this message again,
       //    don't broadcast it. (probably everyone got it directly already?)
@@ -61,7 +60,7 @@ module.exports = class ReliableSwarm extends Swarm {
   }
 
   update (content, ts) {
-    if('number' !== typeof ts) throw new Error('expected timestamp, got:'+ts)
+    if (typeof ts !== 'number') throw new Error('expected timestamp, got:' + ts)
     const msg = np.create(this.data, { type: 'update', content, id: this.peer.id }, ts)
     this.data = np.update(this.data, msg).state
     this.swarmcast(msg, this.id)

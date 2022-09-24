@@ -3,7 +3,7 @@ function isIp (s) {
 }
 
 function isPort (p) {
-  return 0 < p && p <= 65535
+  return p === (p & 0xffff)
 }
 
 function isAddr (a) {
@@ -22,12 +22,10 @@ function fromAddress (s) {
   return s.address + ':' + s.port
 }
 
-
 // function toAddress (s) {
 //   const [address, port] = s.split(':')
 //   return { address, port: +port }
 // }
-
 
 // check that object
 function isPeer (p) {
@@ -43,14 +41,14 @@ const debug = LEVEL === 0
     if (level <= LEVEL) console.log(...args)
   }
 
-function isNull(n) {
-  return null == n
+function isNull (n) {
+  return n == null
 }
 
 function isPing (p) {
   return (
     p.type === 'ping' &&
-    isId(p.id)        &&
+    isId(p.id) &&
     (isNull(p.spinPort) || isPort(p.spinPort)) &&
     (isNull(p.nat) || isNat(p.nat))
   )
@@ -59,7 +57,7 @@ function isPing (p) {
 function isPong (p) {
   return (
     p.type === 'pong' &&
-    isId(p.id)        &&
+    isId(p.id) &&
     (isNull(p.nat) || isNat(p.nat)) &&
     isAddr(p)
   )
@@ -72,14 +70,14 @@ function isConnect (p) {
   )
 }
 
-const INACTIVE=1.5
-const MISSING=3
-const FORGET=5
+const INACTIVE = 1.5
+const MISSING = 3
+const FORGET = 5
 function calcPeerState (peer, ts, keepalive) {
 //  console.log((ts - peer.recv)/1000, keepalive/1000)
-  if((ts - peer.recv) > keepalive*FORGET) return 'forget'
-  if((ts - peer.recv) > keepalive*MISSING) return 'missing'
-  if((ts - peer.recv) > keepalive*INACTIVE) return 'inactive'
+  if ((ts - peer.recv) > keepalive * FORGET) return 'forget'
+  if ((ts - peer.recv) > keepalive * MISSING) return 'missing'
+  if ((ts - peer.recv) > keepalive * INACTIVE) return 'inactive'
   return 'active'
 }
 
@@ -90,7 +88,7 @@ module.exports = {
   isId,
   isNat,
   fromAddress,
-//  toAddress,
+  //  toAddress,
   isPeer,
   debug,
 

@@ -1,4 +1,5 @@
 const test = require('tape')
+const Debug = require('debug')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
 
@@ -9,6 +10,7 @@ const { createId } = require('./util')
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
 const localPort = 3456
 // var nc = require('../')
+const debug = Debug('reconnect')
 
 const A = '1.1.1.1'
 const B = '2.2.2.2'
@@ -69,10 +71,10 @@ test('swarm with 1 easy 1 hard', function (t) {
   t.ok(peer_hard.peers[peer_easy.id], 'hard peer knows easy peer')
 
 
-  // console.log(nat_hard)
+  // debug(nat_hard)
 
-  console.log(peer_easy.peers[peer_hard.id])
-  console.log(peer_hard.peers[peer_easy.id])
+  debug(peer_easy.peers[peer_hard.id])
+  debug(peer_hard.peers[peer_easy.id])
 
   var new_nat = new IndependentFirewallNat()
 
@@ -81,14 +83,14 @@ test('swarm with 1 easy 1 hard', function (t) {
 
   network.iterateUntil(30_000)
 
-  console.log(peer_hard)
+  debug(peer_hard)
   t.equal(peer_hard.localAddress, '2.4.6.80')
   t.equal(peer_hard.publicAddress, '2.4.6.8', 'public address is correct')
   t.equal(peer_easy.peers[peer_hard.id].address, '2.4.6.8', 'other peer knows the new public address')
   //now, move one peer to another address, iterate, and check they regain connection.
 
 
-  //  console.log(peer_easy)
+  //  debug(peer_easy)
 
   t.end()
 })
@@ -117,10 +119,10 @@ test('disconnect, reconnect', function (t) {
   t.ok(peer_easy.peers[peer_hard.id], 'easy peer knows hard peer')
   t.ok(peer_hard.peers[peer_easy.id], 'hard peer knows easy peer')
 
-  // console.log(nat_hard)
+  // debug(nat_hard)
 
-  console.log(peer_easy.peers[peer_hard.id])
-  console.log(peer_hard.peers[peer_easy.id])
+  debug(peer_easy.peers[peer_hard.id])
+  debug(peer_hard.peers[peer_easy.id])
 
   var new_nat = new IndependentFirewallNat()
 
@@ -129,7 +131,7 @@ test('disconnect, reconnect', function (t) {
 
   network.iterateUntil(30_000)
 
-  console.log(peer_hard)
+  debug(peer_hard)
   t.equal(peer_hard.localAddress, '2.4.6.80')
   t.equal(peer_hard.publicAddress, '2.4.6.8', 'public address is correct')
   t.equal(peer_easy.peers[peer_hard.id].address, '2.4.6.8', 'other peer knows the new public address')
@@ -163,8 +165,8 @@ test('stay connected via keepalive', function (t) {
   //the peers should send multiple keepalives in this time
   network.iterateUntil(10*60_000)
 
-  console.log(peer_easy.peers[peer_hard.id])
-  console.log(peer_hard.peers[peer_easy.id])
+  debug(peer_easy.peers[peer_hard.id])
+  debug(peer_hard.peers[peer_easy.id])
   t.ok(peer_easy.peers[peer_hard.id].recv > 5_000, 'easy peer received from hard since start')
   t.ok(peer_hard.peers[peer_easy.id].recv > 5_000, 'hard peer received from easy since start')
 

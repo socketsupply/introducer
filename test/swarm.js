@@ -1,3 +1,4 @@
+const Debug = require('debug')
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
@@ -9,6 +10,8 @@ const Introducer = require('../introducer')
 
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
 // var nc = require('../')
+
+const debug = Debug('swarm')
 
 const A = '1.1.1.1'
 const B = '2.2.2.2'
@@ -81,7 +84,7 @@ test('swarm2', function (t) {
   network.iterate(-1)
   peerE.join(swarm)
   network.iterate(-1)
-  console.log(peerE)
+  debug(peerE)
 
   t.ok(peerE.swarms, 'peer has swarm object')
   t.ok(peerE.swarms[swarm], 'peer has swarm key')
@@ -129,7 +132,7 @@ test('swarmN', function (t) {
   network.iterate(-1)
 
   for (var i = 0; i < N; i++) {
-    console.log(peers[i])
+    debug(peers[i])
     const pc = Object.keys(peers[i].peers).length
     const sc = Object.keys(peers[i].swarms[swarm]).length
     t.ok(pc >= 3, `peers[${i}] has at least 3 peers, got ${pc}`)
@@ -163,12 +166,12 @@ test('swarm with 1 easy 1 hard', function (t) {
   t.ok(peer_easy.peers[peer_hard.id], 'easy peer knows hard peer')
   t.ok(peer_hard.peers[peer_easy.id], 'hard peer knows easy peer')
 
-  // console.log(nat_hard)
+  // debug(nat_hard)
 
-  console.log(peer_easy.peers[peer_hard.id])
-  console.log(peer_hard.peers[peer_easy.id])
+  debug(peer_easy.peers[peer_hard.id])
+  debug(peer_hard.peers[peer_easy.id])
 
-  //  console.log(peer_easy)
+  //  debug(peer_easy)
 
   //  peer_easy.connect(peer_hard.id)
 
@@ -208,7 +211,7 @@ test('swarm with hard nats included', function (t) {
   // the introducer should know about everyone's nats now.
   peers.forEach((peer, i) => {
     t.equal(intro.peers[peer.id].nat, i < Easy ? 'easy' : 'hard')
-    // console.log(peer.peers)
+    // debug(peer.peers)
   })
 
   t.end()
@@ -240,10 +243,10 @@ test('empty swarm', function (t) {
   t.equal(intro.peers[peer_easy.id].nat, 'easy')
   //  t.equal(intro.peers[peer_hard.id].nat, 'hard')
   t.equal(empty, swarm)
-  // console.log(nat_hard)
+  // debug(nat_hard)
 
-  //  console.log(peer_easy.peers[peer_hard.id])
-  //  console.log(peer_hard.peers[peer_easy.id])
+  //  debug(peer_easy.peers[peer_hard.id])
+  //  debug(peer_hard.peers[peer_easy.id])
   t.end()
 })
 
@@ -263,13 +266,13 @@ test('notify on_peer, swarm', function (t) {
   network.iterate(-1)
   let notify = 0
   peer1.on_peer = (peer) => {
-    console.log('ON PEER 1', peer)
+    debug('ON PEER 1', peer)
     notify |= 1
     t.equal(peer.id, peer2.id)
     t.ok(peer1.swarms[swarm][peer.id])
   }
   peer2.on_peer = (peer) => {
-    console.log('ON PEER 2', peer)
+    debug('ON PEER 2', peer)
     notify |= 2
     t.equal(peer.id, peer1.id)
     t.ok(peer2.swarms[swarm][peer.id])

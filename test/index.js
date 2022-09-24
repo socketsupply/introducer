@@ -1,6 +1,7 @@
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
+const Debug = require('debug')
 
 const { createId } = require('./util')
 
@@ -8,6 +9,8 @@ const Swarm = require('../')
 const Introducer = require('../introducer')
 
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
+
+const debug = Debug('index')
 const localPort = 3456
 // var nc = require('../')
 
@@ -54,8 +57,8 @@ test('intro', function (t) {
 
   network.iterate(-1)
 
-  console.log(peerE)
-  console.log(peerD)
+  debug(peerE)
+  debug(peerD)
 
   t.ok(peerE.peers[peerD.id])
   t.ok(peerD.peers[peerE.id])

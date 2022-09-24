@@ -3,23 +3,23 @@ const { isId, isIp, isAddr, isPeer, debug, isConnect } = require('./util')
 const constants = require('./lib/constants')()
 const PingPeer = require('./pings')
 
-//function assertAddr (addr, message) {
+// function assertAddr (addr, message) {
 //  if (!isAddr(addr)) throw new Error('must be valid addr {address, port} object:' + message)
-//}
+// }
 
-//function isFunction (f) {
+// function isFunction (f) {
 //  return typeof f === 'function'
-//}
+// }
 
 function assertTs (ts) {
   if (typeof ts !== 'number') throw new Error('ts must be provided')
 }
 
-// const port = 3456
+const port = 3456
 
 function random_port (ports) {
-  let i = 0
-  do { var p = 1 + ~~(Math.random() * 0xffff); i++ } while (ports[p])
+  let p
+  do { p = 1 + ~~(Math.random() * 0xffff) } while (ports[p])
   ports[p] = true
   return p
 }
@@ -43,10 +43,14 @@ module.exports = class Peer extends PingPeer {
   }
 
   local (id, intro) {
-    // check if we do not have the local address, this messages is relayed, it could cause a crash at other end
-    if (!isIp(this.localAddress)) // should never happen, but a peer could send anything.
-    { return debug(1, 'cannot connect local because missing localAddress!') }
+    // check if we do not have the local address, if this message is relayed,
+    // it could cause a crash at other end, should never happen, but a peer could send anything.
+    if (!isIp(this.localAddress)) {
+      return debug(1, 'cannot connect local because missing localAddress!')
+    }
+
     const peer = intro || this.peers[this.introducer1]
+
     this.send({
       type: 'relay',
       target: id,
@@ -57,25 +61,39 @@ module.exports = class Peer extends PingPeer {
   }
 
   on_local (msg) {
-    if (!isAddr(msg)) // should never happen, but a peer could send anything.
-    { return debug(1, 'local connect msg is invalid!', msg) }
+    if (!isAddr(msg)) {
+      // should never happen, but a peer could send anything.
+      return debug(1, 'local connect msg is invalid!', msg)
+    }
     this.ping3(msg.id, msg)
   }
 
   // we received connect request, ping the target 3 itmes
   on_connect (msg, _addr, _port, ts) {
-    if(!isConnect(msg)) return debug(1, 'invalid connect message:'+JSON.stringify(msg))
+    if (!isConnect(msg)) {
+      return debug(1, 'invalid connect message:' + JSON.stringify(msg))
+    }
+
     assertTs(ts)
-    if (!ts) throw new Error('ts must not be zero:' + ts)
-    if (!msg.target) { msg.target = msg.id }
+
+    if (!ts) {
+      throw new Error('ts must not be zero:' + ts)
+    }
+
+    if (!msg.target) {
+      msg.target = msg.id
+    }
     /// XXX TODO check if we are already connected or connecting to this peer, and if so let that continue...
 
-    if (!isAddr(msg)) // should never happen, but a peer could send anything.
-    { return debug(1, 'connect msg is invalid!', msg) }
+    if (!isAddr(msg)) {
+      // should never happen, but a peer could send anything.
+      return debug(1, 'connect msg is invalid!', msg)
+    }
 
     let swarm
     // note: ping3 checks if we are already communicating
     const ap = msg.address + ':' + msg.port
+
     if (isId(msg.swarm)) {
       swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
       swarm[msg.target] = -ts
@@ -90,8 +108,9 @@ module.exports = class Peer extends PingPeer {
     // if we already know this peer, but the address has changed,
     // reset the connection to them...
     const peer = this.peers[msg.target]
+
     if (peer) {
-      if (peer.address != msg.address) {
+      if (peer.address !== msg.address) {
         peer.address = msg.address
         peer.pong = null
         //XXX falls though
@@ -127,10 +146,14 @@ module.exports = class Peer extends PingPeer {
         this.ping3(msg.target, msg)
       } else if (msg.nat === 'hard') {
         // we are easy, they are hard
-        var short_id = msg.target.substring(0, 8)
+        const short_id = msg.target.substring(0, 8)
+        let i = 0
+        const start = Date.now()
+        let ts = start
+        const ports = {}
+
         debug(1, 'BDP easy->hard', short_id, ap)
-        var i = 0; const start = Date.now(); var ts = start
-        var ports = {}
+
         this.timer(0, 10, (_ts) => {
           if (Date.now() - 1000 > ts) {
             debug(1, 'packets', i, short_id)
@@ -155,10 +178,11 @@ module.exports = class Peer extends PingPeer {
       }
     } else if (this.nat === 'hard') {
       if (msg.nat === 'easy') {
+        const short_id = msg.target.substring(0, 8)
         debug(1, 'BDP hard->easy', short_id)
         // we are the hard side, open 256 random ports
-        var ports = {}
-        for (var i = 0; i < 256; i++) {
+        const ports = {}
+        for (let i = 0; i < 256; i++) {
           const p = random_port(ports)
           this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, msg, p)
         }
@@ -189,8 +213,8 @@ module.exports = class Peer extends PingPeer {
   connect (from_id, to_id, swarm, port) { // XXX remove port arg
     const from = this.peers[from_id]
     const to = this.peers[to_id]
-    if(!isPeer(from)) throw new Error('cannot connect from undefined peer:'+from_id)
-    if(!isPeer(to)) throw new Error('cannot connect to undefined peer:'+to_id)
+    if (!isPeer(from)) throw new Error('cannot connect from undefined peer:' + from_id)
+    if (!isPeer(to)) throw new Error('cannot connect to undefined peer:' + to_id)
     if ((port || from.outport) === undefined) throw new Error('port cannot be undefined')
     // if(!from.nat) throw new Error('cannot connect FROM unknown nat')
     // if(!to.nat) throw new Error('cannot connect TO unknown nat')

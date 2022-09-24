@@ -30,6 +30,7 @@
     "@socketsupply/netsim": "^4.1.0",
     "deep-equal": "^2.0.5",
     "rng": "^0.2.2",
+    "debug": "^4.3.4",
     "tape": "^5.5.3"
   },
   "dependencies": {

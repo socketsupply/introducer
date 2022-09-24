@@ -1,3 +1,4 @@
+const Debug = require('debug')
 const udp = require('dgram')
 const { EventEmitter } = require('events')
 const os = require('os')
@@ -5,6 +6,8 @@ const wrap = require('../wrap')(udp, os, Buffer)
 
 var s_port = 1234
 var c_port = 1235
+
+const debug = Debug('wrap')
 
 wrap(new class extends EventEmitter {
   init () {}
@@ -17,7 +20,7 @@ wrap(new class extends EventEmitter {
 
 var client = new class extends EventEmitter {
   on_pong () {
-    console.log('PONG')
+    debug('PONG')
     done()
   }
 }
@@ -29,7 +32,7 @@ var D = 2
 var count = 0, _ts = Date.now()
 client.timer(100, 200, function (ts) {
   if(ts < _ts) throw new Error('new ts should be greater')
-  console.log('ts=', ts)
+  debug('ts=', ts)
   _ts = ts
   if(count ++ >0) {
     done()
