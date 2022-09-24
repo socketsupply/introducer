@@ -3,7 +3,7 @@ function isIp (s) {
 }
 
 function isPort (p) {
-  return p === (p & 0xffff)
+  return 0 < p && p <= 65535
 }
 
 function isAddr (a) {
