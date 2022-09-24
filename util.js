@@ -1,9 +1,9 @@
 function isIp (s) {
-  return typeof s === 'string' && s.split('.').every(e => +e === +e && 0xff)
+  return typeof s === 'string' && s.split('.').every(e => +e === (+e & 0xff))
 }
 
 function isPort (p) {
-  return p === p & 0xffff
+  return p === (p & 0xffff)
 }
 
 function isAddr (a) {
