@@ -25,6 +25,14 @@ module.exports = (UDP, OS, Buffer) => {
     decode: (buf) => JSON.parse(Buffer.from(buf).toString())
   }
 
+  //
+  // The purpose of this function is to allow most of the program to be simulated.
+  // It should be the only code that interacs with the actual network.
+  //
+  // @param {object} peer - an instance of the Swarms class.
+  // @param {array} ports - an array of ports that should be connected at startup.
+  // @param {object} codec - an object with encode and decode methods.
+  //
   return function wrap (peer, ports, codec = json) {
     debug('wrap', peer, ports, codec)
     const bound = {}
@@ -32,11 +40,11 @@ module.exports = (UDP, OS, Buffer) => {
 
     peer._localAddress = peer.localAddress = IP()
     peer.send = (msg, addr, from_port) => {
-      debug('send', msg, from_port + '->' + toAddress(addr))
-      peer.emit('send', msg, addr, from_port)
       if (from_port === undefined) throw new Error('source port is not defined!')
       const sock = maybe_bind(from_port) // or maybe: from_port || addr.output || main_port
       // if (addr === '255.255.255.255') sock.setBroadcast(true)
+      peer.emit('send', msg, addr, from_port)
+      debug('send', msg, from_port + '->' + toAddress(addr))
       sock.send(codec.encode(msg), addr.port, addr.address)
     }
 
@@ -99,15 +107,20 @@ module.exports = (UDP, OS, Buffer) => {
         })
         .on('error', (err) => {
           debug('error', err)
+
           if ((err.code === 'EACCES' || err.code === 'EADDRINUSE')) {
             if (must_bind) throw err
-            if (process.env.DEBUG) { console.error('could not bind port:' + err.port) }
-          } else { peer.emit('error', err) }
+            if (process.env.DEBUG) console.error('could not bind port:' + err.port)
+            return
+          }
+
+          peer.emit('error', err)
         })
 
       return socket
     }
 
+    // Return the already bound port or bound it and then return it
     function maybe_bind (port, must_bind = false) {
       if (!isPort(port)) { throw new Error('expected port, got:' + port) }
       if (bound[port]) return bound[p]
