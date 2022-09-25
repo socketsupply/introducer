@@ -26,12 +26,13 @@ module.exports = (UDP, OS, Buffer) => {
   }
 
   return function wrap (peer, ports, codec = json) {
+    debug('wrap', peer, ports, codec)
     const bound = {}
     peer.localPort = ports[0]
 
     peer._localAddress = peer.localAddress = IP()
     peer.send = (msg, addr, from_port) => {
-      debug(2, 'send', msg, from_port + '->' + toAddress(addr))
+      debug('send', msg, from_port + '->' + toAddress(addr))
       peer.emit('send', msg, addr, from_port)
       if (from_port === undefined) throw new Error('source port is not defined!')
       const sock = maybe_bind(from_port) // or maybe: from_port || addr.output || main_port
@@ -43,6 +44,7 @@ module.exports = (UDP, OS, Buffer) => {
       let int
 
       function interval () {
+        debug('timer interval called')
         if (fn(Date.now()) === false) clearInterval(int)
       }
 
@@ -62,8 +64,8 @@ module.exports = (UDP, OS, Buffer) => {
       peer.localAddress = IP()
     })
 
-    function onMessage (msg, addr, port, ts) {
-      debug(2, 'recv', msg, toAddress(addr) + '->' + port, ts)
+    function recv (msg, addr, port, ts) {
+      debug('recv', msg, toAddress(addr) + '->' + port, ts)
       peer.emit('recv', msg, addr, port, ts)
       if (isString(msg.type) && isFunction(peer['on_' + msg.type])) {
         peer['on_' + msg.type](msg, addr, port, ts)
@@ -71,14 +73,15 @@ module.exports = (UDP, OS, Buffer) => {
     }
 
     // support binding anynumber of ports on demand (necessary for birthday paradox connection)
-    function bind (p, must_bind) {
-      debug(2, 'bind', p, must_bind)
-      peer.emit('bind', p)
+    function bind (port, must_bind) {
+      debug('bind', port, must_bind)
+      peer.emit('bind', port)
 
-      const socket = bound[p] = bound[p] || UDP
+      const socket = bound[port] = bound[port] || UDP
         .createSocket('udp4')
         .bind(p)
         .on('listening', () => {
+          debug('listening', err)
           peer.emit('listening', p)
           // this.setBroadcast(true)
         })
@@ -87,13 +90,15 @@ module.exports = (UDP, OS, Buffer) => {
           try {
             msg = codec.decode(data)
           } catch (err) {
-            console.error(err)
-            console.error('while parsing:', data)
+            console.error('error while parsing data', err)
+            console.error('unable to parse data', data)
             return
           }
-          onMessage(msg, addr, p, Date.now())
+
+          recv(msg, addr, port, Date.now())
         })
         .on('error', (err) => {
+          debug('error', err)
           if ((err.code === 'EACCES' || err.code === 'EADDRINUSE')) {
             if (must_bind) throw err
             if (process.env.DEBUG) { console.error('could not bind port:' + err.port) }
@@ -103,10 +108,10 @@ module.exports = (UDP, OS, Buffer) => {
       return socket
     }
 
-    function maybe_bind (p, must_bind = false) {
-      if (!isPort(p)) { throw new Error('expected port, got:' + p) }
-      if (bound[p]) return bound[p]
-      return bind(p, must_bind)
+    function maybe_bind (port, must_bind = false) {
+      if (!isPort(port)) { throw new Error('expected port, got:' + port) }
+      if (bound[port]) return bound[p]
+      return bind(port, must_bind)
     }
 
     if (ports) ports.filter(Boolean).forEach(p => maybe_bind(p, true))
