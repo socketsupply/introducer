@@ -87,10 +87,10 @@ module.exports = (UDP, OS, Buffer) => {
 
       const socket = bound[port] = bound[port] || UDP
         .createSocket('udp4')
-        .bind(p)
+        .bind(port)
         .on('listening', () => {
-          debug('listening', err)
-          peer.emit('listening', p)
+          debug('listening', port)
+          peer.emit('listening', port)
           // this.setBroadcast(true)
         })
         .on('message', (data, addr) => {
@@ -123,7 +123,7 @@ module.exports = (UDP, OS, Buffer) => {
     // Return the already bound port or bound it and then return it
     function maybe_bind (port, must_bind = false) {
       if (!isPort(port)) { throw new Error('expected port, got:' + port) }
-      if (bound[port]) return bound[p]
+      if (bound[port]) return bound[port]
       return bind(port, must_bind)
     }
 
