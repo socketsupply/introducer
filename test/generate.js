@@ -138,7 +138,7 @@ function test_eventual_consistency (peers) {
   }
   return {data, result: true}
 }
-
+var fail = 0
 if(+process.env.SEED) {
     mt = new MT(+process.env.SEED)
     var network = new Network()
@@ -154,7 +154,10 @@ else {
     var {data, result, error} = test_eventual_consistency(generate(network, 2, swarm))
     var name = error ? error.message : result
     ;(results[name] = results[name] || []).push(i)
+    if(name != true)
+      fail ++
 //    console.log({seed: i, data, result, error})
   }
   console.log(results)
+  if(fail) process.exit(fail)
 }
