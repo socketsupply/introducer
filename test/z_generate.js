@@ -1,3 +1,5 @@
+var inspect = require('util').inspect
+
 /**
 
 GENERATED RANDOM TESTING SCRIPT
@@ -122,8 +124,9 @@ function test_eventual_consistency (peers) {
 
   p.handlers[swarm].update('hello', 100)
   try {
-  network.iterateUntil(2000)
+    network.iterateUntil(2000)
   } catch (err) {
+    console.log(inspect(peers, {depth: 5, colors: true}))
     return {data, result: false, error: err}
   }
   var data = {}
