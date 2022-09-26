@@ -78,7 +78,13 @@ module.exports = class Peer extends PingPeer {
     const ap = msg.address + ':' + msg.port
     if (isId(msg.swarm)) {
       swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
-      swarm[msg.target] = ts
+      swarm[msg.target] = -ts
+
+      //we have learnt about a new peer, but we havn't connected to them yet.
+      //keep it in the peers table, but do not notify on_peer until a message is received from that peer directly
+      //(probably a ping or a pong)
+
+      this.__set_peer(msg.target, msg.address, msg.port, msg.nat, this.localPort, null, ts)
     }
 
     // if we already know this peer, but the address has changed,
@@ -88,6 +94,7 @@ module.exports = class Peer extends PingPeer {
       if (peer.address != msg.address) {
         peer.address = msg.address
         peer.pong = null
+        //XXX falls though
       } else if (ts - peer.send < constants.connecting) {
         // if we are already connecting do nothing.
         return
@@ -140,6 +147,7 @@ module.exports = class Peer extends PingPeer {
             debug(1, 'connected:', i, s, short_id, ap)
             return false
           }
+
           this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, {
             address: msg.address, port: random_port(ports)
           }, this.localPort)
