@@ -1,5 +1,7 @@
 const createIP = require('./lib/ip')
-const { debug } = require('./util')
+const Debug = require('debug')
+
+const debug = Debug('wrap')
 
 function isPort (p) {
   return p === (p & 0xffff)
