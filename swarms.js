@@ -189,23 +189,22 @@ module.exports = class Swarms extends Peer {
 
     if (!isId(msg.swarm)) return debug(1, 'join, no swarm:', msg)
     if (!isId(msg.id)) return debug(1, 'join, no id:', msg)
-//    const ts = Date.now()
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = ts
     this.__set_peer(msg.id, addr.address, addr.port, msg.nat, port, null, ts)
     const peer = this.peers[msg.id]
-//      this.peers[msg.id] || { id: msg.id, ...addr, nat: msg.nat, ts: Date.now(), outport: port }
 
-//    if (peer && msg.nat) peer.nat = msg.nat
     // trigger random connections
     // if there are no other peers in the swarm, do nothing
     // peers that have pinged in last 2 minutes
     let ids = Object.keys(swarm)
     // remove ourself, then randomly shuffle list
     ids.splice(ids.indexOf(msg.id), 1)
-      .filter(id => this.peers[id] && this.peers[id].ts > (ts - 120_000))
+    ids = ids
+      .filter(id => this.peers[id]) //defensive: ignore peers which might be in swarm table but not peers tabel
       .sort(cmpRand)
-
+      //this is a filter to only connect recently active peers, but this was wrong...
+      //.filter(id => this.peers[id].recv > (ts - this.keepalive*4))
 
     // a better strategy could be for hard nats to connect to easy or fellow network
     // but easy nats to connect to other easy nats first, to ensure a strong network.
@@ -215,10 +214,11 @@ module.exports = class Swarms extends Peer {
     }
     if (this.connections) this.connections[msg.id] = {}
 
+
     // send messages to the random peers indicating that they should connect now.
     // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
     const max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
-    debug(1, 'join', max_peers, msg.id + '->' + ids.join(','))
+    debug(1, 'join', max_peers, msg.id.substring(0,8) + '->' + ids.map(id=>id.substring(0, 8)).join(','))
     // if there are no other connectable peers, at least respond to the join msg
     if (!max_peers || !ids.length) {
       debug(1, 'join error: no peers')
