@@ -278,6 +278,8 @@ test('notify on_peer, swarm', function (t) {
   peer2.join(swarm)
 
   network.iterate(-1)
+  t.ok(peer1.peers[peer2.id].pong, 'peer1 has received pong from peer2')
+  t.ok(peer2.peers[peer1.id].pong, 'peer2 has received pong from peer1')
   t.equal(notify, 3, 'there were two peer notifications')
   t.end()
 })
