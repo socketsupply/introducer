@@ -230,7 +230,7 @@ test('empty swarm', function (t) {
   //  peer_hard.join(swarm)
 
   let empty
-  peer_easy.on_error = function (msg) {
+  peer_easy.msg_error = function (msg) {
     empty = msg.id
   }
 
