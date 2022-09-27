@@ -284,6 +284,44 @@ test('notify on_peer, swarm', function (t) {
   t.end()
 })
 
+test.only('notify on_peer, swarm', function (t) {
+  // t.fail('TODO: check that there is notification when a new peer connects for the first time')
+
+  const swarm = createId('test swarm')
+  const network = new Network()
+  let client
+  let intro
+  network.add(A, new Node(intro = new Introducer({ id: ids.a })))
+  network.add(B, new Node(new Introducer({ id: ids.b })))
+
+  const [peer1, nat1] = createNatPeer(network, createId('id:1'), '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
+  const [peer2, nat2] = createNatPeer(network, createId('id:2'), '5.6.7.8', '5.6.7.82', IndependentFirewallNat)
+
+  //createModel joins the swarm internally
+  const m1 = peer1.createModel(swarm)
+  const m2 = peer2.createModel(swarm)
+
+  let notify = 0
+  m1.on_peer = (peer) => {
+    console.log('ON PEER 1', peer)
+    notify |= 1
+    t.equal(peer.id, peer2.id)
+    t.ok(peer1.swarms[swarm][peer.id])
+  }
+  m2.on_peer = (peer) => {
+    console.log('ON PEER 2', peer)
+    notify |= 2
+    t.equal(peer.id, peer1.id)
+    t.ok(peer2.swarms[swarm][peer.id])
+  }
+
+  network.iterate(-1)
+  t.ok(peer1.peers[peer2.id].pong, 'peer1 has received pong from peer2')
+  t.ok(peer2.peers[peer1.id].pong, 'peer2 has received pong from peer1')
+  t.equal(notify, 3, 'there were two peer notifications')
+  t.end()
+})
+
 
 test('local connection established without hairpinning support', function (t) {
 

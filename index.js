@@ -79,7 +79,6 @@ module.exports = class Peer extends PingPeer {
     if (isId(msg.swarm)) {
       swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
       swarm[msg.target] = -ts
-
       //we have learnt about a new peer, but we havn't connected to them yet.
       //keep it in the peers table, but do not notify on_peer until a message is received from that peer directly
       //(probably a ping or a pong)
@@ -94,6 +93,7 @@ module.exports = class Peer extends PingPeer {
       if (peer.address != msg.address) {
         peer.address = msg.address
         peer.pong = null
+        //TODO should we resent notify state?
         //XXX falls though
       } else if (ts - peer.send < constants.connecting) {
         // if we are already connecting do nothing.
