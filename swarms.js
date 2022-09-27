@@ -82,7 +82,7 @@ module.exports = class Swarms extends Peer {
     }
   }
 
-  on_error (msg) {
+  msg_error (msg) {
     debug(1, 'error:', msg)
   }
 
