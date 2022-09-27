@@ -8,15 +8,19 @@ var c_port = 1235
 
 wrap(new class extends EventEmitter {
   init () {}
-  on_ping (msg, addr, port, ts) {
+  on_msg (msg, addr, port, ts) {
     if('number' !== typeof ts)
       throw new Error('expected ts')
     this.send({ type: 'pong', addr }, addr, port)
   }
+//  on_msg (msg, addr, port, ts) {
+//    if(msg.type == 'ping')
+//      this.on_ping(
+//  }
 }, [s_port])
 
 var client = new class extends EventEmitter {
-  on_pong () {
+  on_msg () {
     console.log('PONG')
     done()
   }
