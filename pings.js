@@ -230,11 +230,12 @@ module.exports = class PingPeer extends EventEmitter {
   }
 
   __notify_peer (id) {
+    // Event handler pattern is to assign (or override) a on_* method.
+    // It's optional, thus to emit an event do `if(on_<event>) on_<event>(...)`."
     if(this.on_peer) {
       var peer = this.peers[id]
       if(!peer.notified) {
         peer.notified = true
-        this.on_peer(peer)
         this.on_peer(peer)
         this.emit('peer', peer)
       }

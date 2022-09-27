@@ -86,12 +86,15 @@ module.exports = class Swarms extends Peer {
     debug(1, 'error:', msg)
   }
 
-  msg_peer (peer) {
-    for(var swarm in this.swarms)
+  on_peer (peer) {
+    console.log('notify swarms', this.swarms, this.handlers)
+    for(var swarm in this.swarms) {
       if(this.swarms[swarm][peer.id]) {
-        if(this.handlers[swarm] && this.handlers[swarm].on_peer)
+        if(this.handlers[swarm] && this.handlers[swarm].on_peer) {
           this.handlers[swarm].on_peer(peer)
+        }
       }
+    }
     debug(1, 'connected peer:', peer)
   }
 /*
