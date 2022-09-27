@@ -65,9 +65,7 @@ module.exports = (UDP, OS, Buffer) => {
     function onMessage (msg, addr, port, ts) {
       debug(2, 'recv', msg, toAddress(addr) + '->' + port, ts)
       peer.emit('recv', msg, addr, port, ts)
-      if (isString(msg.type) && isFunction(peer['on_' + msg.type])) {
-        peer['on_' + msg.type](msg, addr, port, ts)
-      } else if (isFunction(peer.on_msg)) { peer.on_msg(msg, addr, port, ts) }
+      if (isFunction(peer.on_msg)) { peer.on_msg(msg, addr, port, ts) }
     }
 
     // support binding anynumber of ports on demand (necessary for birthday paradox connection)
