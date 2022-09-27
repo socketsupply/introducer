@@ -137,26 +137,6 @@ module.exports = class PingPeer extends EventEmitter {
         this.emit('dead', peer)
       }
     }
-/*
-
-      if(!peer.pong && peer.send < ts - this.keepalive/2) {
-        debug(2, 'check peer:', peer.id.substring(0, 8))
-        this.ping(peer)
-      }
-      //if we have already received a pong, within the last 5 tries
-      else if (peer.pong && peer.pong.ts > ts - (this.keepalive*5)) {
-        debug(2, 'found peer:', peer.id.substring(0, 8), (ts - peer.pong.ts)/1000)
-        this.ping(peer)
-        this.emit('alive', peer) //XXX change to "found"
-      }
-      else { //if(!peer.pong) {
-        if (this.on_disconnect) this.on_disconnect(peer)
-         if(!this.peers[id].introducer) delete this.peers[id]
-        debug(1, "lost peer:", peer)
-        this.emit('dead', peer) //XXX change to "lost"
-      }
-    }
-    */
   }
 
   init (ts) {
@@ -300,7 +280,7 @@ module.exports = class PingPeer extends EventEmitter {
     }
   }
 
-  on_ping (msg, addr, _port, ts) {
+  msg_ping (msg, addr, _port, ts) {
     if(!isPing(msg)) return debug(1, 'ignored invalid ping:'+JSON.stringify(msg))
     assertTs(ts)
     if(this.restart == null) throw new Error('cannot have null restart time')
@@ -339,13 +319,13 @@ module.exports = class PingPeer extends EventEmitter {
     this.__notify_peer(msg.id)
   }
 
-  on_spin (msg, addr, _port, ts) {
+  msg_spin (msg, addr, _port, ts) {
     this.peers[msg.id].pong = this.peers[msg.id].pong || {ts, address: msg.address, port: msg.port}
     this.peers[msg.id].pong.spin = true
     checkNat(this) //sets nat to static and notifies if necessary
   }
 
-  on_pong (msg, addr, _port, ts) {
+  msg_pong (msg, addr, _port, ts) {
     if(!isPong(msg)) return debug(1, 'ignored invalid ping:'+JSON.stringify(msg))
     // XXX notify if this is a new peer message.
     // (sometimes we ping a peer, and their response is first contact)
@@ -366,8 +346,8 @@ module.exports = class PingPeer extends EventEmitter {
   }
 
   on_msg (msg, addr, port, ts) {
-    if (isString(msg.type) && isFunction(this['on_' + msg.type])) {
-      this['on_' + msg.type](msg, addr, port, ts)
+    if (isString(msg.type) && isFunction(this['msg_' + msg.type])) {
+      this['msg_' + msg.type](msg, addr, port, ts)
     }
     else 
       return false

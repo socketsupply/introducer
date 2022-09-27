@@ -56,14 +56,14 @@ module.exports = class Peer extends PingPeer {
     }, peer, peer.outport)
   }
 
-  on_local (msg) {
+  msg_local (msg) {
     if (!isAddr(msg)) // should never happen, but a peer could send anything.
     { return debug(1, 'local connect msg is invalid!', msg) }
     this.ping3(msg.id, msg)
   }
 
   // we received connect request, ping the target 3 itmes
-  on_connect (msg, _addr, _port, ts) {
+  msg_connect (msg, _addr, _port, ts) {
     if(!isConnect(msg)) return debug(1, 'invalid connect message:'+JSON.stringify(msg))
     assertTs(ts)
     if (!ts) throw new Error('ts must not be zero:' + ts)
@@ -177,10 +177,10 @@ module.exports = class Peer extends PingPeer {
 
   // stuff needed as an introducer
 
-  // rename: on_relay - relay a msg to a targeted (by id) peer.
+  // rename: msg_relay - relay a msg to a targeted (by id) peer.
   // will forward anything. used for creating local (private network) connections.
 
-  on_relay (msg, addr) {
+  msg_relay (msg, addr) {
     const target = this.peers[msg.target]
     if (!target) { return debug(1, 'cannot relay message to unkown peer:' + msg.target.substring(0, 8)) }
     this.send(msg.content, target, target.outport || this.localPort)
@@ -203,7 +203,7 @@ module.exports = class Peer extends PingPeer {
     this.send({ type: 'intro', id: this.id, nat: this.nat, target: id, swarm }, intro || this.peers[this.introducer1], this.localPort)
   }
 
-  on_intro (msg, addr) {
+  msg_intro (msg, addr) {
     // check nat types:
     // if both peers are easy, just tell each to connect to the other
     // if one is easy, one hard, birthday paradox connection

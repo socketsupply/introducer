@@ -86,7 +86,7 @@ module.exports = class Swarms extends Peer {
     debug(1, 'error:', msg)
   }
 
-  on_peer (peer) {
+  msg_peer (peer) {
     for(var swarm in this.swarms)
       if(this.swarms[swarm][peer.id]) {
         if(this.handlers[swarm] && this.handlers[swarm].on_peer)
@@ -184,7 +184,7 @@ module.exports = class Swarms extends Peer {
 
 
   // __set_peer (id, address, port, nat, outport, restart) {
-  on_join (msg, addr, port, ts) {
+  msg_join (msg, addr, port, ts) {
     if (port === undefined) throw new Error('undefined port')
 
     if (!isId(msg.swarm)) return debug(1, 'join, no swarm:', msg)
@@ -243,7 +243,7 @@ module.exports = class Swarms extends Peer {
         const swarm_id = msg.swarm
         const swarm = this.handlers[swarm_id]
         if (!swarm) return
-        const fn_name = 'on_' + msg.type
+        const fn_name = 'msg_' + msg.type
         if (typeof (swarm[fn_name]) === 'function') {
           swarm[fn_name](msg, peer, port, ts)
         }

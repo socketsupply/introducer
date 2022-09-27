@@ -18,7 +18,7 @@ module.exports = class ReliableSwarm extends Swarm {
   }
 
   // receive flooded message
-  on_update (msg, addr, port) {
+  msg_update (msg, addr, port) {
     let info = np.update(this.data, msg, msg.ts)
     this.data = info.state
     if (info.queued) {
@@ -47,7 +47,7 @@ module.exports = class ReliableSwarm extends Swarm {
     if (peer) { this.send(msg, peer) } else { this.swarmcast(msg, this.id) }
   }
 
-  on_head (msg, peer) {
+  msg_head (msg, peer) {
     // if we receive a head message, and we are not up to date with it, then request an update.
     if (!np.has(this.data, msg.head)) {
       this.request(msg.head, peer)
@@ -81,7 +81,7 @@ module.exports = class ReliableSwarm extends Swarm {
     )
   }
 
-  on_request (msg, addr, port) {
+  msg_request (msg, addr, port) {
     const a = np.missing(this.data, msg.have, msg.need)
     if (a.length) {
       for (let i = 0; i < a.length; i++) {

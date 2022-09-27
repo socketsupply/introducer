@@ -46,7 +46,7 @@ module.exports = class Introducer extends Swarms {
     }
   }
 
-  on_connect () {
+  msg_connect () {
     //introducer does not receive connections
   }
 }

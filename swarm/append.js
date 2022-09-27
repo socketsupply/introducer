@@ -22,7 +22,7 @@ module.exports = class AppendSwarm extends Swarm {
     if (this.on_change) this.on_change(msg, this.data)
   }
 
-  on_chat (msg, peer) {
+  msg_chat (msg, peer) {
     const d = append(msg, this.data)
     if (d) {
       this.data = d
