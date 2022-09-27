@@ -87,7 +87,6 @@ module.exports = class Swarms extends Peer {
   }
 
   on_peer (peer) {
-    console.log('notify swarms', this.swarms, this.handlers)
     for(var swarm in this.swarms) {
       if(this.swarms[swarm][peer.id]) {
         if(this.handlers[swarm] && this.handlers[swarm].on_peer) {
