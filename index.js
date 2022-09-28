@@ -67,7 +67,6 @@ module.exports = class Peer extends PingPeer {
     if(!isConnect(msg)) return debug(1, 'invalid connect message:'+JSON.stringify(msg))
     assertTs(ts)
     if (!ts) throw new Error('ts must not be zero:' + ts)
-    if (!msg.target) { msg.target = msg.id }
     /// XXX TODO check if we are already connected or connecting to this peer, and if so let that continue...
 
     if (!isAddr(msg)) // should never happen, but a peer could send anything.
