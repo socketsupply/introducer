@@ -130,7 +130,7 @@ module.exports = class Swarms extends Peer {
   }
 */
 
-  join (swarm_id, target_peers = 3) {
+  join (swarm_id, target_peers = 3, seq) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id, was:' + swarm_id)
     if (typeof target_peers !== 'number') {
       throw new Error('target_peers must be a number, was:' + target_peers)
@@ -138,7 +138,7 @@ module.exports = class Swarms extends Peer {
     this.swarms[swarm_id] = this.swarms[swarm_id] || {} 
     const send = (id) => {
       const peer = this.peers[id]
-      this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers: target_peers | 0 }, peer, peer.outport || this.localPort)
+      this.send({ type: 'join', seq, id: this.id, swarm: swarm_id, nat: this.nat, peers: target_peers | 0, seq }, peer, peer.outport || this.localPort)
     }
     //check if these peers are currently active
     const current_peers = Object.keys(this.swarms[swarm_id] || {}).length
@@ -191,6 +191,7 @@ module.exports = class Swarms extends Peer {
 
     if (!isId(msg.swarm)) return debug(1, 'join, no swarm:', msg)
     if (!isId(msg.id)) return debug(1, 'join, no id:', msg)
+    const seq = {msg}
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = ts
     this.__set_peer(msg.id, addr.address, addr.port, msg.nat, port, null, ts)
@@ -224,13 +225,13 @@ module.exports = class Swarms extends Peer {
     // if there are no other connectable peers, at least respond to the join msg
     if (!max_peers || !ids.length) {
       debug(1, 'join error: no peers')
-      return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length, call: 'join' }, addr, port)
+      return this.send({ type: 'error', seq, id: msg.swarm, peers: Object.keys(swarm).length, call: 'join' }, addr, port)
     }
 
     for (let i = 0; i < max_peers; i++) {
       if (this.connections) this.connections[msg.id][ids[i]] = i
-      this.connect(ids[i], peer.id, msg.swarm, this.localPort)
-      this.connect(peer.id, ids[i], msg.swarm, this.localPort)
+      this.connect(ids[i], peer.id, msg.swarm, this.localPort, seq)
+      this.connect(peer.id, ids[i], msg.swarm, this.localPort, seq)
     }
 
     this.emit('join', peer)

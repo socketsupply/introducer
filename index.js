@@ -42,7 +42,7 @@ module.exports = class Peer extends PingPeer {
     }
   }
 
-  local (id, intro) {
+  local (id, intro, seq) {
     // check if we do not have the local address, this messages is relayed, it could cause a crash at other end
     if (!isIp(this.localAddress)) // should never happen, but a peer could send anything.
     { return debug(1, 'cannot connect local because missing localAddress!') }
@@ -51,19 +51,20 @@ module.exports = class Peer extends PingPeer {
       type: 'relay',
       target: id,
       content: {
-        type: 'local', id: this.id, address: this.localAddress, port: this.localPort
+        type: 'local', seq, id: this.id, address: this.localAddress, port: this.localPort
       }
     }, peer, peer.outport)
   }
 
-  msg_local (msg) {
+  msg_local (msg, _addr, _port, ts) {
     if (!isAddr(msg)) // should never happen, but a peer could send anything.
     { return debug(1, 'local connect msg is invalid!', msg) }
-    this.ping3(msg.id, msg)
+    this.ping3(msg.id, msg, ts, msg.seq)
   }
 
   // we received connect request, ping the target 3 itmes
   msg_connect (msg, _addr, _port, ts) {
+    const {seq} = msg
     if(!isConnect(msg)) return debug(1, 'invalid connect message:'+JSON.stringify(msg))
     assertTs(ts)
     if (!ts) throw new Error('ts must not be zero:' + ts)
@@ -98,7 +99,7 @@ module.exports = class Peer extends PingPeer {
         // if we are already connecting do nothing.
         return
       } else if (ts - Math.max(peer.recv, peer.send) < constants.keepalive) {
-        this.ping3(peer, ts)
+        this.ping3(peer.id, peer, ts, seq)
         return
       }
       // if we didn't hear response maybe the peer is down, so try connect again?
@@ -112,18 +113,18 @@ module.exports = class Peer extends PingPeer {
       // unfortunately, the app stores are strongly against local multicast
       // however, in the future we can have a real local experience here using bluetooth.
       debug(1, 'local peer', this.localAddress + '->' + msg.address)
-      this.local(msg.target, this.peers[msg.id])
+      this.local(msg.target, this.peers[msg.id], seq)
       return
     }
 
     if (msg.nat === 'static') {
-      this.ping3(msg.target, msg, ts)
+      this.ping3(msg.target, msg, ts, msg.seq)
     } else if (this.nat === 'easy') {
       // if nat is missing, guess that it's easy nat, or a server.
       // we should generally know our own nat by now.
       if (msg.nat === 'easy' || msg.nat == null) {
         // we are both easy, just do ping3
-        this.ping3(msg.target, msg)
+        this.ping3(msg.target, msg, ts, msg.seq)
       } else if (msg.nat === 'hard') {
         // we are easy, they are hard
         var short_id = msg.target.substring(0, 8)
@@ -147,7 +148,7 @@ module.exports = class Peer extends PingPeer {
             return false
           }
 
-          this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, {
+          this.send({ type: 'ping', seq, id: this.id, nat: this.nat, restart: this.restart, seq: msg.seq }, {
             address: msg.address, port: random_port(ports)
           }, this.localPort)
         })
@@ -159,7 +160,7 @@ module.exports = class Peer extends PingPeer {
         var ports = {}
         for (var i = 0; i < 256; i++) {
           const p = random_port(ports)
-          this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, msg, p)
+          this.send({ type: 'ping', seq, id: this.id, nat: this.nat, restart: this.restart, seq: msg.seq }, msg, p)
         }
       } else if (msg.nat === 'hard') {
         // if we are both hard nats, we must implement tunneling
@@ -182,10 +183,12 @@ module.exports = class Peer extends PingPeer {
   msg_relay (msg, addr) {
     const target = this.peers[msg.target]
     if (!target) { return debug(1, 'cannot relay message to unkown peer:' + msg.target.substring(0, 8)) }
+    //relay does not include copy seq, because it forwards msg.content as the whole message.
+    //in this case, set msg.content.seq
     this.send(msg.content, target, target.outport || this.localPort)
   }
 
-  connect (from_id, to_id, swarm, port) { // XXX remove port arg
+  connect (from_id, to_id, swarm, port, seq) { // XXX remove port arg
     const from = this.peers[from_id]
     const to = this.peers[to_id]
     if(!isPeer(from)) throw new Error('cannot connect from undefined peer:'+from_id)
@@ -194,12 +197,12 @@ module.exports = class Peer extends PingPeer {
     // if(!from.nat) throw new Error('cannot connect FROM unknown nat')
     // if(!to.nat) throw new Error('cannot connect TO unknown nat')
     // XXX id should ALWAYS be the id of the sender.
-    this.send({ type: 'connect', id: this.id, target: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port }, from, port || from.outport)
+    this.send({ type: 'connect', seq, id: this.id, target: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port }, from, port || from.outport)
   }
 
   // rename: this was "connect" but that required Introducer to be different to Peer.
-  intro (id, swarm, intro) {
-    this.send({ type: 'intro', id: this.id, nat: this.nat, target: id, swarm }, intro || this.peers[this.introducer1], this.localPort)
+  intro (id, swarm, intro, seq) {
+    this.send({ type: 'intro', seq, id: this.id, nat: this.nat, target: id, swarm }, intro || this.peers[this.introducer1], this.localPort)
   }
 
   msg_intro (msg, addr) {
@@ -212,14 +215,15 @@ module.exports = class Peer extends PingPeer {
     //    OR let the peers decide who can replay, maybe they already have a mutual peer?
     const to_peer = this.peers[msg.target]
     const from_peer = this.peers[msg.id]
+    const {seq} = msg
     if (to_peer && from_peer) {
       // tell the target peer to connect, and also tell the source peer the addr/port to connect to.
 
-      this.connect(msg.target, msg.id, msg.swarm)
-      this.connect(msg.id, msg.target, msg.swarm)
+      this.connect(msg.target, msg.id, msg.swarm, null, seq)
+      this.connect(msg.id, msg.target, msg.swarm, null, seq)
     } else {
       // respond with an error
-      this.send({ type: 'error', target: msg.target, id: msg.id, call: 'connect' }, addr, port)
+      this.send({ type: 'error', seq, target: msg.target, id: msg.id, call: 'connect'}, addr, port)
     }
   }
 }
