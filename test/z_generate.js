@@ -79,7 +79,7 @@ function get_data(peers, swarm) {
 
 function assert_data_equal (peers, swarm) {
   var p = first(peers)
-  if(!swarm) swarm = firstKey(p.swarms)
+//  if(!swarm) swarm = firstKey(p.swarms)
   var data = get_data(peers, swarm)
   for(var k in data) {
     if(k != p.id) {
@@ -110,7 +110,7 @@ function test_eventual_consistency (network, opts) {
     return {data: get_data(peers, swarm), result: false, error: err}
   }
 
-  return assert_data_equal(peers)
+  return assert_data_equal(peers, swarm)
 }
 
 var opts = minimist(process.argv.slice(2))
