@@ -6,7 +6,7 @@
 const { debug } = require('./util')
 const Peer = require('./')
 const Swarm = require('./swarm/append')
-const { isId, isPeer } = require('./util')
+const { isId, isPeer, isSeq } = require('./util')
 
 function equalAddr (a, b) {
   return a && b && a.address === b.address && a.port === b.port
@@ -27,6 +27,14 @@ function peerFromAddress (peers, addr) {
     }
   }
   return peer
+}
+
+function random_seq () {
+  return (Math.random() * 0xffffffff) | 0
+}
+function assertSeq (seq) {
+  if(!(seq === undefined || isSeq(seq)))
+    throw new Error('expected seq, got:'+seq)
 }
 
 module.exports = class Swarms extends Peer {
@@ -96,41 +104,8 @@ module.exports = class Swarms extends Peer {
     }
     debug(1, 'connected peer:', peer)
   }
-/*
-  // broadcast a message, optionally skipping a particular peer (such as the peer that sent this)
-  broadcast (msg, not_addr = { address: null }) {
-    for (const k in this.peers) {
-      const peer = this.peers[k]
-      if (!equalAddr(peer, not_addr)) {
-        this.send(msg, peer, peer.outport || this.localPort)
-      }
-    }
-  }
-
-  // broadcast a message within a particular swarm
-  swarmcast (msg, swarm, not_addr = { address: null }) {
-    // send to peers in the same swarm
-    // debug('swarmcast:', msg, swarm)
-    let c = 0
-    for (const k in this.swarms[swarm]) {
-      if (!equalAddr(this.peers[k], not_addr.address)) {
-        this.send(msg, this.peers[k], this.peers[k].outport || this.localPort)
-        c++
-      }
-    }
-
-    // and other local peers
-    for (const k in this.peers) {
-      if ((this.swarms[swarm] && !this.swarms[swarm][k]) && /^192.168/.test(this.peers[k].address)) {
-        this.send(msg, this.peers[k], this.localPort)
-        c++
-      }
-    }
-    return c
-  }
-*/
-
-  join (swarm_id, target_peers = 3, seq) {
+  join (swarm_id, target_peers = 3, seq = random_seq()) {
+    assertSeq(seq)
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id, was:' + swarm_id)
     if (typeof target_peers !== 'number') {
       throw new Error('target_peers must be a number, was:' + target_peers)
@@ -150,6 +125,25 @@ module.exports = class Swarms extends Peer {
     //     hmm, to join a swarm, you need a connection to anyone in that swarm.
     //     a DHT would be good for that, because it's one lookup.
     //     after that the swarm is a gossip flood
+
+    if(seq) {
+      this.joins = this.joins || {}
+      this.seq_listeners = this.seq_listeners || {}
+      this.seq_listeners[seq] = (msg) => {
+        this.joins[seq] = (this.joins[seq] || 0) + 1
+      }
+      this.timer(2_000, 0, (ts) => {
+        var j_seq = this.joins[seq]
+        if(!j_seq) {
+          //XXX TODO, randomized test that only does join
+          //          to check if this actually works
+          //          current test seems to drop lots of head, request, update, which could all cause failure
+          this.join(swarm_id, target_peers, seq+1)
+        }
+        //if(!(j_seq && (j_seq.pong || j_seq.ping)))
+          //this.join(swarm_id, target_peers, seq) 
+      })
+    }
 
     if (current_peers) {
       for (var id in this.swarms[swarm_id]) {
@@ -191,7 +185,7 @@ module.exports = class Swarms extends Peer {
 
     if (!isId(msg.swarm)) return debug(1, 'join, no swarm:', msg)
     if (!isId(msg.id)) return debug(1, 'join, no id:', msg)
-    const seq = {msg}
+    const {seq} = msg
     const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
     swarm[msg.id] = ts
     this.__set_peer(msg.id, addr.address, addr.port, msg.nat, port, null, ts)

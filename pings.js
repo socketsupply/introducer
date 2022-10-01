@@ -1,5 +1,5 @@
 'use strict'
-const { isId, isIp, isAddr, debug, isPing, isPong, fromAddress, calcPeerState } = require('./util')
+const { isId, isIp, isAddr, isSeq, debug, isPing, isPong, fromAddress, calcPeerState } = require('./util')
 const EventEmitter = require('events')
 
 /**
@@ -11,6 +11,11 @@ const EventEmitter = require('events')
 
 function assertAddr (addr, message) {
   if(!isAddr(addr)) throw new Error('must be valid addr {address, port} object:'+message)
+}
+
+function assertSeq (seq) {
+  if(!(seq === undefined || isSeq(seq)))
+    throw new Error('expected seq, got:'+seq)
 }
 
 function cmpRand () {
@@ -209,6 +214,7 @@ module.exports = class PingPeer extends EventEmitter {
   }
 
   ping (peer, ts, seq) {
+    assertSeq(seq)
     if(peer.id && ts) {
       this.__set_peer(peer.id, peer.address, peer.port, peer.nat, peer.outport, null, ts, null)
       peer.send = ts
@@ -219,6 +225,7 @@ module.exports = class PingPeer extends EventEmitter {
   // method to check if we are already communicating
   //weird that I decided to make id a separate arg. why did I do it like that?
   ping3 (id, addr, ts, seq) {
+    assertSeq(seq)
     const delay = 500
     if (!id) throw new Error('ping3 expects peer id')
     var _peer = {...addr, id} //id must be come after the expansion or it will default to the addr value
@@ -352,6 +359,9 @@ module.exports = class PingPeer extends EventEmitter {
   on_msg (msg, addr, port, ts) {
     if (isString(msg.type) && isFunction(this['msg_' + msg.type])) {
       this['msg_' + msg.type](msg, addr, port, ts)
+      if(isSeq(msg.seq) && this.seq_listeners && isFunction(this.seq_listeners[msg.seq])) {
+        this.seq_listeners[msg.seq](msg)
+      }
     }
     else 
       return false
