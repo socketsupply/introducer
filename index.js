@@ -91,9 +91,13 @@ module.exports = class Peer extends PingPeer {
     const peer = this.peers[msg.target]
     if (peer) {
       if (peer.address != msg.address) {
+        //if the peer has moved, update it's address, port, nat
+        //reset pong, notified. when reconnecting to this peer on the new address it will trigger on_peer
         peer.address = msg.address
+        peer.port = msg.port
+        peer.nat = msg.nat
         peer.pong = null
-        //TODO should we resent notify state?
+        peer.notified = false
         //XXX falls though
       } else if (ts - peer.send < constants.connecting) {
         // if we are already connecting do nothing.
@@ -117,6 +121,13 @@ module.exports = class Peer extends PingPeer {
       return
     }
 
+    // check nat types:
+    // if both peers are easy, just tell each to connect to the other
+    // if one is easy, one hard, birthday paradox connection
+    // if both are hard, choose an easy peer to be relay, the two peers bdp to the easy peer.
+    //    then relay their messages through that peer
+    //    OR just error, and expect apps to handle case where not every pair can communicate
+    //    OR let the peers decide who can replay, maybe they already have a mutual peer?
     if (msg.nat === 'static') {
       this.ping3(msg.target, msg, ts, msg.seq)
     } else if (this.nat === 'easy') {
@@ -206,13 +217,6 @@ module.exports = class Peer extends PingPeer {
   }
 
   msg_intro (msg, addr) {
-    // check nat types:
-    // if both peers are easy, just tell each to connect to the other
-    // if one is easy, one hard, birthday paradox connection
-    // if both are hard, choose an easy peer to be relay, the two peers bdp to the easy peer.
-    //    then relay their messages through that peer
-    //    OR just error, and expect apps to handle case where not every pair can communicate
-    //    OR let the peers decide who can replay, maybe they already have a mutual peer?
     const to_peer = this.peers[msg.target]
     const from_peer = this.peers[msg.id]
     const {seq} = msg
