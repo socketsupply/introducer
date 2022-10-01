@@ -157,12 +157,12 @@ function assert_data_equal (peers, swarm) {
 //console.log(peers)
 //console.log(network)
 
-function test_eventual_consistency (network, peers) {
+function test_eventual_consistency (network, peers, opts) {
   var p = first(peers)
 
   p.handlers[swarm].update('hello', 100)
   try {
-    network.iterateUntil(2000)
+    network.iterateUntil(opts.until || 2000)
   } catch (err) {
     console.log(inspect(peers, {depth: 5, colors: true}))
     return {data: get_data(peers), result: false, error: err}
@@ -202,6 +202,6 @@ function randomize (randomized_test, opts) {
 
 var opts = minimist(process.argv.slice(2))
 randomize(
-    (network) => test_eventual_consistency(network, generate(network, opts.peers || 10, swarm)),
+    (network) => test_eventual_consistency(network, generate(network, opts.peers || 10, swarm), opts),
     opts
   )
