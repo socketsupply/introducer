@@ -1,10 +1,11 @@
-var {Network, Node} = require('@socketsupply/netsim/base')()
+var {Network, Node} = require('@socketsupply/netsim/base')(()=>Math.random())
 var Introducer = require('../introducer')
 //var {Node} = require('@socketsupply/netsim/base')()
-
-function seedRandom () {
-  var MT = require('rng').MT
-  var mt = new MT(7)
+var MT = require('rng').MT
+var mt
+function seedRandom (seed) {
+  if(seed === undefined) throw new Error('seed is missing:'+seed)
+  mt = new MT(seed)
   function random () {
     return mt.random()
   }
