@@ -10,6 +10,10 @@ function isAddr (a) {
   return typeof a === 'object' && a && isIp(a.address) && isPort(a.port)
 }
 
+function isSeq (p) {
+  return p === (p | 0) //coearse to signed i32
+}
+
 function isId (id) {
   return /^[0-9a-fA-F]{64}$/.exec(id)
 }
@@ -87,6 +91,7 @@ module.exports = {
   isIp,
   isPort,
   isAddr,
+  isSeq,
   isId,
   isNat,
   fromAddress,
