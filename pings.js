@@ -115,13 +115,17 @@ module.exports = class PingPeer extends EventEmitter {
 
     this.nat = null
     var first = true
-    eachIntroducer(this, (intro) => {
-      intro.pong = null
-      this.ping(intro)
-      if(!first) return
-      first = false
-      //ping with a different port.
-      this.send({type:'ping', seq, id: this.id, spinPort: this.spinPort}, intro, this.localPort)
+    this.timer(0, 1000, (ts) => {
+      if(this.nat) return false
+      eachIntroducer(this, (intro) => {
+        intro.pong = null
+        this.ping(intro)
+        if(!first) return
+        first = false
+        //ping with a different port.
+        //if this packet gets dropped, then it just hangs!
+        this.send({type:'ping', seq, id: this.id, spinPort: this.spinPort}, intro, this.localPort)
+      })
     })
   }
 
