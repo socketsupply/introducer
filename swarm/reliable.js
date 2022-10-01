@@ -14,6 +14,7 @@ module.exports = class ReliableSwarm extends Swarm {
 
   on_nat () {
     this.peer.join(this.id)
+    //XXX avoid drops, repeat this until we have been acknowledged
     this.peer.timer(1000, 0, () => this.head())
   }
 
@@ -50,6 +51,7 @@ module.exports = class ReliableSwarm extends Swarm {
   msg_head (msg, peer) {
     // if we receive a head message, and we are not up to date with it, then request an update.
     if (!np.has(this.data, msg.head)) {
+      //XXX  rerequest until we have this...
       this.request(msg.head, peer)
     }
     // if we know about stuff that the head _doesn't_, then send a head back to them
@@ -58,6 +60,11 @@ module.exports = class ReliableSwarm extends Swarm {
     if (diff.length) {
       this.head(peer)
     }
+
+    //XXX but if we do have the same as them, send a head, but mark it as an ack.
+    //they are not expected to respond (unless their head has changed)
+    //if they send "head" expecting an ack, (for example, at startup)
+    //then it is their responsibility to rerequest if the ack is dropped.
   }
 
   update (content, ts) {
@@ -71,6 +78,7 @@ module.exports = class ReliableSwarm extends Swarm {
   }
 
   request (prev, from) {
+    //XXX rerequest after a delay if we are still waiting 
     this.send({
       type: 'request',
       swarm: this.id,
