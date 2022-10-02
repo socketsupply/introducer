@@ -92,7 +92,7 @@ module.exports = class ReliableSwarm extends Swarm {
     //check that we do not have it.
     var req = np.request(this.data, prev)
     if(req.need.length == 0) return //we actually have everything
-    //this.peer.timer(0, 1_000, () => {
+    this.peer.timer(0, 1_000, () => {
       var req = np.request(this.data, prev)
       if(req.need.length == 0) return false//we actually have everything, cancel the timer
       //XXX if the peer has died, cancel also
@@ -104,7 +104,7 @@ module.exports = class ReliableSwarm extends Swarm {
       },
       from.id
       )
-    //})
+    })
   }
 
   msg_request (msg, addr, port) {
