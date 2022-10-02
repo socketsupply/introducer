@@ -39,13 +39,22 @@ module.exports = class ReliableSwarm extends Swarm {
   }
 
   head (peer) {
+//    this.awaiting[peer.id] = true
+    //remember that we are expecting a response to this
+    //and set if a response (either another head) or a request.
+    //if not, retry (untell it's to one peer, and they go down)
+    console.log("HEAD", peer ? peer.id : null, np.leaves(this.data))
     const msg = {
       type: 'head',
       swarm: this.id,
       id: this.peer.id,
       head: np.leaves(this.data)
     }
-    if (peer) { this.send(msg, peer) } else { this.swarmcast(msg, this.id) }
+    if (peer) {
+      this.send(msg, peer)
+    } else {
+      this.swarmcast(msg, this.id)
+    }
   }
 
   msg_head (msg, peer) {
@@ -79,14 +88,23 @@ module.exports = class ReliableSwarm extends Swarm {
 
   request (prev, from) {
     //XXX rerequest after a delay if we are still waiting 
-    this.send({
-      type: 'request',
-      swarm: this.id,
-      id: this.peer.id,
-      ...np.request(this.data, prev)
-    },
-    from.id
-    )
+    //prev should be an id that we are missing.
+    //check that we do not have it.
+    var req = np.request(this.data, prev)
+    if(req.need.length == 0) return //we actually have everything
+    //this.peer.timer(0, 1_000, () => {
+      var req = np.request(this.data, prev)
+      if(req.need.length == 0) return false//we actually have everything, cancel the timer
+      //XXX if the peer has died, cancel also
+      this.send({
+        type: 'request',
+        swarm: this.id,
+        id: this.peer.id,
+        ...req
+      },
+      from.id
+      )
+    //})
   }
 
   msg_request (msg, addr, port) {
