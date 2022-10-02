@@ -113,5 +113,6 @@ function test_eventual_consistency (network, opts) {
   return assert_data_equal(peers, swarm)
 }
 
-var opts = minimist(process.argv.slice(2))
-randomize(test_eventual_consistency, opts)
+module.exports = (opts) => randomize(test_eventual_consistency, opts)
+
+if(!module.parent) module.exports(minimist(process.argv.slice(2)))

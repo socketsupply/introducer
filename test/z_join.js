@@ -71,5 +71,8 @@ function test_connected_network (network, opts) {
   return assert_swarm_connected(peers)
 }
 
-var opts = minimist(process.argv.slice(2))
-randomize(test_connected_network, opts)
+//var opts = minimist(process.argv.slice(2))
+//randomize(test_connected_network, opts)
+module.exports = (opts) => randomize(test_connected_network, opts)
+
+if(!module.parent) module.exports(minimist(process.argv.slice(2)))
