@@ -87,6 +87,7 @@ function randomize (randomized_test, opts) {
     }
     console.log(results)
     if(fail) process.exit(fail)
+    return {data: results, result: results.true && results.true.length === runs} 
   }
 }
 
