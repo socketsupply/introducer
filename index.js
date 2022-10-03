@@ -216,10 +216,14 @@ module.exports = class Peer extends PingPeer {
     this.send({ type: 'intro', seq, id: this.id, nat: this.nat, target: id, swarm }, intro || this.peers[this.introducer1], this.localPort)
   }
 
-  msg_intro (msg, addr) {
+  msg_intro (msg, addr, _port, ts) {
     const to_peer = this.peers[msg.target]
     const from_peer = this.peers[msg.id]
     const {seq} = msg
+    if(msg.swarm) {
+      this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
+      this.swarms[msg.swarm][msg.id] = ts
+    }
     if (to_peer && from_peer) {
       // tell the target peer to connect, and also tell the source peer the addr/port to connect to.
 
@@ -227,7 +231,7 @@ module.exports = class Peer extends PingPeer {
       this.connect(msg.id, msg.target, msg.swarm, null, seq)
     } else {
       // respond with an error
-      this.send({ type: 'error', seq, target: msg.target, id: msg.id, call: 'connect'}, addr, port)
+      this.send({ type: 'error', seq, target: msg.target, swarm: msg.swarm, id: this.id, call: 'intro'}, addr, port)
     }
   }
 }

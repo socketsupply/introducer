@@ -219,7 +219,7 @@ module.exports = class Swarms extends Peer {
     // if there are no other connectable peers, at least respond to the join msg
     if (!max_peers || !ids.length) {
       debug(1, 'join error: no peers')
-      return this.send({ type: 'error', seq, id: msg.swarm, peers: Object.keys(swarm).length, call: 'join' }, addr, port)
+      return this.send({ type: 'error', seq, id: this.id, swarm: msg.swarm, peers: Object.keys(swarm).length, call: 'join' }, addr, port)
     }
 
     for (let i = 0; i < max_peers; i++) {
