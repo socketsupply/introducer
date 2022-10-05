@@ -79,12 +79,23 @@ function isConnect (p) {
 const INACTIVE=1.5
 const MISSING=3
 const FORGET=5
+const WAITING=1/20
+const NOTWAITING=1/4
+
 function calcPeerState (peer, ts, keepalive) {
 //  console.log((ts - peer.recv)/1000, keepalive/1000)
-  if((ts - peer.recv) > keepalive*FORGET) return 'forget'
-  if((ts - peer.recv) > keepalive*MISSING) return 'missing'
-  if((ts - peer.recv) > keepalive*INACTIVE) return 'inactive'
-  return 'active'
+  var recv_state = (
+      (ts - peer.recv) > keepalive*FORGET ? 'forget'
+    : (ts - peer.recv) > keepalive*MISSING ? 'missing'
+    : (ts - peer.recv) > keepalive*INACTIVE ? 'inactive'
+    :                                         'active'
+  )
+
+  if(peer.sent > peer.recv) {
+    if((ts - peer.sent) < keepalive*WAITING) return 'waiting'
+    return 'inactive'
+  }
+  return recv_state
 }
 
 module.exports = {
