@@ -245,14 +245,15 @@ module.exports = class PingPeer extends EventEmitter {
     this.timer(delay * 2, 0, maybe_ping)
   }
 
-  __notify_peer (id) {
+  __notify_peer (id, ts) {
+    if(!ts) throw new Error('__notify_peer: must pass ts')
     // Event handler pattern is to assign (or override) a on_* method.
     // It's optional, thus to emit an event do `if(on_<event>) on_<event>(...)`."
     if(this.on_peer) {
       var peer = this.peers[id]
       if(!peer.notified) {
         peer.notified = true
-        this.on_peer(peer)
+        this.on_peer(peer, ts)
         this.emit('peer', peer)
       }
     }
@@ -334,7 +335,7 @@ module.exports = class PingPeer extends EventEmitter {
 
     this.emit('ping', msg, addr, _port)
 
-    this.__notify_peer(msg.id)
+    this.__notify_peer(msg.id, ts)
   }
 
   msg_spin (msg, addr, _port, ts) {
@@ -359,7 +360,7 @@ module.exports = class PingPeer extends EventEmitter {
     // NOTIFY new peers here.
     //if (isNew) this.emit('peer', this.peers[msg.id])
     //if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
-    this.__notify_peer(msg.id)
+    this.__notify_peer(msg.id, ts)
     this.emit('pong', this.peers[msg.id])
   }
 
