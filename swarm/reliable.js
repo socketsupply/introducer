@@ -8,14 +8,14 @@ module.exports = class ReliableSwarm extends Swarm {
     this.data = np.init()
   }
 
-  on_peer (peer) {
-    this.head(peer)
+  on_peer (peer, ts) {
+    this.head(peer, ts) //XXX pass ts
   }
 
   on_nat () {
     this.peer.join(this.id)
     //XXX avoid drops, repeat this until we have been acknowledged
-    this.peer.timer(1000, 0, () => this.head())
+    this.peer.timer(1000, 0, (ts) => this.head(null, ts))
   }
 
   // receive flooded message
@@ -35,21 +35,30 @@ module.exports = class ReliableSwarm extends Swarm {
       // XXX maybe repeats should be handled differently, if I had to request this message again,
       //    don't broadcast it. (probably everyone got it directly already?)
       this.swarmcast(msg, msg.swarm, addr)
+
+      //when sending an update, expect a "head" acknowledgement
     }
   }
 
-  head (peer) {
+  head (peer, ts) {
+    if(!ts) throw new Error('expected ts')
 //    this.awaiting[peer.id] = true
     //remember that we are expecting a response to this
     //and set if a response (either another head) or a request.
     //if not, retry (untell it's to one peer, and they go down)
-    console.log("HEAD", peer ? peer.id : null, np.leaves(this.data))
+//    console.log("HEAD", peer ? peer.id : null, np.leaves(this.data))
     const msg = {
       type: 'head',
       swarm: this.id,
       id: this.peer.id,
       head: np.leaves(this.data)
     }
+    this.sent = ts
+    //check if we have received a update more recently
+    this.peer.timer(1000, 0, (ts) => {
+      console.log("RETRY head?", ts, this.sent, this.recv)
+      if(this.sent > this.recv) this.head(peer, ts)
+    })
     if (peer) {
       this.send(msg, peer)
     } else {
@@ -57,17 +66,18 @@ module.exports = class ReliableSwarm extends Swarm {
     }
   }
 
-  msg_head (msg, peer) {
+  msg_head (msg, peer, _port, ts) {
     // if we receive a head message, and we are not up to date with it, then request an update.
     if (!np.has(this.data, msg.head)) {
       //XXX  rerequest until we have this...
-      this.request(msg.head, peer)
+      this.request(msg.head, peer, ts)
     }
+    this.recv = ts
     // if we know about stuff that the head _doesn't_, then send a head back to them
     const head = np.leaves(this.data)
     const diff = head.filter(id => !~msg.head.indexOf(id))
     if (diff.length) {
-      this.head(peer)
+      this.head(peer, ts)
     }
 
     //XXX but if we do have the same as them, send a head, but mark it as an ack.
@@ -84,6 +94,7 @@ module.exports = class ReliableSwarm extends Swarm {
     if (this.on_change) {
       this.on_change(msg, this.data)
     }
+    this.head(null, ts)
   }
 
   request (prev, from) {
@@ -107,8 +118,9 @@ module.exports = class ReliableSwarm extends Swarm {
     })
   }
 
-  msg_request (msg, addr, port) {
+  msg_request (msg, addr, port, ts) {
     const a = np.missing(this.data, msg.have, msg.need)
+    this.recv = ts
     if (a.length) {
       for (let i = 0; i < a.length; i++) {
         this.send(a[i], addr, port)
