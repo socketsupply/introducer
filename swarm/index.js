@@ -32,10 +32,14 @@ class Swarm {
   }
 
   // send to all peers in swarm
-  swarmcast (msg, not_peer = null) {
+  swarmcast (msg, not_peer = null, each = (msg, peer) => this.send(msg, peer) ) {
     const swarm = this.peer.swarms[this.id]
     for (const k in swarm) {
-      if (k != not_peer) { this.send(msg, k) }
+      if(this.peer.peers[k]) {
+        if (k != not_peer) {
+          each(msg, this.peer.peers[k])
+        }
+      }
     }
   }
 }
