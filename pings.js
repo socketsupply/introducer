@@ -124,6 +124,9 @@ module.exports = class PingPeer extends EventEmitter {
         first = false
         //ping with a different port.
         //if this packet gets dropped, then it just hangs!
+        intro.sent = ts
+        //this ping is sent directly, instead of via this.ping(), because we are including the spinPort options
+        //spinPort is used for detecting if we have a static nat.
         this.send({type:'ping', seq, id: this.id, spinPort: this.spinPort}, intro, this.localPort)
       })
     })
@@ -204,7 +207,7 @@ module.exports = class PingPeer extends EventEmitter {
     debug(1, 'wakeup')
     for(var k in this.peers) {
       var peer = this.peers[k]
-      if(peer.send < ts - this.keepalive/2)
+      if(peer.sent < ts - this.keepalive/2)
         this.ping(peer, ts)
     }
     for(var k in this.swarms)
@@ -221,7 +224,7 @@ module.exports = class PingPeer extends EventEmitter {
     assertSeq(seq)
     if(peer.id && ts) {
       this.__set_peer(peer.id, peer.address, peer.port, peer.nat, peer.outport, null, ts, null)
-      peer.send = ts
+      peer.sent = ts
     }
     this.send({ type: 'ping', seq, id: this.id, nat: this.nat, restart: this.restart }, peer, peer.outport || this.localPort)
   }
