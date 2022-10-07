@@ -14,8 +14,8 @@ module.exports = class ReliableSwarm extends Swarm {
 
   on_nat () {
     this.peer.join(this.id)
-    //XXX avoid drops, repeat this until we have been acknowledged
-    this.peer.timer(1000, 0, (ts) => this.head(null, ts))
+    //can comment this out, because on_peer sends head
+//    this.peer.timer(1000, 0, (ts) => this.head(null, ts))
   }
 
   // receive flooded message
