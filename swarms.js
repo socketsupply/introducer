@@ -104,16 +104,22 @@ module.exports = class Swarms extends Peer {
     }
     debug(1, 'connected peer:', peer)
   }
+
   join (swarm_id, target_peers = 3, seq = random_seq()) {
     assertSeq(seq)
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id, was:' + swarm_id)
     if (typeof target_peers !== 'number') {
       throw new Error('target_peers must be a number, was:' + target_peers)
     }
-    this.swarms[swarm_id] = this.swarms[swarm_id] || {} 
+    var swarm = this.swarms[swarm_id] = this.swarms[swarm_id] || {_peers: 0} 
+    if(swarm._peers == undefined)
+      throw new Error('missing _peers')
+
+    var count = Object.keys(swarm).filter(id => this.peers[id]).length
+
     const send = (id) => {
       const peer = this.peers[id]
-      this.send({ type: 'join', seq, id: this.id, swarm: swarm_id, nat: this.nat, peers: target_peers | 0, seq }, peer, peer.outport || this.localPort)
+      this.send({ type: 'join', seq, id: this.id, swarm: swarm_id, nat: this.nat, peers: target_peers | 0, current: count, seq }, peer, peer.outport || this.localPort)
     }
     //check if these peers are currently active
     const current_peers = Object.keys(this.swarms[swarm_id] || {}).length
@@ -126,14 +132,26 @@ module.exports = class Swarms extends Peer {
     //     a DHT would be good for that, because it's one lookup.
     //     after that the swarm is a gossip flood
 
-    if(seq) {
+//    console.log("JOIN", seq)
+    this.timer(1_000, 0, (ts) => {
+      var swarm = this.swarms[swarm_id]
+      var count = Object.keys(swarm).filter(id => this.peers[id]).length
+
+      console.log('rejoin', swarm._peers, count, swarm)
+      if(!swarm._peers || count < Math.min(target_peers, swarm._peers)) {
+        this.join(swarm_id, target_peers)
+      }
+    })
+/*
+    if(false && seq) {
       this.joins = this.joins || {}
       this.seq_listeners = this.seq_listeners || {}
       this.seq_listeners[seq] = (msg) => {
         this.joins[seq] = (this.joins[seq] || 0) + 1
       }
-      this.timer(2_000, 0, (ts) => {
+      this.timer(1_000, 0, (ts) => {
         var j_seq = this.joins[seq]
+        console.log('JOINS', this.joins[seq])
         if(!j_seq) {
           //XXX TODO, randomized test that only does join
           //          to check if this actually works
@@ -144,7 +162,7 @@ module.exports = class Swarms extends Peer {
           //this.join(swarm_id, target_peers, seq) 
       })
     }
-
+*/
     if (current_peers) {
       for (var id in this.swarms[swarm_id]) {
         if (this.peers[id]) send(id)
@@ -186,8 +204,10 @@ module.exports = class Swarms extends Peer {
     if (!isId(msg.swarm)) return debug(1, 'join, no swarm:', msg)
     if (!isId(msg.id)) return debug(1, 'join, no id:', msg)
     const {seq} = msg
-    const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
+    const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {_peers: msg.peers | 0}
     swarm[msg.id] = ts
+//    if(swarm._peers == undefined) throw new Error('undef peers')
+
     this.__set_peer(msg.id, addr.address, addr.port, msg.nat, port, null, ts)
     const peer = this.peers[msg.id]
 
@@ -209,6 +229,7 @@ module.exports = class Swarms extends Peer {
       // hard nat can only connect to easy nats, but can also connect to peers on the same nat
       ids = ids.filter(id => this.peers[id] && (this.peers[id].nat === 'static' || this.peers[id].nat === 'easy' || this.peers[id].address === peer.address))
     }
+    var total_peers = ids.length
     if (this.connections) this.connections[msg.id] = {}
 
 
@@ -219,13 +240,13 @@ module.exports = class Swarms extends Peer {
     // if there are no other connectable peers, at least respond to the join msg
     if (!max_peers || !ids.length) {
       debug(1, 'join error: no peers')
-      return this.send({ type: 'error', seq, id: this.id, swarm: msg.swarm, peers: Object.keys(swarm).length, call: 'join' }, addr, port)
+      return this.send({ type: 'error', seq, id: this.id, swarm: msg.swarm, peers: total_peers, call: 'join' }, addr, port)
     }
 
     for (let i = 0; i < max_peers; i++) {
       if (this.connections) this.connections[msg.id][ids[i]] = i
-      this.connect(ids[i], peer.id, msg.swarm, this.localPort, seq)
-      this.connect(peer.id, ids[i], msg.swarm, this.localPort, seq)
+      this.connect(ids[i], peer.id, msg.swarm, this.localPort, seq, {peers: total_peers})
+      this.connect(peer.id, ids[i], msg.swarm, this.localPort, seq, {peers: total_peers})
     }
 
     this.emit('join', peer)
