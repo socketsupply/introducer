@@ -62,7 +62,7 @@ function test_connected_network (network, opts) {
 //  p.handlers[swarm].update('hello', 100)
 
   try {
-    network.iterateUntil(opts.until || 2000)
+    network.iterateUntil(opts.until || 5000)
   } catch (err) {
     console.log(inspect(peers, {depth: 5, colors: true}))
     return assert_swarm_connected(peers) //{data: get_data(peers, swarm), result: false, error: err}
