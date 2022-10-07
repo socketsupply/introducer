@@ -73,12 +73,16 @@ module.exports = class Peer extends PingPeer {
     if (!isAddr(msg)) // should never happen, but a peer could send anything.
     { return debug(1, 'connect msg is invalid!', msg) }
 
+//    if(!msg.peers) throw new Error('missing peers')
+
     let swarm
     // note: ping3 checks if we are already communicating
     const ap = msg.address + ':' + msg.port
     if (isId(msg.swarm)) {
       swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
       swarm[msg.target] = -ts
+      if(msg.peers != undefined)
+        swarm._peers = msg.peers
       //we have learnt about a new peer, but we havn't connected to them yet.
       //keep it in the peers table, but do not notify on_peer until a message is received from that peer directly
       //(probably a ping or a pong)
@@ -199,7 +203,7 @@ module.exports = class Peer extends PingPeer {
     this.send(msg.content, target, target.outport || this.localPort)
   }
 
-  connect (from_id, to_id, swarm, port, seq) { // XXX remove port arg
+  connect (from_id, to_id, swarm, port, seq, data) { // XXX remove port arg
     const from = this.peers[from_id]
     const to = this.peers[to_id]
     if(!isPeer(from)) throw new Error('cannot connect from undefined peer:'+from_id)
@@ -208,7 +212,8 @@ module.exports = class Peer extends PingPeer {
     // if(!from.nat) throw new Error('cannot connect FROM unknown nat')
     // if(!to.nat) throw new Error('cannot connect TO unknown nat')
     // XXX id should ALWAYS be the id of the sender.
-    this.send({ type: 'connect', seq, id: this.id, target: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port }, from, port || from.outport)
+//    if(data) console.log(data)
+    this.send({ type: 'connect', seq, id: this.id, target: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port, ...data }, from, port || from.outport)
   }
 
   // rename: this was "connect" but that required Introducer to be different to Peer.
