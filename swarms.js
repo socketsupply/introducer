@@ -133,15 +133,17 @@ module.exports = class Swarms extends Peer {
     //     after that the swarm is a gossip flood
 
 //    console.log("JOIN", seq)
-    this.timer(1_000, 0, (ts) => {
-      var swarm = this.swarms[swarm_id]
-      var count = Object.keys(swarm).filter(id => this.peers[id]).length
+    if(this.keepalive)
+      this.timer(0, this.keepalive, (ts) => {
+        var swarm = this.swarms[swarm_id]
+        var count = Object.keys(swarm).filter(id => this.peers[id]).length
 
-      console.log('rejoin', swarm._peers, count, swarm)
-      if(!swarm._peers || count < Math.min(target_peers, swarm._peers)) {
-        this.join(swarm_id, target_peers)
-      }
-    })
+  //      console.log('rejoin', swarm._peers, count, swarm)
+          if(count < target_peers)
+  //      if(!swarm._peers || count < Math.min(target_peers, swarm._peers)) {
+            this.join(swarm_id, target_peers)
+    //    }
+      })
 /*
     if(false && seq) {
       this.joins = this.joins || {}
