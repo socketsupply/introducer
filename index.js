@@ -93,7 +93,10 @@ module.exports = class Peer extends PingPeer {
     // if we already know this peer, but the address has changed,
     // reset the connection to them...
     const peer = this.peers[msg.target]
-    if (peer) {
+    //XXX: because of recent changes, the peer should *always* be known now.
+    //so need a different way to decide if we are still connected.
+    
+    if (peer && peer.sent) {
       if (peer.address != msg.address) {
         //if the peer has moved, update it's address, port, nat
         //reset pong, notified. when reconnecting to this peer on the new address it will trigger on_peer
@@ -103,10 +106,10 @@ module.exports = class Peer extends PingPeer {
         peer.pong = null
         peer.notified = false
         //XXX falls though
-      } else if (ts - peer.send < constants.connecting) {
+      } else if (ts - peer.sent < constants.connecting) {
         // if we are already connecting do nothing.
         return
-      } else if (ts - Math.max(peer.recv, peer.send) < constants.keepalive) {
+      } else if (ts - Math.max(peer.recv, peer.sent) < constants.keepalive) {
         this.ping3(peer.id, peer, ts, seq)
         return
       }
@@ -162,7 +165,7 @@ module.exports = class Peer extends PingPeer {
             debug(1, 'connected:', i, s, short_id, ap)
             return false
           }
-
+          peer.sent = _ts
           this.send({ type: 'ping', seq, id: this.id, nat: this.nat, restart: this.restart, seq: msg.seq }, {
             address: msg.address, port: random_port(ports)
           }, this.localPort)
@@ -175,6 +178,7 @@ module.exports = class Peer extends PingPeer {
         var ports = {}
         for (var i = 0; i < 256; i++) {
           const p = random_port(ports)
+          peer.sent = ts
           this.send({ type: 'ping', seq, id: this.id, nat: this.nat, restart: this.restart, seq: msg.seq }, msg, p)
         }
       } else if (msg.nat === 'hard') {
