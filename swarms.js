@@ -134,7 +134,7 @@ module.exports = class Swarms extends Peer {
 
 //    console.log("JOIN", seq)
     if(this.keepalive)
-      this.timer(0, this.keepalive, (ts) => {
+      this.timer(this.keepalive, 0, (ts) => {
         var swarm = this.swarms[swarm_id]
         var count = Object.keys(swarm).filter(id => this.peers[id]).length
 
@@ -144,6 +144,7 @@ module.exports = class Swarms extends Peer {
             this.join(swarm_id, target_peers)
     //    }
       })
+
 /*
     if(false && seq) {
       this.joins = this.joins || {}
@@ -238,7 +239,7 @@ module.exports = class Swarms extends Peer {
     // send messages to the random peers indicating that they should connect now.
     // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
     const max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
-    debug(1, 'join', max_peers, msg.id.substring(0,8) + '->' + ids.map(id=>id.substring(0, 8)).join(','))
+    debug(1, 'join', ts, msg.id, max_peers, msg.id.substring(0,8) + '->' + ids.map(id=>id.substring(0, 8)).join(','))
     // if there are no other connectable peers, at least respond to the join msg
     if (!max_peers || !ids.length) {
       debug(1, 'join error: no peers')
