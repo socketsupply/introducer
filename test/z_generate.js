@@ -95,7 +95,7 @@ function test_eventual_consistency (network, opts) {
   var swarm = createId()
 
   var peers = generate(network, opts.peers || 10, (id, intros) => {
-    var p = new Swarms({id, ...intros})
+    var p = new Swarms({id, ...intros, keepalive: 20_000})
     p.createModel(swarm, new Reliable())
     return p
   })
