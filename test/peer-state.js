@@ -54,3 +54,9 @@ function rn (sent) {
 
   t.end()
 })
+
+
+tape('peer state, no response 2', function (t) {
+  t.equal(calcPeerState({recv: 9003, sent: 29_000}, 29_000*10, ttl), 'forget') 
+  t.end()
+})
