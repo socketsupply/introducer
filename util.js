@@ -93,7 +93,8 @@ function calcPeerState (peer, ts, keepalive) {
 
   if(peer.sent > peer.recv) {
     if((ts - peer.sent) < keepalive*WAITING) return 'waiting'
-    return 'inactive'
+    if((ts - peer.sent) < keepalive) return 'inactive'
+    return 'forget'
   }
   return recv_state
 }
