@@ -13,11 +13,6 @@ function assertAddr (addr, message) {
   if(!isAddr(addr)) throw new Error('must be valid addr {address, port} object:'+message)
 }
 
-function assertSeq (seq) {
-  if(!(seq === undefined || isSeq(seq)))
-    throw new Error('expected seq, got:'+seq)
-}
-
 function cmpRand () {
   return Math.random() - 0.5
 }
@@ -110,7 +105,7 @@ module.exports = class PingPeer extends EventEmitter {
     }
   }
 
-  discoverNat (seq) {
+  discoverNat () {
     this.publicAddress = null
 
     this.nat = null
@@ -127,7 +122,7 @@ module.exports = class PingPeer extends EventEmitter {
         intro.sent = ts
         //this ping is sent directly, instead of via this.ping(), because we are including the spinPort options
         //spinPort is used for detecting if we have a static nat.
-        this.send({type:'ping', seq, id: this.id, spinPort: this.spinPort}, intro, this.localPort)
+        this.send({type:'ping', id: this.id, spinPort: this.spinPort}, intro, this.localPort)
       })
     })
   }
@@ -220,26 +215,24 @@ module.exports = class PingPeer extends EventEmitter {
     // override this to implement behaviour for when nat is detected.
   }
 
-  ping (peer, ts, seq) {
-    assertSeq(seq)
+  ping (peer, ts) {
     if(peer.id && ts) {
       this.__set_peer(peer.id, peer.address, peer.port, peer.nat, peer.outport, null, ts, null)
       peer.sent = ts
     }
-    this.send({ type: 'ping', seq, id: this.id, nat: this.nat, restart: this.restart }, peer, peer.outport || this.localPort)
+    this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, peer, peer.outport || this.localPort)
   }
 
   // method to check if we are already communicating
   //weird that I decided to make id a separate arg. why did I do it like that?
-  ping3 (id, addr, ts, seq) {
-    assertSeq(seq)
+  ping3 (id, addr, ts) {
     const delay = 500
     if (!id) throw new Error('ping3 expects peer id')
     var _peer = {...addr, id} //id must be come after the expansion or it will default to the addr value
     this.ping(_peer, ts)
     var maybe_ping = (ts) => {
       if (this.peers[id] && this.peers[id].pong) return
-      this.ping(_peer, ts, seq)
+      this.ping(_peer, ts)
     }
     this.timer(delay, 0, maybe_ping)
     this.timer(delay * 2, 0, maybe_ping)
@@ -309,7 +302,6 @@ module.exports = class PingPeer extends EventEmitter {
     }
     var _msg = {
       type: 'pong', id: this.id, ...addr, nat: this.nat, restart: this.restart, ts:msg.ts,
-      seq: msg.seq
     }
 
    	if(msg.ts && msg.delay) {
@@ -324,7 +316,7 @@ module.exports = class PingPeer extends EventEmitter {
         //if message gets through, it's static.
 
         //spinning the ball alters it's trajectory.
-        this.send({ type: 'spin', id: this.id, ...addr, nat: this.nat, seq: msg.seq }, {...addr, port: msg.spinPort}, _port)
+        this.send({ type: 'spin', id: this.id, ...addr, nat: this.nat }, {...addr, port: msg.spinPort}, _port)
       }
       //still pong like normal though.
       this.send(_msg, addr, _port)
@@ -367,9 +359,6 @@ module.exports = class PingPeer extends EventEmitter {
   on_msg (msg, addr, port, ts) {
     if (isString(msg.type) && isFunction(this['msg_' + msg.type])) {
       this['msg_' + msg.type](msg, addr, port, ts)
-      if(isSeq(msg.seq) && this.seq_listeners && isFunction(this.seq_listeners[msg.seq])) {
-        this.seq_listeners[msg.seq](msg)
-      }
     }
     else 
       return false
