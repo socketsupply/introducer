@@ -96,7 +96,7 @@ module.exports = class Peer extends PingPeer {
     //XXX: because of recent changes, the peer should *always* be known now.
     //so need a different way to decide if we are still connected.
     
-    if (peer && peer.sent) {
+    if (peer && peer.sent && peer.recv) {
       if (peer.address != msg.address) {
         //if the peer has moved, update it's address, port, nat
         //reset pong, notified. when reconnecting to this peer on the new address it will trigger on_peer
@@ -106,10 +106,11 @@ module.exports = class Peer extends PingPeer {
         peer.pong = null
         peer.notified = false
         //XXX falls though
-      } else if (ts - peer.sent < constants.connecting) {
+      } else if (peer.connecting && ts - peer.sent < constants.connecting) {
         // if we are already connecting do nothing.
         return
-      } else if (ts - Math.max(peer.recv, peer.sent) < constants.keepalive) {
+      } else if (peer.pong && ts - Math.max(peer.recv, peer.sent) < constants.keepalive) {
+        
         this.ping3(peer.id, peer, ts, seq)
         return
       }
@@ -149,6 +150,7 @@ module.exports = class Peer extends PingPeer {
         debug(1, 'BDP easy->hard', short_id, ap)
         var i = 0; const start = Date.now(); var ts = start
         var ports = {}
+        peer.connecting = true
         this.timer(0, 10, (_ts) => {
           if (Date.now() - 1000 > ts) {
             debug(1, 'packets', i, short_id)
@@ -160,9 +162,11 @@ module.exports = class Peer extends PingPeer {
           const s = Math.round((Date.now() - start) / 100) / 10
           if (i++ > 2000) {
             debug(1, 'connection failed:', i, s, short_id, ap)
+            peer.connecting = false
             return false
           } else if (this.peers[msg.target] && this.peers[msg.target].pong) {
             debug(1, 'connected:', i, s, short_id, ap)
+            peer.connecting = false
             return false
           }
           peer.sent = _ts
@@ -173,6 +177,7 @@ module.exports = class Peer extends PingPeer {
       }
     } else if (this.nat === 'hard') {
       if (msg.nat === 'easy') {
+        peer.connecting = true
         debug(1, 'BDP hard->easy', short_id)
         // we are the hard side, open 256 random ports
         var ports = {}
