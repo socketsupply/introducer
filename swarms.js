@@ -6,7 +6,7 @@
 const { debug } = require('./util')
 const Peer = require('./')
 const Swarm = require('./swarm/append')
-const { isId, isPeer } = require('./util')
+const { isId, isPeer, isSeq } = require('./util')
 
 function equalAddr (a, b) {
   return a && b && a.address === b.address && a.port === b.port
@@ -86,70 +86,52 @@ module.exports = class Swarms extends Peer {
     debug(1, 'error:', msg)
   }
 
-  on_peer (peer) {
+  on_peer (peer, ts) {
     for(var swarm in this.swarms) {
       if(this.swarms[swarm][peer.id]) {
         if(this.handlers[swarm] && this.handlers[swarm].on_peer) {
-          this.handlers[swarm].on_peer(peer)
+          this.handlers[swarm].on_peer(peer, ts)
         }
       }
     }
     debug(1, 'connected peer:', peer)
   }
-/*
-  // broadcast a message, optionally skipping a particular peer (such as the peer that sent this)
-  broadcast (msg, not_addr = { address: null }) {
-    for (const k in this.peers) {
-      const peer = this.peers[k]
-      if (!equalAddr(peer, not_addr)) {
-        this.send(msg, peer, peer.outport || this.localPort)
-      }
-    }
-  }
-
-  // broadcast a message within a particular swarm
-  swarmcast (msg, swarm, not_addr = { address: null }) {
-    // send to peers in the same swarm
-    // debug('swarmcast:', msg, swarm)
-    let c = 0
-    for (const k in this.swarms[swarm]) {
-      if (!equalAddr(this.peers[k], not_addr.address)) {
-        this.send(msg, this.peers[k], this.peers[k].outport || this.localPort)
-        c++
-      }
-    }
-
-    // and other local peers
-    for (const k in this.peers) {
-      if ((this.swarms[swarm] && !this.swarms[swarm][k]) && /^192.168/.test(this.peers[k].address)) {
-        this.send(msg, this.peers[k], this.localPort)
-        c++
-      }
-    }
-    return c
-  }
-*/
 
   join (swarm_id, target_peers = 3) {
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id, was:' + swarm_id)
     if (typeof target_peers !== 'number') {
       throw new Error('target_peers must be a number, was:' + target_peers)
     }
-    this.swarms[swarm_id] = this.swarms[swarm_id] || {} 
+    var swarm = this.swarms[swarm_id] = this.swarms[swarm_id] || {_peers: 0} 
+    if(swarm._peers == undefined)
+      throw new Error('missing _peers')
+
+    var count = Object.keys(swarm).filter(id => this.peers[id]).length
+
     const send = (id) => {
       const peer = this.peers[id]
-      this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers: target_peers | 0 }, peer, peer.outport || this.localPort)
+      this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers: target_peers | 0, current: count}, peer, peer.outport || this.localPort)
     }
     //check if these peers are currently active
     const current_peers = Object.keys(this.swarms[swarm_id] || {}).length
     // .filter(id => !!this.peers[id]).length
     if (current_peers >= target_peers) return
     // update: call join on every introducer (static nat)
-    // TODO include count of current connected swarm peers
-    //     (so don't create too many connections)
-    //     hmm, to join a swarm, you need a connection to anyone in that swarm.
-    //     a DHT would be good for that, because it's one lookup.
-    //     after that the swarm is a gossip flood
+    // TODO It would be good to have some way to estimate the number of peers in a swarm.
+    //      I tried using a simple count you can't add the count you get from different peers
+    //      they may be counting the same peers...
+    //      you could use a small bloom filter here... an accurate count is more important
+    //      when the swarm is small, if the swarm gets big the exact size doesn't matter
+    //      because it becomes very likely someone will always be online and we can rely on statistical
+    //      probabilities to ensure a connected network etc
+    if(this.keepalive)
+      this.timer(this.keepalive, 0, (ts) => {
+        var swarm = this.swarms[swarm_id]
+        var count = Object.keys(swarm).filter(id => this.peers[id]).length
+
+        if(count < target_peers)
+          this.join(swarm_id, target_peers)
+      })
 
     if (current_peers) {
       for (var id in this.swarms[swarm_id]) {
@@ -191,8 +173,10 @@ module.exports = class Swarms extends Peer {
 
     if (!isId(msg.swarm)) return debug(1, 'join, no swarm:', msg)
     if (!isId(msg.id)) return debug(1, 'join, no id:', msg)
-    const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
+    const swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {_peers: msg.peers | 0}
     swarm[msg.id] = ts
+//    if(swarm._peers == undefined) throw new Error('undef peers')
+
     this.__set_peer(msg.id, addr.address, addr.port, msg.nat, port, null, ts)
     const peer = this.peers[msg.id]
 
@@ -214,23 +198,24 @@ module.exports = class Swarms extends Peer {
       // hard nat can only connect to easy nats, but can also connect to peers on the same nat
       ids = ids.filter(id => this.peers[id] && (this.peers[id].nat === 'static' || this.peers[id].nat === 'easy' || this.peers[id].address === peer.address))
     }
+    var total_peers = ids.length
     if (this.connections) this.connections[msg.id] = {}
 
 
     // send messages to the random peers indicating that they should connect now.
     // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
     const max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
-    debug(1, 'join', max_peers, msg.id.substring(0,8) + '->' + ids.map(id=>id.substring(0, 8)).join(','))
+    debug(1, 'join', ts, msg.id, max_peers, msg.id.substring(0,8) + '->' + ids.map(id=>id.substring(0, 8)).join(','))
     // if there are no other connectable peers, at least respond to the join msg
     if (!max_peers || !ids.length) {
       debug(1, 'join error: no peers')
-      return this.send({ type: 'error', id: msg.swarm, peers: Object.keys(swarm).length, call: 'join' }, addr, port)
+      return this.send({ type: 'error', id: this.id, swarm: msg.swarm, peers: total_peers, call: 'join' }, addr, port)
     }
 
     for (let i = 0; i < max_peers; i++) {
       if (this.connections) this.connections[msg.id][ids[i]] = i
-      this.connect(ids[i], peer.id, msg.swarm, this.localPort)
-      this.connect(peer.id, ids[i], msg.swarm, this.localPort)
+      this.connect(ids[i], peer.id, msg.swarm, this.localPort, {peers: total_peers})
+      this.connect(peer.id, ids[i], msg.swarm, this.localPort, {peers: total_peers})
     }
 
     this.emit('join', peer)

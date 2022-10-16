@@ -56,10 +56,10 @@ module.exports = class Peer extends PingPeer {
     }, peer, peer.outport)
   }
 
-  msg_local (msg) {
+  msg_local (msg, _addr, _port, ts) {
     if (!isAddr(msg)) // should never happen, but a peer could send anything.
     { return debug(1, 'local connect msg is invalid!', msg) }
-    this.ping3(msg.id, msg)
+    this.ping3(msg.id, msg, ts)
   }
 
   // we received connect request, ping the target 3 itmes
@@ -67,11 +67,12 @@ module.exports = class Peer extends PingPeer {
     if(!isConnect(msg)) return debug(1, 'invalid connect message:'+JSON.stringify(msg))
     assertTs(ts)
     if (!ts) throw new Error('ts must not be zero:' + ts)
-    if (!msg.target) { msg.target = msg.id }
     /// XXX TODO check if we are already connected or connecting to this peer, and if so let that continue...
 
     if (!isAddr(msg)) // should never happen, but a peer could send anything.
     { return debug(1, 'connect msg is invalid!', msg) }
+
+//    if(!msg.peers) throw new Error('missing peers')
 
     let swarm
     // note: ping3 checks if we are already communicating
@@ -79,6 +80,8 @@ module.exports = class Peer extends PingPeer {
     if (isId(msg.swarm)) {
       swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
       swarm[msg.target] = -ts
+      if(msg.peers != undefined)
+        swarm._peers = msg.peers
       //we have learnt about a new peer, but we havn't connected to them yet.
       //keep it in the peers table, but do not notify on_peer until a message is received from that peer directly
       //(probably a ping or a pong)
@@ -89,17 +92,25 @@ module.exports = class Peer extends PingPeer {
     // if we already know this peer, but the address has changed,
     // reset the connection to them...
     const peer = this.peers[msg.target]
-    if (peer) {
+    //XXX: because of recent changes, the peer should *always* be known now.
+    //so need a different way to decide if we are still connected.
+    
+    if (peer && peer.sent && peer.recv) {
       if (peer.address != msg.address) {
+        //if the peer has moved, update it's address, port, nat
+        //reset pong, notified. when reconnecting to this peer on the new address it will trigger on_peer
         peer.address = msg.address
+        peer.port = msg.port
+        peer.nat = msg.nat
         peer.pong = null
-        //TODO should we resent notify state?
+        peer.notified = false
         //XXX falls though
-      } else if (ts - peer.send < constants.connecting) {
+      } else if (peer.connecting && ts - peer.sent < constants.connecting) {
         // if we are already connecting do nothing.
         return
-      } else if (ts - Math.max(peer.recv, peer.send) < constants.keepalive) {
-        this.ping3(peer, ts)
+      } else if (peer.pong && ts - Math.max(peer.recv, peer.sent) < constants.keepalive) {
+        
+        this.ping3(peer.id, peer, ts)
         return
       }
       // if we didn't hear response maybe the peer is down, so try connect again?
@@ -117,6 +128,13 @@ module.exports = class Peer extends PingPeer {
       return
     }
 
+    // check nat types:
+    // if both peers are easy, just tell each to connect to the other
+    // if one is easy, one hard, birthday paradox connection
+    // if both are hard, choose an easy peer to be relay, the two peers bdp to the easy peer.
+    //    then relay their messages through that peer
+    //    OR just error, and expect apps to handle case where not every pair can communicate
+    //    OR let the peers decide who can replay, maybe they already have a mutual peer?
     if (msg.nat === 'static') {
       this.ping3(msg.target, msg, ts)
     } else if (this.nat === 'easy') {
@@ -124,13 +142,14 @@ module.exports = class Peer extends PingPeer {
       // we should generally know our own nat by now.
       if (msg.nat === 'easy' || msg.nat == null) {
         // we are both easy, just do ping3
-        this.ping3(msg.target, msg)
+        this.ping3(msg.target, msg, ts)
       } else if (msg.nat === 'hard') {
         // we are easy, they are hard
         var short_id = msg.target.substring(0, 8)
         debug(1, 'BDP easy->hard', short_id, ap)
         var i = 0; const start = Date.now(); var ts = start
         var ports = {}
+        peer.connecting = true
         this.timer(0, 10, (_ts) => {
           if (Date.now() - 1000 > ts) {
             debug(1, 'packets', i, short_id)
@@ -142,12 +161,14 @@ module.exports = class Peer extends PingPeer {
           const s = Math.round((Date.now() - start) / 100) / 10
           if (i++ > 2000) {
             debug(1, 'connection failed:', i, s, short_id, ap)
+            peer.connecting = false
             return false
           } else if (this.peers[msg.target] && this.peers[msg.target].pong) {
             debug(1, 'connected:', i, s, short_id, ap)
+            peer.connecting = false
             return false
           }
-
+          peer.sent = _ts
           this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, {
             address: msg.address, port: random_port(ports)
           }, this.localPort)
@@ -155,11 +176,13 @@ module.exports = class Peer extends PingPeer {
       }
     } else if (this.nat === 'hard') {
       if (msg.nat === 'easy') {
+        peer.connecting = true
         debug(1, 'BDP hard->easy', short_id)
         // we are the hard side, open 256 random ports
         var ports = {}
         for (var i = 0; i < 256; i++) {
           const p = random_port(ports)
+          peer.sent = ts
           this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, msg, p)
         }
       } else if (msg.nat === 'hard') {
@@ -186,7 +209,7 @@ module.exports = class Peer extends PingPeer {
     this.send(msg.content, target, target.outport || this.localPort)
   }
 
-  connect (from_id, to_id, swarm, port) { // XXX remove port arg
+  connect (from_id, to_id, swarm, port, data) { // XXX remove port arg
     const from = this.peers[from_id]
     const to = this.peers[to_id]
     if(!isPeer(from)) throw new Error('cannot connect from undefined peer:'+from_id)
@@ -195,7 +218,8 @@ module.exports = class Peer extends PingPeer {
     // if(!from.nat) throw new Error('cannot connect FROM unknown nat')
     // if(!to.nat) throw new Error('cannot connect TO unknown nat')
     // XXX id should ALWAYS be the id of the sender.
-    this.send({ type: 'connect', id: this.id, target: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port }, from, port || from.outport)
+//    if(data) console.log(data)
+    this.send({ type: 'connect', id: this.id, target: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port, ...data }, from, port || from.outport)
   }
 
   // rename: this was "connect" but that required Introducer to be different to Peer.
@@ -203,24 +227,21 @@ module.exports = class Peer extends PingPeer {
     this.send({ type: 'intro', id: this.id, nat: this.nat, target: id, swarm }, intro || this.peers[this.introducer1], this.localPort)
   }
 
-  msg_intro (msg, addr) {
-    // check nat types:
-    // if both peers are easy, just tell each to connect to the other
-    // if one is easy, one hard, birthday paradox connection
-    // if both are hard, choose an easy peer to be relay, the two peers bdp to the easy peer.
-    //    then relay their messages through that peer
-    //    OR just error, and expect apps to handle case where not every pair can communicate
-    //    OR let the peers decide who can replay, maybe they already have a mutual peer?
+  msg_intro (msg, addr, _port, ts) {
     const to_peer = this.peers[msg.target]
     const from_peer = this.peers[msg.id]
+    if(msg.swarm) {
+      this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
+      this.swarms[msg.swarm][msg.id] = ts
+    }
     if (to_peer && from_peer) {
       // tell the target peer to connect, and also tell the source peer the addr/port to connect to.
 
-      this.connect(msg.target, msg.id, msg.swarm)
-      this.connect(msg.id, msg.target, msg.swarm)
+      this.connect(msg.target, msg.id, msg.swarm, null)
+      this.connect(msg.id, msg.target, msg.swarm, null)
     } else {
       // respond with an error
-      this.send({ type: 'error', target: msg.target, id: msg.id, call: 'connect' }, addr, port)
+      this.send({ type: 'error', target: msg.target, swarm: msg.swarm, id: this.id, call: 'intro'}, addr, port)
     }
   }
 }

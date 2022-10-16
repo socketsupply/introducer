@@ -103,6 +103,12 @@ function main (argv) {
     process.exit(1)
   }
 
+  var _on_nat = peer.on_nat
+  peer.on_nat = (nat) => {
+    _on_nat.call(peer, nat)
+    console.log("nat:", nat, peer.publicAddress+':'+peer.publicPort)
+  }
+
   Wrap(peer, [config.port, config.spinPort])
 
   console.log('id:', config.id, 'introducer@'+version)
@@ -111,8 +117,32 @@ function main (argv) {
     const m = /^\s*\/(\w+)/.exec(data)
     if (m) {
       const cmd = m[1]
-      if (cmd === 'peers') { console.log(peer.peers) } else if (cmd === 'ip') { console.log(peer.publicAddress + ':' + peer.publicPort) } else if (cmd === 'join') { peer.join(swarm) } else { console.log('unknown command:' + cmd) }
+      if (cmd === 'peers') {
+        console.log(peer.peers)
+      }
+      else if (cmd === 'ip') {
+        console.log(peer.publicAddress + ':' + peer.publicPort)
+      }
+      else if (cmd === 'join') {
+        peer.join(swarm)
+      } else if(cmd === 'dropped') {
 
+        for(var k in peer.peers) {
+          var other = peer.peers[k]
+          if(!other.introducer) break;
+        }
+        console.log('drop packet test to:',other.address+':'+other.port)
+
+        var data = require('./scripts/dropped')(
+          peer, other, 1024, 5
+        )
+        setInterval(function () {
+          console.log(data)
+        }, 1000)
+      } else {
+        console.log('unknown command:' + cmd)
+      }
+      
       return
     }
     chat_swarm.update(data.toString(), Date.now())

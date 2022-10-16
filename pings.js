@@ -1,5 +1,5 @@
 'use strict'
-const { isId, isIp, isAddr, debug, isPing, isPong, fromAddress, calcPeerState } = require('./util')
+const { isId, isIp, isAddr, isSeq, debug, isPing, isPong, fromAddress, calcPeerState } = require('./util')
 const EventEmitter = require('events')
 
 /**
@@ -110,13 +110,20 @@ module.exports = class PingPeer extends EventEmitter {
 
     this.nat = null
     var first = true
-    eachIntroducer(this, (intro) => {
-      intro.pong = null
-      this.ping(intro)
-      if(!first) return
-      first = false
-      //ping with a different port.
-      this.send({type:'ping', id: this.id, spinPort: this.spinPort}, intro, this.localPort)
+    this.timer(0, 1000, (ts) => {
+      if(this.nat) return false
+      eachIntroducer(this, (intro) => {
+        intro.pong = null
+        this.ping(intro)
+        if(!first) return
+        first = false
+        //ping with a different port.
+        //if this packet gets dropped, then it just hangs!
+        intro.sent = ts
+        //this ping is sent directly, instead of via this.ping(), because we are including the spinPort options
+        //spinPort is used for detecting if we have a static nat.
+        this.send({type:'ping', id: this.id, spinPort: this.spinPort}, intro, this.localPort)
+      })
     })
   }
 
@@ -130,7 +137,7 @@ module.exports = class PingPeer extends EventEmitter {
         debug(1, 'state changed:', state, peer.id)
       peer.state = state
       if(state !== 'forget') {
-        this.ping(peer)
+        this.ping(peer, ts)
       }
       else if(!peer.introducer) {
         delete this.peers[peer.id]
@@ -195,7 +202,7 @@ module.exports = class PingPeer extends EventEmitter {
     debug(1, 'wakeup')
     for(var k in this.peers) {
       var peer = this.peers[k]
-      if(peer.send < ts - this.keepalive/2)
+      if(peer.sent < ts - this.keepalive/2)
         this.ping(peer, ts)
     }
     for(var k in this.swarms)
@@ -211,13 +218,15 @@ module.exports = class PingPeer extends EventEmitter {
   ping (peer, ts) {
     if(peer.id && ts) {
       this.__set_peer(peer.id, peer.address, peer.port, peer.nat, peer.outport, null, ts, null)
-      peer.send = ts
+      peer.sent = ts
     }
     this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, peer, peer.outport || this.localPort)
   }
 
   // method to check if we are already communicating
-  ping3 (id, addr, ts, delay = 500) {
+  //weird that I decided to make id a separate arg. why did I do it like that?
+  ping3 (id, addr, ts) {
+    const delay = 500
     if (!id) throw new Error('ping3 expects peer id')
     var _peer = {...addr, id} //id must be come after the expansion or it will default to the addr value
     this.ping(_peer, ts)
@@ -229,14 +238,15 @@ module.exports = class PingPeer extends EventEmitter {
     this.timer(delay * 2, 0, maybe_ping)
   }
 
-  __notify_peer (id) {
+  __notify_peer (id, ts) {
+    if(!ts) throw new Error('__notify_peer: must pass ts')
     // Event handler pattern is to assign (or override) a on_* method.
     // It's optional, thus to emit an event do `if(on_<event>) on_<event>(...)`."
     if(this.on_peer) {
       var peer = this.peers[id]
       if(!peer.notified) {
         peer.notified = true
-        this.on_peer(peer)
+        this.on_peer(peer, ts)
         this.emit('peer', peer)
       }
     }
@@ -291,7 +301,7 @@ module.exports = class PingPeer extends EventEmitter {
       throw new Error('this.restart is missing')
     }
     var _msg = {
-      type: 'pong', id: this.id, ...addr, nat: this.nat, restart: this.restart, ts:msg.ts
+      type: 'pong', id: this.id, ...addr, nat: this.nat, restart: this.restart, ts:msg.ts,
     }
 
    	if(msg.ts && msg.delay) {
@@ -317,7 +327,7 @@ module.exports = class PingPeer extends EventEmitter {
 
     this.emit('ping', msg, addr, _port)
 
-    this.__notify_peer(msg.id)
+    this.__notify_peer(msg.id, ts)
   }
 
   msg_spin (msg, addr, _port, ts) {
@@ -342,7 +352,7 @@ module.exports = class PingPeer extends EventEmitter {
     // NOTIFY new peers here.
     //if (isNew) this.emit('peer', this.peers[msg.id])
     //if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
-    this.__notify_peer(msg.id)
+    this.__notify_peer(msg.id, ts)
     this.emit('pong', this.peers[msg.id])
   }
 

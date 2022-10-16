@@ -1,4 +1,6 @@
-var inspect = require('util').inspect
+
+var {randomize, seedRandom, generate, createId} = require('./util-randomized')
+//var {Node} = require('@socketsupply/netsim/base')()
 
 /**
 
@@ -35,20 +37,20 @@ to rerun a tests with seed 7,
 
 ```
 
+test:
+  peers that come on line and offline (but stay active)
+  peers that restart
+  dropped packets
+  peers that change network
+
 **/
 
-
-var MT = require('rng').MT
-var mt = new MT(7)
-function random () {
-  return mt.random()
-}
-Math.random = random
-var {Node, Network} = require('@socketsupply/netsim/base')(random)
+var inspect = require('util').inspect
+//var {randomize} = require('./util')
+var minimist = require('minimist')
 
 var Swarms = require('../swarms')
 var Reliable = require('../swarm/reliable')
-var Introducer = require('../introducer')
 var deepEqual = require('deep-equal')
 //generate a swarm.
 //any number of peers.
@@ -62,105 +64,55 @@ function first (obj) {
     return obj[k]
 }
 
-function rand (i) {
-  return Math.round(random()*i)
+function firstKey(obj) {
+  for(var k in obj)
+    return k
 }
 
-function createId () {
-  var s = ''
-  for(var i = 0; i < 64; i++)
-    s += rand(0xf).toString(16)
-  return s
-}
-
-function randomAddress () {
-  return [rand(0xff), rand(0xff), rand(0xff), rand(0xff)].join('.')
-}
-
-function generatePeer (network, create) {
-  network.add(randomAddress(), create(createId()))
-}
-function createIntros () {
-  return {
-    introducer1: {
-      id: createId(),
-      address: randomAddress(),
-      port: 3456
-    },
-    introducer2: {
-      id: createId(),
-      address: randomAddress(),
-      port: 3456
-    }
-  }
-}
-var swarm = createId()
-
-function generate (network, N, swarm) {
-  var peers = {}
-
-  var intros = createIntros()
-  for(var k in intros) {
-    network.add(intros[k].address, new Node(new Introducer({id: intros[k].id})))
-  }
-
-  for(var i = 0; i < N; i++)
-    generatePeer(network, (id) => {
-      var p = new Swarms({id, ...intros})
-      peers[id] = p
-      p.createModel(swarm, new Reliable())
-      return new Node(p)
-    })
-
-  return peers
-}
-
-
-//console.log(peers)
-//console.log(network)
-
-function test_eventual_consistency (peers) {
-  var p = first(peers)
-
-  p.handlers[swarm].update('hello', 100)
-  try {
-    network.iterateUntil(2000)
-  } catch (err) {
-    console.log(inspect(peers, {depth: 5, colors: true}))
-    return {data, result: false, error: err}
-  }
-  var data = {}
+function get_data(peers, swarm) {
+  var data = {}  
+  if(!swarm) throw new Error('missing swarm')
   for(var k in peers)
     data[k] = peers[k].handlers[swarm].data
-//  console.log(data)
+  return data
+}
+
+function assert_data_equal (peers, swarm) {
+  var p = first(peers)
+//  if(!swarm) swarm = firstKey(p.swarms)
+  var data = get_data(peers, swarm)
   for(var k in data) {
     if(k != p.id) {
       if(!deepEqual(data[k], data[p.id]))
         return {data, result: false}
     }
   }
+
   return {data, result: true}
 }
-var fail = 0
-if(+process.env.SEED) {
-    mt = new MT(+process.env.SEED)
-    var network = new Network()
-    var {data, result, error} = test_eventual_consistency(generate(network, 2, swarm))
-    console.log(result ? "PASS" : "FAIL", error)
-    console.log(JSON.stringify(data, null, 2))
-}
-else {
-  var results = {}
-  for(var i = 0; i < 100; i++) {
-    mt = new MT(i)
-    var network = new Network()
-    var {data, result, error} = test_eventual_consistency(generate(network, 2, swarm))
-    var name = error ? error.message : result
-    ;(results[name] = results[name] || []).push(i)
-    if(name != true)
-      fail ++
-//    console.log({seed: i, data, result, error})
+
+function test_eventual_consistency (network, opts) {
+  var swarm = createId()
+
+  var peers = generate(network, opts.peers || 10, (id, intros) => {
+    var p = new Swarms({id, ...intros, keepalive: 20_000})
+    p.createModel(swarm, new Reliable())
+    return p
+  })
+
+  var p = first(peers)
+  p.handlers[swarm].update('hello', 100)
+
+  try {
+    network.iterateUntil(opts.until || 5000)
+  } catch (err) {
+    console.log(inspect(peers, {depth: 5, colors: true}))
+    return {data: get_data(peers, swarm), result: false, error: err}
   }
-  console.log(results)
-  if(fail) process.exit(fail)
+
+  return assert_data_equal(peers, swarm)
 }
+
+module.exports = (opts) => randomize(test_eventual_consistency, opts)
+
+if(!module.parent) module.exports(minimist(process.argv.slice(2)))
