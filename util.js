@@ -40,7 +40,7 @@ function isPeer (p) {
   )
 }
 
-const LEVEL = (globalThis.process ?? globalThis.__args)?.env?.DEBUG | 0
+const LEVEL = (globalThis.__args ?? globalThis.process)?.env?.DEBUG | 0
 const debug = LEVEL === 0
   ? () => {}
   : function debug (level, ...args) {
