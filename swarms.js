@@ -214,6 +214,7 @@ module.exports = class Swarms extends Peer {
 
     for (let i = 0; i < max_peers; i++) {
       if (this.connections) this.connections[msg.id][ids[i]] = i
+      this.log('join', {from: peer.id, to: ids[i]}, ts)
       this.connect(ids[i], peer.id, msg.swarm, this.localPort, {peers: total_peers})
       this.connect(peer.id, ids[i], msg.swarm, this.localPort, {peers: total_peers})
     }
