@@ -150,7 +150,7 @@ module.exports = class Peer extends PingPeer {
     //    OR just error, and expect apps to handle case where not every pair can communicate
     //    OR let the peers decide who can replay, maybe they already have a mutual peer?
     if (msg.nat === 'static') {
-      log('connect.static', msg, ts)
+      this.log('connect.static', msg, ts)
       this.ping3(msg.target, msg, ts)
     } else if (this.nat === 'easy') {
       // if nat is missing, guess that it's easy nat, or a server.
@@ -166,7 +166,7 @@ module.exports = class Peer extends PingPeer {
         var i = 0; const start = Date.now(); var ts = start
         var ports = {}
         peer.connecting = true
-        this.log('connect.easyhard', msg, ts}
+        this.log('connect.easyhard', msg, ts)
         this.timer(0, 10, (_ts) => {
           if (Date.now() - 1000 > ts) {
             debug(1, 'packets', i, short_id)
@@ -201,7 +201,7 @@ module.exports = class Peer extends PingPeer {
         debug(1, 'BDP hard->easy', short_id)
         // we are the hard side, open 256 random ports
         var ports = {}
-        this.log('connect.hardeasy', msg, ts}
+        this.log('connect.hardeasy', msg, ts)
         for (var i = 0; i < 256; i++) {
           const p = random_port(ports)
           peer.sent = ts
