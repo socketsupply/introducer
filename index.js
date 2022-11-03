@@ -129,6 +129,14 @@ module.exports = class Peer extends PingPeer {
       // if we didn't hear response maybe the peer is down, so try connect again?
     }
 
+    if(peer)
+      this.timer(constants.connecting, 0, (ts) => {
+        if(peer.connecting === msg) {
+          peer.connecting = null
+          this.log('connect.failed', msg, ts)
+        }
+      })
+
     if (msg.address === this.publicAddress) {
       // if the dest has the same public ip as we do, it must be on the same nat.
       // since NAT hairpinning is usually not supported, we should request a direct connection.
@@ -151,6 +159,8 @@ module.exports = class Peer extends PingPeer {
     //    OR let the peers decide who can replay, maybe they already have a mutual peer?
     if (msg.nat === 'static') {
       this.log('connect.static', msg, ts)
+      if(peer)
+        peer.connecting = msg
       this.ping3(msg.target, msg, ts)
     } else if (this.nat === 'easy') {
       // if nat is missing, guess that it's easy nat, or a server.
@@ -165,7 +175,10 @@ module.exports = class Peer extends PingPeer {
         debug(1, 'BDP easy->hard', short_id, ap)
         var i = 0; const start = Date.now(); var ts = start
         var ports = {}
-        peer.connecting = true
+        //the connecting state is stored as the connect message it self.
+        //this way the logger knows where the decision to connect came from.
+
+        peer.connecting = msg
         this.log('connect.easyhard', msg, ts)
         this.timer(0, 10, (_ts) => {
           if (Date.now() - 1000 > ts) {
@@ -178,13 +191,12 @@ module.exports = class Peer extends PingPeer {
           const s = Math.round((Date.now() - start) / 100) / 10
           if (i++ > 2000) {
             debug(1, 'connection failed:', i, s, short_id, ap)
-            this.log('connect.easyhard.fail', msg, ts)
-            peer.connecting = false
+            //note, successfull connections are now logged via msg_ping and msg_pong
+            peer.connecting = null
             return false
           } else if (this.peers[msg.target] && this.peers[msg.target].pong) {
             debug(1, 'connected:', i, s, short_id, ap)
-            peer.connecting = false
-            this.log('connect.easyhard.success', msg, ts)
+            peer.connecting = null
             return false
           }
           peer.sent = _ts
@@ -261,8 +273,8 @@ module.exports = class Peer extends PingPeer {
       // tell the target peer to connect, and also tell the source peer the addr/port to connect to.
 
       this.log('intro', msg, ts)
-      this.connect(msg.target, msg.id, msg.swarm, null)
-      this.connect(msg.id, msg.target, msg.swarm, null)
+      this.connect(msg.target, msg.id, msg.swarm, null, {ts})
+      this.connect(msg.id, msg.target, msg.swarm, null, {ts})
     } else {
       // respond with an error
       this.log('intro.error', msg, ts)
