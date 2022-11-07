@@ -17,6 +17,8 @@ var test = require('tape')
 var Chat = require('../swarms')
 var Introducer = require('../introducer')
 
+var join = require('../lib/join-logs')
+
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
 
@@ -54,7 +56,7 @@ function dejoin (intro) {
   return intro
 }
 
-test('broadcast', function (t) {
+test.only('broadcast', function (t) {
   const network = new Network()
   let peerD, peerE
   network.add(A, new Node(dejoin(new Introducer({ id: ids.a }))))
@@ -77,6 +79,11 @@ test('broadcast', function (t) {
 
   peerD.on_change = peerE.on_change = peerF.on_change = () => {}
 
+  var logs = []
+  peerF.log = peerE.log = peerD.log = function (action, msg, ts) {
+    logs.push({id: this.id, action, msg, ts})
+  }
+
   peerD.intro(peerE.id, swarm)
   peerF.intro(peerE.id, swarm)
 
@@ -97,6 +104,24 @@ test('broadcast', function (t) {
   t.ok(peerF.peers[peerE.id])
   t.deepEqual(peerE.data[swarm], peerD.data[swarm])
   t.deepEqual(peerF.data[swarm], peerD.data[swarm])
+
+  var joined = join(null, logs)
+
+  console.log(JSON.stringify(joined, null, 1))
+
+  function assert_connected (id, target) {
+    t.ok(joined[peerE.id].connections[peerD.id])
+    var connections = joined[peerE.id].connections[peerD.id]
+    t.ok(connections)
+    t.ok(Object.keys(connections).length)
+    for(var ts in connections)
+      t.ok(connections[ts].connected)
+  }
+
+  assert_connected(peerE.id, peerD.id)
+  assert_connected(peerD.id, peerE.id)
+  assert_connected(peerE.id, peerF.id)
+  assert_connected(peerF.id, peerE.id)
 
   t.end()
 })

@@ -15,6 +15,7 @@ const http = require('http')
 const version = require('./package.json').version
 const constants = require('./lib/constants')()
 const Reliable = require('./swarm/reliable')
+const Logger = require('./lib/logger')
 
 function createId (seed) {
   if (seed) return crypto.createHash('sha256').update(seed).digest('hex')
@@ -77,6 +78,18 @@ function main (argv) {
   function peerType (peer) {
     return peer ? (/192\.168\.\d+\.\d+/.test(peer.address) ? 'local' : peer.nat) || '???' : '!!!'
   }
+
+  // logs. machine readable logs track connection attempts and successes.
+
+  peer.log = Logger(path.join(process.env.HOME, '.introducer.log'))
+  peer.log('start', {}, Date.now())
+  process.on('exit', function () {
+    peer.log.sync('exit', {}, Date.now())
+  })
+  process.on('SIGINT', function () {
+    process.exit(1)
+  })
+
 
   peer.on_peer = (other) => {
     console.log('connected', other.id.substring(0, 8), peerType(other), other.address + ':' + other.port)

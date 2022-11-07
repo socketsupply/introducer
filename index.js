@@ -42,6 +42,17 @@ module.exports = class Peer extends PingPeer {
     }
   }
 
+  log (action, msg, ts) {
+    console.log({
+      id: this.id,
+      address: this.publicAddress,
+      nat: this.nat,
+      ts,
+      action,
+      msg
+    })
+  }
+
   local (id, intro) {
     // check if we do not have the local address, this messages is relayed, it could cause a crash at other end
     if (!isIp(this.localAddress)) // should never happen, but a peer could send anything.
@@ -107,14 +118,24 @@ module.exports = class Peer extends PingPeer {
         //XXX falls though
       } else if (peer.connecting && ts - peer.sent < constants.connecting) {
         // if we are already connecting do nothing.
+        this.log('connect.already_connected', msg, ts)
         return
       } else if (peer.pong && ts - Math.max(peer.recv, peer.sent) < constants.keepalive) {
         
+        this.log('connect.check_connection', msg, ts)
         this.ping3(peer.id, peer, ts)
         return
       }
       // if we didn't hear response maybe the peer is down, so try connect again?
     }
+
+    if(peer)
+      this.timer(constants.connecting, 0, (ts) => {
+        if(peer.connecting === msg) {
+          peer.connecting = null
+          this.log('connect.failed', msg, ts)
+        }
+      })
 
     if (msg.address === this.publicAddress) {
       // if the dest has the same public ip as we do, it must be on the same nat.
@@ -124,6 +145,7 @@ module.exports = class Peer extends PingPeer {
       // unfortunately, the app stores are strongly against local multicast
       // however, in the future we can have a real local experience here using bluetooth.
       debug(1, 'local peer', this.localAddress + '->' + msg.address)
+      this.log('connect.local', msg)
       this.local(msg.target, this.peers[msg.id])
       return
     }
@@ -136,12 +158,16 @@ module.exports = class Peer extends PingPeer {
     //    OR just error, and expect apps to handle case where not every pair can communicate
     //    OR let the peers decide who can replay, maybe they already have a mutual peer?
     if (msg.nat === 'static') {
+      this.log('connect.static', msg, ts)
+      if(peer)
+        peer.connecting = msg
       this.ping3(msg.target, msg, ts)
     } else if (this.nat === 'easy') {
       // if nat is missing, guess that it's easy nat, or a server.
       // we should generally know our own nat by now.
       if (msg.nat === 'easy' || msg.nat == null) {
         // we are both easy, just do ping3
+        this.log('connect.easy', msg, ts)
         this.ping3(msg.target, msg, ts)
       } else if (msg.nat === 'hard') {
         // we are easy, they are hard
@@ -149,7 +175,11 @@ module.exports = class Peer extends PingPeer {
         debug(1, 'BDP easy->hard', short_id, ap)
         var i = 0; const start = Date.now(); var ts = start
         var ports = {}
-        peer.connecting = true
+        //the connecting state is stored as the connect message it self.
+        //this way the logger knows where the decision to connect came from.
+
+        peer.connecting = msg
+        this.log('connect.easyhard', msg, ts)
         this.timer(0, 10, (_ts) => {
           if (Date.now() - 1000 > ts) {
             debug(1, 'packets', i, short_id)
@@ -161,11 +191,12 @@ module.exports = class Peer extends PingPeer {
           const s = Math.round((Date.now() - start) / 100) / 10
           if (i++ > 2000) {
             debug(1, 'connection failed:', i, s, short_id, ap)
-            peer.connecting = false
+            //note, successfull connections are now logged via msg_ping and msg_pong
+            peer.connecting = null
             return false
           } else if (this.peers[msg.target] && this.peers[msg.target].pong) {
             debug(1, 'connected:', i, s, short_id, ap)
-            peer.connecting = false
+            peer.connecting = null
             return false
           }
           peer.sent = _ts
@@ -176,10 +207,13 @@ module.exports = class Peer extends PingPeer {
       }
     } else if (this.nat === 'hard') {
       if (msg.nat === 'easy') {
+        //bug: if peer is hardeasy it sets "connecting" but never unsets it.
+        //the nat could change later! (for example, joins a wifi)
         peer.connecting = true
         debug(1, 'BDP hard->easy', short_id)
         // we are the hard side, open 256 random ports
         var ports = {}
+        this.log('connect.hardeasy', msg, ts)
         for (var i = 0; i < 256; i++) {
           const p = random_port(ports)
           peer.sent = ts
@@ -189,6 +223,7 @@ module.exports = class Peer extends PingPeer {
         // if we are both hard nats, we must implement tunneling
         // in that case, we ask both us and them to connect a shared easy nat.
         // then we could relay messages through it.
+        this.log('connect.error', msg, ts)
         debug(1, 'cannot connect hard-hard nats', msg)
       } else {
         throw new Error('cannot connect to unknown nat:' + JSON.stringify(msg))
@@ -237,10 +272,12 @@ module.exports = class Peer extends PingPeer {
     if (to_peer && from_peer) {
       // tell the target peer to connect, and also tell the source peer the addr/port to connect to.
 
-      this.connect(msg.target, msg.id, msg.swarm, null)
-      this.connect(msg.id, msg.target, msg.swarm, null)
+      this.log('intro', msg, ts)
+      this.connect(msg.target, msg.id, msg.swarm, null, {ts})
+      this.connect(msg.id, msg.target, msg.swarm, null, {ts})
     } else {
       // respond with an error
+      this.log('intro.error', msg, ts)
       this.send({ type: 'error', target: msg.target, swarm: msg.swarm, id: this.id, call: 'intro'}, addr, port)
     }
   }
