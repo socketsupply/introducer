@@ -179,11 +179,14 @@ module.exports = class Peer extends PingPeer {
         peer.connecting = true
         debug(1, 'BDP hard->easy', short_id)
         // we are the hard side, open 256 random ports
-        var ports = {}
-        for (var i = 0; i < 256; i++) {
-          const p = random_port(ports)
+        this.ports = this.ports || {}
+        var port_count = Object.keys(this.ports).length
+        for (var i = 0; i < (256 - port_count); i++) {
+          this.ports[random_port(this.ports)] = true
+        }
+        for(var port in this.ports) {
           peer.sent = ts
-          this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, msg, p)
+          this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, msg, +port)
         }
       } else if (msg.nat === 'hard') {
         // if we are both hard nats, we must implement tunneling
