@@ -51,7 +51,8 @@ module.exports = class ReliableSwarm extends Swarm {
       type: 'head',
       swarm: this.id,
       id: this.peer.id,
-      head: np.leaves(this.data)
+      head: np.leaves(this.data),
+      ack: false
     }
     this.sent = ts
     this.heads = this.heads || {}
@@ -88,6 +89,7 @@ module.exports = class ReliableSwarm extends Swarm {
     // if we receive a head message, and we are not up to date with it, then request an update.
     if (!np.has(this.data, msg.head)) {
       //XXX  rerequest until we have this...
+
       this.request(msg.head, peer, ts)
     }
     this.recv = ts
@@ -108,11 +110,21 @@ module.exports = class ReliableSwarm extends Swarm {
       }
       this.send(msg, peer)
     }
+    //if the head is marked as an ack, it is a reply to our message
+    //so do not send a reply.
+    //if it is not an ack, send an ack.
+    else if (!msg.ack) {
 
-    //XXX but if we do have the same as them, send a head, but mark it as an ack.
-    //they are not expected to respond (unless their head has changed)
-    //if they send "head" expecting an ack, (for example, at startup)
-    //then it is their responsibility to rerequest if the ack is dropped.
+        const msg = {
+          type: 'head',
+          swarm: this.id,
+          id: this.peer.id,
+          head: np.leaves(this.data),
+          ack: true
+        }
+        this.send(msg, peer)
+
+    }
   }
 
   update (content, ts) {
