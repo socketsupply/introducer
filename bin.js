@@ -91,8 +91,10 @@ function main (argv) {
   })
 
 
-  peer.on_peer = (other) => {
+  var on_peer = peer.on_peer
+  peer.on_peer = (other, ts) => {
     console.log('connected', other.id.substring(0, 8), peerType(other), other.address + ':' + other.port)
+    on_peer.call(this, other, ts)
   }
 
   // detect the nat type and exit
