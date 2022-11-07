@@ -59,26 +59,24 @@ test('swarm, connect then update', function (t) {
 
   natE.add(e, new Node(peerE = new Swarms({ id: ids.e, ...intros })))
   var swarmE = peerE.createModel(swarm, new Reliable(swarm))
-  network.iterate(-1)
-
-  t.equal(peerD.nat, 'easy')
-  swarmD.update('HELLO1', swarm, network.queue.ts)
+//  network.iterate(-1)
   network.iterateUntil(1000)
 
-  peerD.join(swarm)
-  peerE.join(swarm)
+  t.equal(peerD.nat, 'easy')
+  swarmD.update('HELLO1', network.queue.ts)
+
   network.iterateUntil(2000)
   console.log(peerD.state)
   console.log(peerE.state)
   t.ok(peerE.peers[peerD.id])
   t.ok(peerD.peers[peerE.id])
-  swarmD.update('HELLO2', swarm, network.queue.ts)
-  network.iterateUntil(3000)
+  swarmD.update('HELLO2', network.queue.ts)
+  network.iterateUntil(5000)
   console.log(peerE.state)
 
   t.deepEqual(swarmE.data, swarmD.data)
-
-//  network.add(F, natF)
+  
+  network.add(F, natF)
   natF.add(f, new Node(peerF = new Swarms({ id: ids.f, ...intros })))
   //this will trigger a join
   network.iterateUntil(4000)
@@ -91,11 +89,12 @@ test('swarm, connect then update', function (t) {
   network.iterateUntil(5000)
   //a new peer has joined, but it doesn't know there is any messages yet.
   //sending a new message shows it that soemthing is missing so it requests the old messages.
-  swarmD.update('welcome', swarm, network.queue.ts)
+  swarmD.update('welcome', network.queue.ts)
   network.iterateUntil(6000)
   t.deepEqual(swarmF.data, swarmD.data)
 //  console.log(swarmF.waiting)
   t.equal(received.length, 3)
+  //*/
   t.end()
 })
 
@@ -122,18 +121,15 @@ test('swarm, connect then expect to receive updates', function (t) {
 
   natE.add(e, new Node(peerE = new Swarms({ id: ids.e, ...intros })))
   var swarmE = peerE.createModel(swarm, new Reliable(swarm))
-  network.iterate(-1)
 
-  t.equal(peerD.nat, 'easy')
-  swarmD.update('HELLO1', swarm, network.queue.ts)
   network.iterateUntil(1000)
+  t.equal(peerD.nat, 'easy')
+  swarmD.update('HELLO1', network.queue.ts)
 
-  peerD.join(swarm)
-  peerE.join(swarm)
   network.iterateUntil(2000)
   t.ok(peerE.peers[peerD.id])
   t.ok(peerD.peers[peerE.id])
-  swarmD.update('HELLO2', swarm, network.queue.ts)
+  swarmD.update('HELLO2', network.queue.ts)
   network.iterateUntil(3000)
 
   t.deepEqual(swarmE.data, swarmD.data)
@@ -160,7 +156,7 @@ test('swarm, connect then expect to receive updates', function (t) {
 
 
 
-test.only('swarm, make updates while offline, before connection', function (t) {
+test('swarm, make updates while offline, before connection', function (t) {
   const swarm = createId('test swarm')
   const network = new Network()
   const natD = new IndependentNat('42.')
@@ -183,13 +179,10 @@ test.only('swarm, make updates while offline, before connection', function (t) {
 //  swarmD.update('HELLO_D2', swarm, network.queue.ts+1)
   swarmE.update('HELLO_E2', network.queue.ts+2)
 
-  network.iterate(-1)
 
-  t.equal(peerD.nat, 'easy')
   network.iterateUntil(1000)
+  t.equal(peerD.nat, 'easy')
 
-  peerD.join(swarm)
-  peerE.join(swarm)
   network.iterateUntil(2000)
   t.ok(peerE.peers[peerD.id])
   t.ok(peerD.peers[peerE.id])
@@ -200,7 +193,7 @@ test.only('swarm, make updates while offline, before connection', function (t) {
   console.log(swarmD.data)
   //console.log(swarmE.data)
 //  network.add(F, natF)
-  /*
+  
   natF.add(f, new Node(peerF = new Swarms({ id: ids.f, ...intros })))
   //this will trigger a join
   network.iterateUntil(4000)
@@ -210,6 +203,14 @@ test.only('swarm, make updates while offline, before connection', function (t) {
   var swarmF = peerF.createModel(swarm, new Reliable(swarm))
   var received = []
   swarmF.on_change = (msg) => received.push(msg)
+  var notified_on_peer = 0
+  var on_peer = swarmF.on_peer
+  swarmF.on_peer = function (peer, ts) {
+    console.log("ON_PEER")
+    notified_on_peer ++
+    t.ok(peer)
+    on_peer.call(this, peer, ts)
+  }
   network.iterateUntil(5000)
   //a new peer has joined, but it doesn't know there is any messages yet.
   //sending a new message shows it that soemthing is missing so it requests the old messages.
@@ -217,7 +218,8 @@ test.only('swarm, make updates while offline, before connection', function (t) {
   //network.iterateUntil(6000)
   t.deepEqual(swarmF.data, swarmD.data)
   t.equal(received.length, 2)
-  */
+  t.ok(notified_on_peer)
+  //*/
   t.end()
 })
 
