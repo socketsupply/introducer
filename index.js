@@ -150,6 +150,9 @@ module.exports = class Peer extends PingPeer {
       return
     }
 
+    if(peer && peer.connecting)
+      return
+
     // check nat types:
     // if both peers are easy, just tell each to connect to the other
     // if one is easy, one hard, birthday paradox connection
