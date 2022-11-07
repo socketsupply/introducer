@@ -6,7 +6,7 @@ const os = require('os')
 const dgram = require('dgram')
 const path = require('path')
 const { EventEmitter } = require('events')
-const Demo = require('./swarms')
+const Swarms = require('./swarms')
 const Introducer = require('./introducer')
 const Config = require('./lib/config')(fs)
 const Wrap = require('./wrap')(dgram, os, Buffer)
@@ -70,7 +70,7 @@ function main (argv) {
 
   //this setup is shared by nat command, and running the chat protocol also
 
-  const peer = new Demo({ ...config, keepalive: constants.keepalive })
+  const peer = new Swarms({ ...config, keepalive: constants.keepalive })
   const chat_swarm = peer.createModel(swarm, new Reliable())
   chat_swarm.on_change = (msg) => {
     console.log(msg.id.substring(0, 8), peerType(peer.peers[msg.id]), msg.ts, msg.content)
