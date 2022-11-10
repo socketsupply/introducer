@@ -140,6 +140,9 @@ function main (argv) {
       }
       else if (cmd === 'join') {
         peer.join(swarm)
+      }
+      else if (cmd === 'wakeup') {
+        peer.on_wakeup(Date.now())
       } else if(cmd === 'dropped') {
 
         for(var k in peer.peers) {
