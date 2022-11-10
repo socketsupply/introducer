@@ -136,10 +136,13 @@ module.exports = class PingPeer extends EventEmitter {
       if(peer.state != state)
         debug(1, 'state changed:', state, peer.id)
       peer.state = state
-      if(state !== 'forget') {
+      if(peer.introducer) {
         this.ping(peer, ts)
       }
-      else if(!peer.introducer) {
+      else if(state !== 'forget') {
+        this.ping(peer, ts)
+      }
+      else {
         delete this.peers[peer.id]
         this.emit('dead', peer)
       }
