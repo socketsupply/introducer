@@ -6,7 +6,7 @@ const os = require('os')
 const dgram = require('dgram')
 const path = require('path')
 const { EventEmitter } = require('events')
-const Demo = require('./swarms')
+const Swarms = require('./swarms')
 const Introducer = require('./introducer')
 const Config = require('./lib/config')(fs)
 const Wrap = require('./wrap')(dgram, os, Buffer)
@@ -15,6 +15,7 @@ const http = require('http')
 const version = require('./package.json').version
 const constants = require('./lib/constants')()
 const Reliable = require('./swarm/reliable')
+const Logger = require('./lib/logger')
 
 function createId (seed) {
   if (seed) return crypto.createHash('sha256').update(seed).digest('hex')
@@ -69,7 +70,7 @@ function main (argv) {
 
   //this setup is shared by nat command, and running the chat protocol also
 
-  const peer = new Demo({ ...config, keepalive: constants.keepalive })
+  const peer = new Swarms({ ...config, keepalive: constants.keepalive })
   const chat_swarm = peer.createModel(swarm, new Reliable())
   chat_swarm.on_change = (msg) => {
     console.log(msg.id.substring(0, 8), peerType(peer.peers[msg.id]), msg.ts, msg.content)
@@ -78,8 +79,22 @@ function main (argv) {
     return peer ? (/192\.168\.\d+\.\d+/.test(peer.address) ? 'local' : peer.nat) || '???' : '!!!'
   }
 
-  peer.on_peer = (other) => {
+  // logs. machine readable logs track connection attempts and successes.
+
+  peer.log = Logger(path.join(process.env.HOME, '.introducer.log'))
+  peer.log('start', {}, Date.now())
+  process.on('exit', function () {
+    peer.log.sync('exit', {}, Date.now())
+  })
+  process.on('SIGINT', function () {
+    process.exit(1)
+  })
+
+
+  var on_peer = peer.on_peer
+  peer.on_peer = function (other, ts) {
     console.log('connected', other.id.substring(0, 8), peerType(other), other.address + ':' + other.port)
+    if(on_peer) on_peer.call(this, other, ts)
   }
 
   // detect the nat type and exit
@@ -125,6 +140,9 @@ function main (argv) {
       }
       else if (cmd === 'join') {
         peer.join(swarm)
+      }
+      else if (cmd === 'wakeup') {
+        peer.on_wakeup(Date.now())
       } else if(cmd === 'dropped') {
 
         for(var k in peer.peers) {

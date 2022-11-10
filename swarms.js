@@ -82,8 +82,9 @@ module.exports = class Swarms extends Peer {
     }
   }
 
-  msg_error (msg) {
+  msg_error (msg, addr, port, ts) {
     debug(1, 'error:', msg)
+    this.log('join.error', msg, ts)
   }
 
   on_peer (peer, ts) {
@@ -166,7 +167,6 @@ module.exports = class Swarms extends Peer {
       
   }
 
-
   // __set_peer (id, address, port, nat, outport, restart) {
   msg_join (msg, addr, port, ts) {
     if (port === undefined) throw new Error('undefined port')
@@ -201,7 +201,6 @@ module.exports = class Swarms extends Peer {
     var total_peers = ids.length
     if (this.connections) this.connections[msg.id] = {}
 
-
     // send messages to the random peers indicating that they should connect now.
     // if peers is 0, the sender of the "join" message joins the swarm but there are no connect messages.
     const max_peers = Math.min(ids.length, msg.peers != null ? msg.peers : 3)
@@ -209,13 +208,17 @@ module.exports = class Swarms extends Peer {
     // if there are no other connectable peers, at least respond to the join msg
     if (!max_peers || !ids.length) {
       debug(1, 'join error: no peers')
+      this.log('join.error', msg, ts)
       return this.send({ type: 'error', id: this.id, swarm: msg.swarm, peers: total_peers, call: 'join' }, addr, port)
     }
 
     for (let i = 0; i < max_peers; i++) {
       if (this.connections) this.connections[msg.id][ids[i]] = i
-      this.connect(ids[i], peer.id, msg.swarm, this.localPort, {peers: total_peers})
-      this.connect(peer.id, ids[i], msg.swarm, this.localPort, {peers: total_peers})
+      this.log('join', {from: peer.id, to: ids[i]}, ts)
+      //note, pass ts to connect, so that we can compare logs later and know
+      //which peers successfully connected
+      this.connect(ids[i], peer.id, msg.swarm, this.localPort, {peers: total_peers, ts})
+      this.connect(peer.id, ids[i], msg.swarm, this.localPort, {peers: total_peers, ts})
     }
 
     this.emit('join', peer)
@@ -235,7 +238,7 @@ module.exports = class Swarms extends Peer {
           swarm[fn_name](msg, peer, port, ts)
         }
       }
-    }    
+    }
   }
   //* /
 }

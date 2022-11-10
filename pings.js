@@ -136,10 +136,13 @@ module.exports = class PingPeer extends EventEmitter {
       if(peer.state != state)
         debug(1, 'state changed:', state, peer.id)
       peer.state = state
-      if(state !== 'forget') {
+      if(peer.introducer) {
         this.ping(peer, ts)
       }
-      else if(!peer.introducer) {
+      else if(state !== 'forget') {
+        this.ping(peer, ts)
+      }
+      else {
         delete this.peers[peer.id]
         this.emit('dead', peer)
       }
@@ -325,6 +328,13 @@ module.exports = class PingPeer extends EventEmitter {
     var peer = this.peers[msg.id]
     peer.recv = ts
 
+    if(peer.connecting) {
+      //if we were trying to connect, we received a message, so we are now connected.
+      var _msg = peer.connecting
+      peer.connecting = null
+      this.log('connect.success', _msg, ts)      
+    }
+
     this.emit('ping', msg, addr, _port)
 
     this.__notify_peer(msg.id, ts)
@@ -352,6 +362,13 @@ module.exports = class PingPeer extends EventEmitter {
     // NOTIFY new peers here.
     //if (isNew) this.emit('peer', this.peers[msg.id])
     //if (isNew && this.on_peer) this.on_peer(this.peers[msg.id])
+    if(peer.connecting) {
+      //if we were trying to connect, we received a message, so we are now connected.
+      var _msg = peer.connecting
+      peer.connecting = null
+      this.log('connect.success', _msg, ts)      
+    }
+
     this.__notify_peer(msg.id, ts)
     this.emit('pong', this.peers[msg.id])
   }
