@@ -112,7 +112,7 @@ test.only('broadcast', function (t) {
   function assert_connected (id, target) {
     t.ok(joined[peerE.id].connections[peerD.id])
     var connections = joined[peerE.id].connections[peerD.id]
-    t.ok(connections)
+    t.ok(connections, 'entry for peer E exists for peer D\'s connections')
     t.ok(Object.keys(connections).length)
     for(var ts in connections)
       t.ok(connections[ts].connected)

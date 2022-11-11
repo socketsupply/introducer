@@ -218,7 +218,7 @@ test('swarm, make updates while offline, before connection', function (t) {
   //network.iterateUntil(6000)
   t.deepEqual(swarmF.data, swarmD.data)
   t.equal(received.length, 2)
-  t.ok(notified_on_peer)
+  t.ok(notified_on_peer, 'on_peer callback has been called')
   //*/
   t.end()
 })
