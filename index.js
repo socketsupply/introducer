@@ -43,7 +43,7 @@ module.exports = class Peer extends PingPeer {
   }
 
   log (action, msg, ts) {
-    console.log({
+    debug(2, {
       id: this.id,
       address: this.publicAddress,
       nat: this.nat,
@@ -176,22 +176,22 @@ module.exports = class Peer extends PingPeer {
         // we are easy, they are hard
         var short_id = msg.target.substring(0, 8)
         debug(1, 'BDP easy->hard', short_id, ap)
-        var i = 0; const start = Date.now(); var ts = start
+        var i = 0; const start = ts; var ts__ = start
         var ports = {}
         //the connecting state is stored as the connect message it self.
         //this way the logger knows where the decision to connect came from.
 
         peer.connecting = msg
-        this.log('connect.easyhard', msg, ts)
-        this.timer(0, 10, (_ts) => {
-          if (Date.now() - 1000 > ts) {
+        this.log('connect.easyhard', msg, ts__)
+        this.timer(0, 10, (date_now) => {
+          if (date_now - 1000 > ts__) {
             debug(1, 'packets', i, short_id)
-            ts = Date.now()
+            ts__ = date_now
           }
 
           // send messages until we receive a message from them. giveup after sending 1000 packets.
           // 50% of the time 250 messages should be enough.
-          const s = Math.round((Date.now() - start) / 100) / 10
+          const s = Math.round((date_now - start) / 100) / 10
           if (i++ > 2000) {
             debug(1, 'connection failed:', i, s, short_id, ap)
             //note, successfull connections are now logged via msg_ping and msg_pong
@@ -202,7 +202,7 @@ module.exports = class Peer extends PingPeer {
             peer.connecting = null
             return false
           }
-          peer.sent = _ts
+          peer.sent = date_now
           this.send({ type: 'ping', id: this.id, nat: this.nat, restart: this.restart }, {
             address: msg.address, port: random_port(ports)
           }, this.localPort)
