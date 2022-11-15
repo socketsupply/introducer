@@ -40,6 +40,10 @@ function isPeer (p) {
   )
 }
 
+function isPeerActive(peer) {
+  return peer && calcPeerState(peer) === 'active'  
+}
+
 const LEVEL = (globalThis.__args ?? globalThis.process)?.env?.DEBUG | 0
 const debug = LEVEL === 0
   ? () => {}
@@ -115,5 +119,6 @@ module.exports = {
   isPong,
   isConnect,
 
+  isPeerActive,
   calcPeerState
 }
