@@ -84,7 +84,6 @@ module.exports = class Swarms extends Peer {
 
   on_wakeup () {
     super.on_wakeup()
-    console.log("WAKEUP, REJOIN", Object.keys(this.swarms))
     //XXX hmm it doesn't seem to be rejoining correctly./
     //also this should happen in 
     for(var k in this.swarms) {
@@ -112,7 +111,6 @@ module.exports = class Swarms extends Peer {
   }
 
   join (swarm_id, target_peers = 3) {
-    console.log("JOIN!-----------------------")
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id, was:' + swarm_id)
     if (typeof target_peers !== 'number') {
       throw new Error('target_peers must be a number, was:' + target_peers)
@@ -133,9 +131,7 @@ module.exports = class Swarms extends Peer {
     for(var id in this.swarms[swarm_id])
       if(isPeerActive(this.peers[id])) current_peers ++
 
-    // .filter(id => !!this.peers[id]).length
-    console.log('current peers', current_peers, target_peers) 
-    if (current_peers >= target_peers) return
+    if (current_peers >= target_peers) return debug(2, 'join: fully peered, skipping join msg')
     // update: call join on every introducer (static nat)
     // TODO It would be good to have some way to estimate the number of peers in a swarm.
     //      I tried using a simple count you can't add the count you get from different peers

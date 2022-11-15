@@ -259,7 +259,6 @@ module.exports = class Peer extends PingPeer {
     // if(!from.nat) throw new Error('cannot connect FROM unknown nat')
     // if(!to.nat) throw new Error('cannot connect TO unknown nat')
     // XXX id should ALWAYS be the id of the sender.
-//    if(data) console.log(data)
     this.send({ type: 'connect', id: this.id, target: to.id, swarm: swarm, address: to.address, nat: to.nat, port: to.port, ...data }, from, port || from.outport)
   }
 
