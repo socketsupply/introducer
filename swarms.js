@@ -6,7 +6,7 @@
 const { debug } = require('./util')
 const Peer = require('./')
 const Swarm = require('./swarm/append')
-const { isId, isPeer, isSeq } = require('./util')
+const { isId, isPeer, isSeq, isPeerActive } = require('./util')
 
 function equalAddr (a, b) {
   return a && b && a.address === b.address && a.port === b.port
@@ -82,6 +82,19 @@ module.exports = class Swarms extends Peer {
     }
   }
 
+  on_wakeup () {
+    super.on_wakeup()
+    console.log("WAKEUP, REJOIN", Object.keys(this.swarms))
+    //XXX hmm it doesn't seem to be rejoining correctly./
+    //also this should happen in 
+    for(var k in this.swarms) {
+      if(k != '_peers')
+        this.join(k)
+    }
+
+
+  }
+
   msg_error (msg, addr, port, ts) {
     debug(1, 'error:', msg)
     this.log('join.error', msg, ts)
@@ -95,10 +108,11 @@ module.exports = class Swarms extends Peer {
         }
       }
     }
-    debug(1, 'connected peer:', peer)
+    debug(1, 'connected peer:', peer, this.id)
   }
 
   join (swarm_id, target_peers = 3) {
+    console.log("JOIN!-----------------------")
     if (!isId(swarm_id)) throw new Error('swarm_id must be a valid id, was:' + swarm_id)
     if (typeof target_peers !== 'number') {
       throw new Error('target_peers must be a number, was:' + target_peers)
@@ -110,12 +124,17 @@ module.exports = class Swarms extends Peer {
     var count = Object.keys(swarm).filter(id => this.peers[id]).length
 
     const send = (id) => {
+      console.log("rejoin", id)
       const peer = this.peers[id]
       this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers: target_peers | 0, current: count}, peer, peer.outport || this.localPort)
     }
-    //check if these peers are currently active
-    const current_peers = Object.keys(this.swarms[swarm_id] || {}).length
+    //XXX check if these peers are currently active
+    let current_peers = 0
+    for(var id in this.swarms[swarm_id])
+      if(isPeerActive(this.peers[id])) current_peers ++
+
     // .filter(id => !!this.peers[id]).length
+    console.log('current peers', current_peers, target_peers) 
     if (current_peers >= target_peers) return
     // update: call join on every introducer (static nat)
     // TODO It would be good to have some way to estimate the number of peers in a swarm.
