@@ -43,7 +43,7 @@ module.exports = class Peer extends PingPeer {
   }
 
   log (action, msg, ts) {
-    debug(2, {
+    debug(3, {
       id: this.id,
       address: this.publicAddress,
       nat: this.nat,
