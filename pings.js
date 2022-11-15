@@ -208,8 +208,6 @@ module.exports = class PingPeer extends EventEmitter {
       if(peer.sent < ts - this.keepalive/2)
         this.ping(peer, ts)
     }
-    for(var k in this.swarms)
-      this.join(k)
   }
 
   on_nat (type) {
@@ -257,6 +255,8 @@ module.exports = class PingPeer extends EventEmitter {
 
   __set_peer (id, address, port, nat, outport=this.localPort, restart = null, ts, isIntroducer) {
     //if(restart === null) throw new Error('null restart time')
+    if(typeof isIntroducer != 'boolean' && typeof introducer != 'undefined')
+      throw new Error('isIntroducer must be boolean, was:'+isIntroducer) 
     assertTs(ts)
     if(!this.peers[id]) {
       debug(2, 'new peer', id.substring(0, 8), fromAddress({address, port}), nat)
