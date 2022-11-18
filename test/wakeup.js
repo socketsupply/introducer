@@ -49,37 +49,6 @@ function isString (s) {
 }
 
 function expect_msgs (network, t) {
-  
-  function eq_addr (a, b) {
-    if(isString(b)) {
-      if(isString(a)) return a === b
-      else            return b === a.address
-    }
-    else if(isString(a)) {
-      return b.address === a
-    }
-    else
-      return a.address === b.address && a.port === b.port
-  }
-
-  network.on_send = (msg, dest, source) => {
-    //on each message, iterate over expected messages and if one matches, remove it.
-    for(var i = 0; i < expected.length; i++) {
-      var ex = expected[i]
-      if(eq_addr(dest, ex.dest) && eq_addr(source, ex.source) && eq_obj(msg, ex.msg))
-        return expected.slice(i, 1)
-    }
-  }
-  function expect (source, dest, msg) {
-    expected.push({source, dest, msg})
-  }
-
-  expect.verify = function () {
-    t.deepEqual(expected, [], 'all expected messages must be consumed')
-  }
-}
-
-function expect_msgs (network, t) {
   var expected = []
 
   function eq_addr (a, b) {
@@ -96,13 +65,24 @@ function expect_msgs (network, t) {
 
   network.on_send = (msg, dest, source) => {
     //on each message, iterate over expected messages and if one matches, remove it.
-    console.log('expected', expected)
+    //console.log('expected', expected)
+//    console.log("SEND", dest, source, msg, expected)
+    if(msg.type === 'join' && msg.id[0] === 'd') {
+      console.log("JOIN", msg, dest, source, expected)
+
     for(var i = 0; i < expected.length; i++) {
       var ex = expected[i]
-      console.log(ex, '===', {msg,dest, source})
-      console.log('eq_addr', eq_addr(dest, ex.dest), eq_addr(source, ex.source), eq_obj(msg, ex.msg))
+      console.log({
+        dest: eq_addr(dest, ex.dest),
+        source: eq_addr(source, ex.source),
+        msg: eq_obj(msg, ex.msg)
+      })
+    }
+
+    }
+    for(var i = 0; i < expected.length; i++) {
+      var ex = expected[i]
       if(eq_addr(dest, ex.dest) && eq_addr(source, ex.source) && eq_obj(msg, ex.msg)) {
-        console.log('SLICE', ex[i])
         return expected.splice(i, 1)
       }
     }
@@ -162,10 +142,13 @@ IndependentFirewallNat)
   //this fails because easypeer thinks that hard is an introducer.???
   t.notOk(peer_easy.peers[peer_hard.id], 'easy has forgotten hard, after being offline for 10 minutes')
 
-  node_hard.sleep(false)
-
+  //setting this before unsleeping makes it pass!
+  //sleep(false) can trigger an event, if a timer was waiting
   //there should be a message from the hard node to the first introducer
   expect({type: 'join'}, '5.6.7.8', A)
+
+  node_hard.sleep(false)
+
 
   network.iterateUntil(12*K) //one more keepalive period (29 seconds)
 
@@ -181,7 +164,7 @@ IndependentFirewallNat)
   t.ok(peer_easy.peers[peer_hard.id], 'easy has found hard again')
 
   
-  t.deepEqual(expect.expected, [], 'hard peer sent a join message to introducer')
+  t.deepEqual(expect.expected, [], 'the hard peer is expected to sent a join message to introducer')
   t.equal(peer_easy.data[swarm].length, 2)
   t.equal(peer_hard.data[swarm].length, 1)
   console.log(peer_easy.data[swarm])
