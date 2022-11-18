@@ -1,0 +1,3 @@
+SEED=1668767790302264927 node test/chat.js
+SEED=1668767797560027722 node test/index.js
+SEED=1668767823437523456 node test/reconnect.js

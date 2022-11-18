@@ -1,3 +1,4 @@
+require('./deterministic')
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
@@ -92,10 +93,11 @@ test('swarm with 1 easy 1 hard', function (t) {
 
   t.end()
 })
+var t = require('assert')
+//test('disconnect, reconnect', function (t) {
 
-test('disconnect, reconnect', function (t) {
-
-  const network = new Network()
+//  const network = new Network()
+function test_wakeup (network, config) {
   let client
   let intro
   network.add(A, new Node(intro = new Introducer({ id: ids.a, keepalive: 5_000 })))
@@ -137,7 +139,7 @@ test('disconnect, reconnect', function (t) {
 
   t.end()
 
-})
+}
 
 test('stay connected via keepalive', function (t) {
   const network = new Network()

@@ -1,4 +1,4 @@
-
+require('./deterministic')
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')

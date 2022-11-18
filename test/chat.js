@@ -1,3 +1,4 @@
+require('./deterministic')
 
 //TODO: peers change ip addresses - done
 //      iterate until timeout - done

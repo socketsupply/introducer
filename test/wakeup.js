@@ -1,3 +1,4 @@
+require('./deterministic')
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
@@ -43,7 +44,80 @@ const intros = {
   introducer2: { id: ids.b, address: B, port: 3456 }
 }
 
-test('swarm with 1 easy 1 hard', function (t) {
+function isString (s) {
+  return 'string' === typeof s
+}
+
+function expect_msgs (network, t) {
+  
+  function eq_addr (a, b) {
+    if(isString(b)) {
+      if(isString(a)) return a === b
+      else            return b === a.address
+    }
+    else if(isString(a)) {
+      return b.address === a
+    }
+    else
+      return a.address === b.address && a.port === b.port
+  }
+
+  network.on_send = (msg, dest, source) => {
+    //on each message, iterate over expected messages and if one matches, remove it.
+    for(var i = 0; i < expected.length; i++) {
+      var ex = expected[i]
+      if(eq_addr(dest, ex.dest) && eq_addr(source, ex.source) && eq_obj(msg, ex.msg))
+        return expected.slice(i, 1)
+    }
+  }
+  function expect (source, dest, msg) {
+    expected.push({source, dest, msg})
+  }
+
+  expect.verify = function () {
+    t.deepEqual(expected, [], 'all expected messages must be consumed')
+  }
+}
+
+function expect_msgs (network, t) {
+  var expected = []
+
+  function eq_addr (a, b) {
+    if(a === b) return true
+    if(a.address === b || b.address === a) return true
+    return (a.address === b.address && a.port === b.port)
+  }
+  function eq_obj (a, b) {
+    for(var k in b)
+      if(a[k] != b[k]) return false
+    return true
+  }
+
+
+  network.on_send = (msg, dest, source) => {
+    //on each message, iterate over expected messages and if one matches, remove it.
+    console.log('expected', expected)
+    for(var i = 0; i < expected.length; i++) {
+      var ex = expected[i]
+      console.log(ex, '===', {msg,dest, source})
+      console.log('eq_addr', eq_addr(dest, ex.dest), eq_addr(source, ex.source), eq_obj(msg, ex.msg))
+      if(eq_addr(dest, ex.dest) && eq_addr(source, ex.source) && eq_obj(msg, ex.msg)) {
+        console.log('SLICE', ex[i])
+        return expected.splice(i, 1)
+      }
+    }
+  }
+  function expect (msg, source, dest) {
+    expected.push({msg, source, dest})
+  }
+
+  expect.expected = expected
+  return expect
+}
+
+
+
+test('swarm with 1 easy 1 hard, the hard node sleeps then wakes, espects to rediscover easy peer', function (t) {
   const swarm = createId('test swarm')
   const network = new Network()
   let client
@@ -51,25 +125,26 @@ test('swarm with 1 easy 1 hard', function (t) {
   network.add(A, new Node(intro = new Introducer({ id: ids.a, keepalive: 5_000 })))
   network.add(B, new Node(new Introducer({ id: ids.b, keepalive: 5_000 })))
 
-  const [peer_easy, nat_easy] = createNatPeer(network, createId('id:easy'), '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
-  const [peer_hard, nat_hard, node_hard] = createNatPeer(network, createId('id:hard'), '5.6.7.8', '5.6.7.82',
+  const [peer_easy, nat_easy] = createNatPeer(network, ids.c, '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
+  const [peer_hard, nat_hard, node_hard] = createNatPeer(network, ids.d, '5.6.7.8', '5.6.7.82',
 IndependentFirewallNat)
 // DependentNat)
 
   network.iterateUntil(10_000)
   peer_easy.join(swarm)
   peer_hard.join(swarm)
-
+  console.error('SEED='+process.env.SEED)
   network.iterateUntil(20_000)
 
   // the introducer should know about everyone's nats now.
   t.equal(intro.peers[peer_easy.id].nat, 'easy')
   t.equal(intro.peers[peer_hard.id].nat, 'easy')
 
+  t.notEqual(peer_easy.peers[peer_hard.id].introducer, true, 'easy peer does not consider hard peer an introducer')
+  t.notEqual(peer_hard.peers[peer_easy.id].introducer, true, 'hard peer does not consider easy peer an introducer')
+
   t.ok(peer_easy.peers[peer_hard.id], 'easy peer knows hard peer')
   t.ok(peer_hard.peers[peer_easy.id], 'hard peer knows easy peer')
-
-  console.log('keepalive', K)
 
   network.iterateUntil(K/2)
 
@@ -79,27 +154,34 @@ IndependentFirewallNat)
   
   //TODO test emit wakeup/lost peer event
 
+  var expect = expect_msgs(network)
+
   network.iterateUntil(11*K)
 
   //another half minute is enough to wake up
+  //this fails because easypeer thinks that hard is an introducer.???
   t.notOk(peer_easy.peers[peer_hard.id], 'easy has forgotten hard, after being offline for 10 minutes')
 
-  console.log("WAKEUP")
   node_hard.sleep(false)
 
-  network.iterateUntil(12*K)
+  //there should be a message from the hard node to the first introducer
+  expect({type: 'join'}, '5.6.7.8', A)
+
+  network.iterateUntil(12*K) //one more keepalive period (29 seconds)
 
   //TODO test emit found peer event
 
   //give the peer a chance to reconnect,
   //since we have not yet any form of implemented eventual consistency
 
-  console.log(peer_easy.peers[peer_hard.id])
+  //easy peer posts another message
   peer_easy.handlers[swarm].chat({content: 'expected', ts: 11*K, swarm}) //node_hard will not see this
 
   network.iterateUntil(13*K)
   t.ok(peer_easy.peers[peer_hard.id], 'easy has found hard again')
 
+  
+  t.deepEqual(expect.expected, [], 'hard peer sent a join message to introducer')
   t.equal(peer_easy.data[swarm].length, 2)
   t.equal(peer_hard.data[swarm].length, 1)
   console.log(peer_easy.data[swarm])
