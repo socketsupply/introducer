@@ -57,7 +57,9 @@ function dejoin (intro) {
   return intro
 }
 
-test.only('broadcast', function (t) {
+//three static peers join a swarm and broadcast updates
+
+test('broadcast', function (t) {
   const network = new Network()
   let peerD, peerE
   network.add(A, new Node(dejoin(new Introducer({ id: ids.a }))))
@@ -76,7 +78,6 @@ test.only('broadcast', function (t) {
   t.equal(peerD.nat, 'static')
   t.equal(peerE.nat, 'static')
   t.equal(peerF.nat, 'static')
-  console.log(peerE.peers)
 
   peerD.on_change = peerE.on_change = peerF.on_change = () => {}
 
@@ -96,31 +97,33 @@ test.only('broadcast', function (t) {
 
   network.iterate(-1)
 
-  t.ok(peerD.swarms[swarm][peerE.id])
-  t.ok(peerE.swarms[swarm][peerD.id])
-  t.ok(peerE.swarms[swarm][peerF.id])
-  t.ok(peerF.swarms[swarm][peerE.id])
+  t.ok(peerE.peers[peerD.id], 'peer E knows peer D')
+  t.ok(peerD.peers[peerE.id], 'peer D knows peer E')
+  t.ok(peerF.peers[peerE.id], 'peer F knows peer E')
 
-  t.ok(peerE.peers[peerD.id])
-  t.ok(peerF.peers[peerE.id])
-  t.deepEqual(peerE.data[swarm], peerD.data[swarm])
-  t.deepEqual(peerF.data[swarm], peerD.data[swarm])
+  t.ok(peerD.swarms[swarm][peerE.id], 'peer D knows E is in swarm')
+  t.ok(peerE.swarms[swarm][peerD.id], 'peer E knows D is in swarm')
+  t.ok(peerE.swarms[swarm][peerF.id], 'peer E knows F is in swarm')
+  t.ok(peerF.swarms[swarm][peerE.id], 'peer F knows E is in swarm')
+
+  t.deepEqual(peerE.data[swarm], peerD.data[swarm], 'peers E and D have consistent data')
+  t.deepEqual(peerF.data[swarm], peerD.data[swarm], 'peers F and D have consistent data')
 
   var joined = join(null, logs)
 
-  console.log(JSON.stringify(joined, null, 1))
-
   function assert_connected (id, target) {
-    t.ok(joined[peerE.id].connections[peerD.id])
-    var connections = joined[peerE.id].connections[peerD.id]
-    t.ok(connections, 'entry for peer E exists for peer D\'s connections')
-    t.ok(Object.keys(connections).length)
+    var connections = joined[id].connections[target]
+    t.ok(connections,
+      `peer ${id.substring(0, 8)} has connected to peer ${target.substring(0, 8)}`
+    )
+    t.ok(Object.keys(connections).length,   '... at least once')
     for(var ts in connections)
-      t.ok(connections[ts].connected)
+      t.ok(connections[ts].connected, '...connection was successful')
   }
 
   assert_connected(peerE.id, peerD.id)
   assert_connected(peerD.id, peerE.id)
+
   assert_connected(peerE.id, peerF.id)
   assert_connected(peerF.id, peerE.id)
 
@@ -156,7 +159,6 @@ test('broadcast, easy nat', function (t) {
 
   peerD.intro(peerE.id)
   peerF.intro(peerE.id)
-
   network.iterate(-1)
 
   var ts = Date.now()
@@ -165,8 +167,8 @@ test('broadcast, easy nat', function (t) {
 
   network.iterate(-1)
 
-  t.ok(peerE.peers[peerD.id])
-  t.ok(peerF.peers[peerE.id])
+  t.ok(peerE.peers[peerD.id], 'peer E knows peer D')
+  t.ok(peerF.peers[peerE.id], 'peer F knows peer E')
   t.deepEqual(peerE.data, peerD.data)
   t.deepEqual(peerF.data, peerD.data)
 
