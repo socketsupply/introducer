@@ -89,21 +89,27 @@ module.exports = class Peer extends PingPeer {
     // note: ping3 checks if we are already communicating
     const ap = msg.address + ':' + msg.port
 
+    this.__set_peer(msg.target, msg.address, msg.port, msg.nat, this.localPort, null, ts)
+    const peer = this.peers[msg.target]
+
     if (isId(msg.swarm)) {
       swarm = this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
+      const _swarm = swarm[msg.target]
       swarm[msg.target] = -ts
+      if(!_swarm) {
+        if(this.on_swarm)
+          this.on_swarm(msg.swarm, peer, ts)
+      }
+
       if(msg.peers != undefined)
         swarm._peers = msg.peers
       //we have learnt about a new peer, but we havn't connected to them yet.
       //keep it in the peers table, but do not notify on_peer until a message is received from that peer directly
       //(probably a ping or a pong)
 
-      this.__set_peer(msg.target, msg.address, msg.port, msg.nat, this.localPort, null, ts)
     }
-
     // if we already know this peer, but the address has changed,
     // reset the connection to them...
-    const peer = this.peers[msg.target]
     //XXX: because of recent changes, the peer should *always* be known now.
     //so need a different way to decide if we are still connected.
     
@@ -192,7 +198,7 @@ module.exports = class Peer extends PingPeer {
           // send messages until we receive a message from them. giveup after sending 1000 packets.
           // 50% of the time 250 messages should be enough.
           const s = Math.round((date_now - start) / 100) / 10
-          if (i++ > 2000) {
+          if (i++ > constants.bdpMaxPackets) {
             debug(1, 'connection failed:', i, s, short_id, ap)
             //note, successfull connections are now logged via msg_ping and msg_pong
             peer.connecting = null
@@ -201,7 +207,7 @@ module.exports = class Peer extends PingPeer {
           } else if (this.peers[msg.target] && this.peers[msg.target].pong) {
             debug(1, 'connected:', i, s, short_id, ap)
             peer.connecting = null
-            this.log('connect.failed', msg, ts)
+            this.log('connect.success', msg, ts)
             return false
           }
           peer.sent = date_now
@@ -283,7 +289,7 @@ module.exports = class Peer extends PingPeer {
     const from_peer = this.peers[msg.id]
     if(msg.swarm) {
       this.swarms[msg.swarm] = this.swarms[msg.swarm] || {}
-      this.swarms[msg.swarm][msg.id] = ts
+      this.swarms[msg.swarm][msg.target] = ts
     }
     if (to_peer && from_peer) {
       // tell the target peer to connect, and also tell the source peer the addr/port to connect to.
