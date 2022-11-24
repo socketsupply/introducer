@@ -233,7 +233,7 @@ test('empty swarm', function (t) {
 
   let empty
   peer_easy.msg_error = function (msg) {
-    empty = msg.id
+    empty = msg.swarm
   }
 
   network.iterate(-1)
