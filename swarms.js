@@ -82,16 +82,21 @@ module.exports = class Swarms extends Peer {
     }
   }
 
+  _rejoin (k) {
+      if(k != '_peers' && this.swarms[k][this.id])
+        this.join(k)
+  }
+
+  _rejoin_all () {
+    for(var k in this.swarms)
+      this._rejoin(k)
+  }
+
   on_wakeup () {
     super.on_wakeup()
     //XXX hmm it doesn't seem to be rejoining correctly./
     //also this should happen in 
-    for(var k in this.swarms) {
-      if(k != '_peers')
-        this.join(k)
-    }
-
-
+    this._rejoin_all()
   }
 
   msg_error (msg, addr, port, ts) {
@@ -102,12 +107,16 @@ module.exports = class Swarms extends Peer {
   on_peer (peer, ts) {
     for(var swarm in this.swarms) {
       if(this.swarms[swarm][peer.id]) {
-        if(this.handlers[swarm] && this.handlers[swarm].on_peer) {
-          this.handlers[swarm].on_peer(peer, ts)
-        }
+        this.on_swarm(swarm, peer, ts)
       }
     }
     debug(1, 'connected peer:', peer, this.id)
+  }
+
+  on_swarm (swarm, peer, ts) {
+    if(this.handlers[swarm] && this.handlers[swarm].on_peer) {
+      this.handlers[swarm].on_peer(peer, ts)
+    }  
   }
 
   join (swarm_id, target_peers = 3) {
@@ -116,20 +125,21 @@ module.exports = class Swarms extends Peer {
       throw new Error('target_peers must be a number, was:' + target_peers)
     }
     var swarm = this.swarms[swarm_id] = this.swarms[swarm_id] || {_peers: 0} 
+    this.swarms[swarm_id][this.id] = -1
     if(swarm._peers == undefined)
       throw new Error('missing _peers')
 
-    var count = Object.keys(swarm).filter(id => this.peers[id]).length
-
-    const send = (id) => {
-      console.log("rejoin", id)
-      const peer = this.peers[id]
-      this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers: target_peers | 0, current: count}, peer, peer.outport || this.localPort)
-    }
+    ///XXX count should use isActivePeer
+//    var count = Object.keys(swarm).filter(id => this.peers[id]).length
     //XXX check if these peers are currently active
     let current_peers = 0
     for(var id in this.swarms[swarm_id])
       if(isPeerActive(this.peers[id])) current_peers ++
+
+    const send = (id) => {
+      const peer = this.peers[id]
+      this.send({ type: 'join', id: this.id, swarm: swarm_id, nat: this.nat, peers: target_peers | 0, current: current_peers}, peer, peer.outport || this.localPort)
+    }
 
     if (current_peers >= target_peers) return debug(2, 'join: fully peered, skipping join msg')
     // update: call join on every introducer (static nat)
@@ -140,14 +150,15 @@ module.exports = class Swarms extends Peer {
     //      when the swarm is small, if the swarm gets big the exact size doesn't matter
     //      because it becomes very likely someone will always be online and we can rely on statistical
     //      probabilities to ensure a connected network etc
-    if(this.keepalive)
+    if(this.keepalive) {
       this.timer(this.keepalive, 0, (ts) => {
         var swarm = this.swarms[swarm_id]
         var count = Object.keys(swarm).filter(id => this.peers[id]).length
 
         if(count < target_peers)
-          this.join(swarm_id, target_peers)
+          this._rejoin(swarm_id)
       })
+    }
 
     if (current_peers) {
       for (var id in this.swarms[swarm_id]) {
@@ -168,18 +179,16 @@ module.exports = class Swarms extends Peer {
     const p = this.peers[other.id]
     //XXX count the active peers already in this swarm
     //    and send how many more peers we need
-    //    also consider sending join messages to other peers in this swarm
+    //    also consider join sending messages to other peers in this swarm
     if (!p) return
      if(p.introducer) {
-      for (const k in this.swarms) { this.join(k) }
+      this._rejoin_all()
     }
     else
       for (const k in this.swarms) {
-        if(this.swarms[k][other.id])
-          this.join(k)
-        
+        if(this.swarms[k][other.id] && this.swarms[k][this.id])
+          this._rejoin(k)
       }
-      
   }
 
   // __set_peer (id, address, port, nat, outport, restart) {
@@ -204,6 +213,8 @@ module.exports = class Swarms extends Peer {
     ids = ids
       .filter(id => this.peers[id]) //defensive: ignore peers which might be in swarm table but not peers tabel
       .sort(cmpRand)
+
+    console.log("IDS", ids)
       //this is a filter to only connect recently active peers, but this was wrong...
       //.filter(id => this.peers[id].recv > (ts - this.keepalive*4))
 
@@ -232,6 +243,9 @@ module.exports = class Swarms extends Peer {
       this.log('join', {from: peer.id, to: ids[i]}, ts)
       //note, pass ts to connect, so that we can compare logs later and know
       //which peers successfully connected
+      if(ids[i][0] === 'a')
+        console.log('***********', ids, swarm, this.id)
+      console.log("CONNECT:", ids[i].substring(0, 8), peer.id.substring(0, 8))
       this.connect(ids[i], peer.id, msg.swarm, this.localPort, {peers: total_peers, ts})
       this.connect(peer.id, ids[i], msg.swarm, this.localPort, {peers: total_peers, ts})
     }
