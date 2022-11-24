@@ -4,8 +4,8 @@
 MAX=${MAX:-100}
 
 run () {
-  SEED=$(date +%s%N)
   C=0
+  SEED=$C #date +%s%N)
   #SEED=RANDOM_SEED_$C
   CONTINUE=1
 
@@ -19,11 +19,11 @@ run () {
       echo
       echo SEED=$SEED node $1 1>&2
       echo
-      CONTINUE=0
+      return 1
     fi
     if test $C -ge $MAX; then
-      CONTINUE=0
       echo
+      return 0
     fi
     SEED=$(date +%s%N)
     C=$(($C+1))
@@ -34,11 +34,17 @@ run () {
 #echo SEED=$SEED node $1
 
 all () {
+  failures=0
   for R in test/*.js; do
     if [[ "$R" == "${R#test/z}" ]]; then
-      run $R
+      if run $R; then
+        echo
+      else
+        failures=$(($failures+1))
+      fi
     fi
   done
+  exit $failures
 }
 
 "$@"
