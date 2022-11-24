@@ -13,6 +13,8 @@ module.exports = class ReliableSwarm extends Swarm {
   }
 
   on_nat () {
+    //or would it be better if swarms always just joined????
+    //oh it's delayed because we can't actually join a swarm until nat is known.
     this.peer.join(this.id)
     //can comment this out, because on_peer sends head
 //    this.peer.timer(1000, 0, (ts) => this.head(null, ts))
