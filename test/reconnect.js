@@ -9,6 +9,9 @@ const { createId } = require('./util')
 
 const { Node, Network, IndependentNat, IndependentFirewallNat, DependentNat } = require('@socketsupply/netsim')
 const localPort = 3456
+
+const constants = require('../lib/constants')
+constants.bdpMaxPackets = Math.Infinity
 // var nc = require('../')
 
 const A = '1.1.1.1'
@@ -72,8 +75,8 @@ test('swarm with 1 easy 1 hard', function (t) {
 
   // console.log(nat_hard)
 
-  console.log(peer_easy.peers[peer_hard.id])
-  console.log(peer_hard.peers[peer_easy.id])
+  //console.log(peer_easy.peers[peer_hard.id])
+  //console.log(peer_hard.peers[peer_easy.id])
 
   var new_nat = new IndependentFirewallNat()
 
@@ -82,7 +85,7 @@ test('swarm with 1 easy 1 hard', function (t) {
 
   network.iterateUntil(30_000)
 
-  console.log(peer_hard)
+  //console.log(peer_hard)
   t.equal(peer_hard.localAddress, '2.4.6.80')
   t.equal(peer_hard.publicAddress, '2.4.6.8', 'public address is correct')
   t.equal(peer_easy.peers[peer_hard.id].address, '2.4.6.8', 'other peer knows the new public address')
@@ -121,8 +124,8 @@ function test_wakeup (network, config) {
 
   // console.log(nat_hard)
 
-  console.log(peer_easy.peers[peer_hard.id])
-  console.log(peer_hard.peers[peer_easy.id])
+//  console.log(peer_easy.peers[peer_hard.id])
+//   console.log(peer_hard.peers[peer_easy.id])
 
   var new_nat = new IndependentFirewallNat()
 
@@ -131,7 +134,6 @@ function test_wakeup (network, config) {
 
   network.iterateUntil(30_000)
 
-  console.log(peer_hard)
   t.equal(peer_hard.localAddress, '2.4.6.80')
   t.equal(peer_hard.publicAddress, '2.4.6.8', 'public address is correct')
   t.equal(peer_easy.peers[peer_hard.id].address, '2.4.6.8', 'other peer knows the new public address')
@@ -156,17 +158,26 @@ test('stay connected via keepalive', function (t) {
   network.iterateUntil(3_000)
   peer_easy.join(swarm)
   peer_hard.join(swarm)
-  network.iterateUntil(5_000)
+  var time = 5_000
+  network.iterateUntil(time)
 
-  t.ok(peer_easy.peers[peer_hard.id].recv > 0, 'easy peer received from hard')
-  t.ok(peer_hard.peers[peer_easy.id].recv > 0, 'hard peer received from easy')
+  while(!(peer_easy.peers[peer_hard.id].recv && peer_hard.peers[peer_easy.id].recv)) {
+    network.iterateUntil(time += 1000)
+    if(time > 65536) throw new Error('should never take this long')
+  } 
+
+  t.ok(peer_easy.peers[peer_hard.id], 'easy peer knows hard peer, after joining swarm')
+  t.ok(peer_hard.peers[peer_easy.id], 'hard peer knows easy peer, after joining swarm')
+  
+  t.ok(peer_easy.peers[peer_hard.id].recv > 0, 'easy peer received pings from hard')
+  t.ok(peer_hard.peers[peer_easy.id].recv > 0, 'hard peer received pings from easy')
 
   //run simulation for 10 minutes.
   //the peers should send multiple keepalives in this time
-  network.iterateUntil(10*60_000)
+  network.iterateUntil(time + 10*60_000)
 
-  console.log(peer_easy.peers[peer_hard.id])
-  console.log(peer_hard.peers[peer_easy.id])
+//  console.log(peer_easy.peers[peer_hard.id])
+//  console.log(peer_hard.peers[peer_easy.id])
   t.ok(peer_easy.peers[peer_hard.id].recv > 5_000, 'easy peer received from hard since start')
   t.ok(peer_hard.peers[peer_easy.id].recv > 5_000, 'hard peer received from easy since start')
 
