@@ -1,3 +1,5 @@
+require('./deterministic')
+
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
@@ -57,8 +59,8 @@ test('intro', function (t) {
   console.log(peerE)
   console.log(peerD)
 
-  t.ok(peerE.peers[peerD.id])
-  t.ok(peerD.peers[peerE.id])
+  t.ok(peerE.peers[peerD.id], 'peer E has connected to peer D')
+  t.ok(peerD.peers[peerE.id], 'peer D has connected to peer E')
 
   t.end()
 })

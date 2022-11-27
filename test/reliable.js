@@ -1,5 +1,7 @@
 'use strict'
 
+require('./deterministic')
+
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
@@ -200,11 +202,16 @@ test('swarm, make updates while offline, before connection', function (t) {
   t.equal(peerF.nat, 'easy')
 
 //  peerF.join(swarm)
+  //if our peer calls join, and connect messages are sent
+  //but the other peers receive the connect message and connect before
+  //we actually get the connect then we'll know about the peer before we know
+  //that peer is in the swarm. 
   var swarmF = peerF.createModel(swarm, new Reliable(swarm))
   var received = []
   swarmF.on_change = (msg) => received.push(msg)
   var notified_on_peer = 0
   var on_peer = swarmF.on_peer
+  console.log("expected notify peer", peerF.id)
   swarmF.on_peer = function (peer, ts) {
     console.log("ON_PEER")
     notified_on_peer ++
@@ -218,8 +225,13 @@ test('swarm, make updates while offline, before connection', function (t) {
   //network.iterateUntil(6000)
   t.deepEqual(swarmF.data, swarmD.data)
   t.equal(received.length, 2)
-  t.ok(notified_on_peer)
+  t.ok(notified_on_peer, 'on_peer callback has been called')
   //*/
   t.end()
 })
 
+
+//I thought of another possibility. what if you are already connected to a peer
+//and then you join a swarm that they are in (creating a connect message)
+//but you are already connected so you do nothing.
+//but 

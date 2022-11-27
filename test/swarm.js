@@ -1,3 +1,5 @@
+require('./deterministic')
+
 const test = require('tape')
 const crypto = require('crypto')
 const { EventEmitter } = require('events')
@@ -231,7 +233,7 @@ test('empty swarm', function (t) {
 
   let empty
   peer_easy.msg_error = function (msg) {
-    empty = msg.id
+    empty = msg.swarm
   }
 
   network.iterate(-1)
@@ -284,7 +286,7 @@ test('notify on_peer, swarm', function (t) {
   t.end()
 })
 
-test.only('notify on_peer, swarm', function (t) {
+test('notify on_peer, swarm', function (t) {
   // t.fail('TODO: check that there is notification when a new peer connects for the first time')
 
   const swarm = createId('test swarm')
@@ -294,17 +296,21 @@ test.only('notify on_peer, swarm', function (t) {
   network.add(A, new Node(intro = new Introducer({ id: ids.a })))
   network.add(B, new Node(new Introducer({ id: ids.b })))
 
-  const [peer1, nat1] = createNatPeer(network, createId('id:1'), '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
-  const [peer2, nat2] = createNatPeer(network, createId('id:2'), '5.6.7.8', '5.6.7.82', IndependentFirewallNat)
+  const [peer1, nat1] = createNatPeer(network, ids.c, '1.2.3.4', '1.2.3.42', IndependentFirewallNat)
+  const [peer2, nat2] = createNatPeer(network, ids.d, '5.6.7.8', '5.6.7.82', IndependentFirewallNat)
 
   //createModel joins the swarm internally
   const m1 = peer1.createModel(swarm)
   const m2 = peer2.createModel(swarm)
 
+  console.log(peer1)
+
+
   let notify = 0
   m1.on_peer = (peer) => {
     console.log('ON PEER 1', peer)
     notify |= 1
+    console.log('swarms', peer1.swarms)
     t.equal(peer.id, peer2.id)
     t.ok(peer1.swarms[swarm][peer.id])
   }
@@ -316,6 +322,10 @@ test.only('notify on_peer, swarm', function (t) {
   }
 
   network.iterate(-1)
+  //joining the swarm must wait until after nat is known so it must be checked after some iteration.
+  t.ok(peer1.swarms[swarm][peer1.id], 'self is added to swarm when joining a swarm')
+  t.ok(peer2.swarms[swarm][peer2.id], 'self is added to swarm when joining a swarm')
+
   t.ok(peer1.peers[peer2.id].pong, 'peer1 has received pong from peer2')
   t.ok(peer2.peers[peer1.id].pong, 'peer2 has received pong from peer1')
   t.equal(notify, 3, 'there were two peer notifications')
