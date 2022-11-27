@@ -3,10 +3,15 @@
 #SEED=$(date +%s%N)
 MAX=${MAX:-100}
 
+next_seed () {
+  SEED=$C #date +%s%N)  
+}
+
 run () {
   C=0
   SEED=$C #date +%s%N)
   #SEED=RANDOM_SEED_$C
+  next_seed
   CONTINUE=1
 
   echo "# TEST $1"
@@ -25,7 +30,8 @@ run () {
       echo
       return 0
     fi
-    SEED=$(date +%s%N)
+    SEED=$C #date +%s%N)  
+#    SEED=$(date +%s%N)
     C=$(($C+1))
   done
 
